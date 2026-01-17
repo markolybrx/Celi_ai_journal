@@ -3,38 +3,46 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>Celi | Sovereign Vault</title>
+    <title>Celi</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body { background: #050505; color: #e2e8f0; font-family: sans-serif; height: 100dvh; display: flex; flex-direction: column; overflow: hidden; }
+        #chat-box { display: flex; flex-direction: column; } /* Natural flow from top to bottom */
+        .msg-container { display: flex; flex-direction: column; justify-content: flex-end; height: 100%; }
         .btn { background: #6366f1; color: white; padding: 15px; border-radius: 15px; font-weight: bold; width: 100%; }
-        input { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: white; padding: 15px; border-radius: 15px; width: 100%; outline: none; margin-bottom: 10px; }
-        .mode-active { background: #ef4444; border-color: #ef4444; }
+        input { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: white; padding: 15px; border-radius: 15px; width: 100%; outline: none; }
+        .dot { width: 6px; height: 6px; background: #6366f1; border-radius: 50%; display: inline-block; animation: wave 1.3s linear infinite; }
+        .dot:nth-child(2) { animation-delay: -1.1s; }
+        .dot:nth-child(3) { animation-delay: -0.9s; }
+        @keyframes wave { 0%, 60%, 100% { transform: initial; } 30% { transform: translateY(-5px); } }
     </style>
 </head>
 <body class="p-5">
 
     <div id="setup" class="fixed inset-0 bg-black z-50 p-10 flex flex-col justify-center">
-        <h1 class="text-center text-xs tracking-widest text-gray-500 mb-10">GENESIS PROTOCOL</h1>
-        <input id="reg-name" placeholder="What should I call you?">
-        <input id="reg-bday" type="date">
-        <button onclick="saveVault()" class="btn">ACTIVATE VAULT</button>
+        <h1 class="text-center text-xs tracking-widest text-gray-500 mb-10">GENESIS</h1>
+        <input id="reg-name" placeholder="Name">
+        <input id="reg-bday" type="date" class="mt-2">
+        <button onclick="saveVault()" class="btn mt-4">START</button>
     </div>
 
     <div class="flex flex-col h-full">
-        <div class="flex justify-between items-center py-2">
-            <span class="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Celi Stream</span>
-            <button id="vent-btn" onclick="toggleVenting()" class="text-[10px] border border-gray-700 px-3 py-1 rounded-full text-gray-400 transition-all">
-                VENTING: OFF
-            </button>
+        <div class="flex justify-between items-center py-2 border-b border-white/5">
+            <span class="text-[10px] font-bold text-gray-600 uppercase">Neural Stream</span>
+            <button id="vent-btn" onclick="toggleVenting()" class="text-[10px] border border-gray-700 px-3 py-1 rounded-full">VENTING: OFF</button>
         </div>
 
-        <div id="chat-box" class="flex-grow overflow-y-auto space-y-4 pt-5 pb-5">
-            <p id="celi-status" class="text-indigo-400 text-sm italic">Celi is listening. What's on your heart?</p>
+        <div class="flex-grow overflow-y-auto flex flex-col">
+            <div class="mt-auto"></div> <div id="chat-box" class="space-y-4 p-2">
+                <p class="text-indigo-400 text-sm italic">Celi is here.</p>
+            </div>
+            <div id="typing" class="hidden p-4 space-x-1">
+                <div class="dot"></div><div class="dot"></div><div class="dot"></div>
+            </div>
         </div>
         
-        <div class="mt-auto pb-5 flex gap-2">
-            <input id="user-input" class="flex-grow !mb-0" placeholder="Speak..." onkeydown="if(event.key==='Enter') sendMsg()">
+        <div class="mt-auto pb-5 pt-4 flex gap-2">
+            <input id="user-input" class="flex-grow" placeholder="Speak..." onkeydown="if(event.key==='Enter') sendMsg()">
             <button onclick="sendMsg()" class="bg-indigo-600 px-6 rounded-2xl font-bold">GO</button>
         </div>
     </div>
@@ -45,54 +53,41 @@
 
         function saveVault() {
             const n = document.getElementById('reg-name').value;
-            const b = document.getElementById('reg-bday').value;
-            if(!n) return alert("I need a name to care for you properly.");
+            if(!n) return alert("I need a name.");
             vaultData.name = n;
-            vaultData.bday = b;
             document.getElementById('setup').style.display = 'none';
         }
 
         function toggleVenting() {
             ventingMode = !ventingMode;
-            const btn = document.getElementById('vent-btn');
-            const status = document.getElementById('celi-status');
-            
-            if(ventingMode) {
-                btn.innerText = "VENTING: ON";
-                btn.classList.add('mode-active', 'text-white');
-                status.innerText = "Venting mode active. I'm just here to listen. No advice, just you.";
-            } else {
-                btn.innerText = "VENTING: OFF";
-                btn.classList.remove('mode-active', 'text-white');
-                status.innerText = "Companion mode active. Ready for wit and wisdom.";
-            }
+            document.getElementById('vent-btn').innerText = ventingMode ? "VENTING: ON" : "VENTING: OFF";
+            document.getElementById('vent-btn').style.background = ventingMode ? "#ef4444" : "transparent";
         }
 
         async function sendMsg() {
             const i = document.getElementById('user-input');
             const box = document.getElementById('chat-box');
+            const type = document.getElementById('typing');
             const val = i.value.trim();
             if(!val) return;
 
-            box.innerHTML += `<div class="text-right"><p class="inline-block bg-indigo-900/30 p-3 rounded-2xl text-sm">${val}</p></div>`;
+            box.innerHTML += `<div class="text-right"><p class="inline-block bg-indigo-900/40 p-3 rounded-2xl text-sm">${val}</p></div>`;
             i.value = '';
+            type.classList.remove('hidden');
+            box.parentElement.scrollTop = box.parentElement.scrollHeight;
 
             try {
                 const response = await fetch('/api/process', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ 
-                        message: val, 
-                        profile: vaultData,
-                        venting_mode: ventingMode 
-                    })
+                    body: JSON.stringify({ message: val, profile: vaultData, venting_mode: ventingMode })
                 });
-                
                 const data = await response.json();
-                box.innerHTML += `<div class="text-left"><p class="inline-block bg-gray-800/50 p-3 rounded-2xl text-sm text-indigo-100">${data.reply}</p></div>`;
-                box.scrollTop = box.scrollHeight;
+                type.classList.add('hidden');
+                box.innerHTML += `<div class="text-left animate-in fade-in duration-500"><p class="inline-block bg-gray-800/80 p-3 rounded-2xl text-sm text-indigo-100">${data.reply}</p></div>`;
+                box.parentElement.scrollTop = box.parentElement.scrollHeight;
             } catch (e) {
-                box.innerHTML += `<p class="text-red-500 text-xs">Handshake failed. Check connection.</p>`;
+                type.classList.add('hidden');
             }
         }
     </script>
