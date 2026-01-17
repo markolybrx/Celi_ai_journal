@@ -3,71 +3,110 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Celi: Voyager Vessel</title>
+    <title>Voyager Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         :root { --rank-color: #3B82F6; --pulse-speed: 8s; --mood-color: #A855F7; }
         html, body { background: #050505; color: #fff; margin: 0; padding: 0; overflow: hidden; height: 100%; font-family: sans-serif; }
         .pulse-bg { position: fixed; inset: 0; z-index: -1; box-shadow: inset 0 0 150px -50px var(--rank-color); animation: voidBreath var(--pulse-speed) infinite alternate; }
         @keyframes voidBreath { 0% { opacity: 0.2; } 100% { opacity: 0.5; } }
-        header { position: fixed; top: 0; width: 100%; z-index: 100; background: rgba(5,5,5,0.95); backdrop-filter: blur(20px); padding-top: env(safe-area-inset-top); border-bottom: 1px solid rgba(255,255,255,0.05); }
-        .cal-nav { display: flex; justify-content: space-between; align-items: center; padding: 15px 24px; }
+
+        header { position: fixed; top: 0; width: 100%; z-index: 100; background: rgba(5,5,5,0.95); backdrop-filter: blur(25px); padding-top: env(safe-area-inset-top); border-bottom: 1px solid rgba(255,255,255,0.05); }
+        .profile-bar { padding: 20px 24px 10px; display: flex; justify-content: space-between; align-items: center; }
+        .rank-tag { font-size: 10px; font-weight: 900; color: var(--rank-color); text-transform: uppercase; letter-spacing: 2px; }
+
+        .cal-nav { display: flex; justify-content: space-between; align-items: center; padding: 10px 24px; border-top: 1px solid rgba(255,255,255,0.03); }
         .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; padding: 10px 20px 20px; text-align: center; }
-        .cal-day { font-size: 10px; opacity: 0.4; }
-        .cal-date { font-size: 14px; padding: 8px 0; border-radius: 12px; cursor: pointer; }
+        .cal-day { font-size: 10px; opacity: 0.3; text-transform: uppercase; }
+        .cal-date { font-size: 13px; padding: 8px 0; border-radius: 12px; cursor: pointer; position: relative; z-index: 10; transition: 0.3s; }
         .cal-today { background: var(--rank-color); color: #000; font-weight: 900; }
-        .scroll-area { position: absolute; inset: 0; overflow-y: scroll; padding: 300px 24px 150px; z-index: 10; scrollbar-width: none; }
+        .streak-pulse { position: absolute; height: 2px; background: var(--rank-color); opacity: 0.4; top: 50%; transform: translateY(-50%); z-index: 5; pointer-events: none; }
+
+        .scroll-area { position: absolute; inset: 0; overflow-y: scroll; padding: 380px 24px 150px; z-index: 10; scrollbar-width: none; }
         .entry-card { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); border-radius: 24px; padding: 24px; margin-bottom: 15px; }
-        #celi-node { position: fixed; bottom: 115px; left: 24px; z-index: 300; display: flex; align-items: flex-end; }
-        .avatar-icon { width: 65px; height: 65px; border-radius: 50%; background: var(--mood-color); border: 2px solid rgba(255,255,255,0.3); box-shadow: 0 0 25px var(--mood-color); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: 0.5s; }
-        .celi-bubble { margin-left: 15px; width: 280px; background: rgba(15, 15, 20, 0.98); backdrop-filter: blur(25px); border: 1px solid rgba(255,255,255,0.1); border-radius: 28px; border-bottom-left-radius: 4px; padding: 24px; opacity: 0; transform: scale(0.9) translateX(-10px); pointer-events: none; transition: 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
-        .celi-bubble.active { opacity: 1; transform: scale(1) translateX(0); pointer-events: auto; }
-        .gloss-btn { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); padding: 16px; border-radius: 20px; text-align: center; font-size: 14px; font-weight: bold; margin-top: 10px; cursor: pointer; box-shadow: inset 0 1px 1px rgba(255,255,255,0.1); }
-        nav { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); width: 92%; height: 75px; border-radius: 100px; background: rgba(255,255,255,0.08); backdrop-filter: blur(40px); border: 1px solid rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: space-around; z-index: 200; }
-        #writer { position: fixed; inset: 0; background: #000; z-index: 500; display: none; flex-direction: column; align-items: center; justify-content: center; padding: 40px; }
-        #writer textarea { font-size: 28px; width: 100%; background: transparent; color: white; border: none; outline: none; text-align: center; line-height: 1.4; }
-        #writer button { margin-top: 50px; background: white; color: black; padding: 24px 80px; border-radius: 100px; font-weight: 900; }
-        .typing-tag { position: absolute; left: 80px; bottom: 10px; font-size: 11px; opacity: 0.5; display: none; }
+
+        #celi-trigger { position: fixed; bottom: 115px; right: 24px; z-index: 400; width: 60px; height: 60px; border-radius: 50%; background: var(--mood-color); box-shadow: 0 0 25px var(--mood-color); display: flex; align-items: center; justify-content: center; cursor: pointer; border: 2px solid rgba(255,255,255,0.2); }
+        
+        /* Celi Modal */
+        .celi-modal { position: fixed; bottom: 190px; right: 24px; width: 320px; max-height: 450px; background: rgba(15, 15, 20, 0.98); backdrop-filter: blur(30px); border: 1px solid rgba(255,255,255,0.1); border-radius: 30px; border-bottom-right-radius: 5px; padding: 25px; opacity: 0; transform: scale(0.9) translateY(20px); pointer-events: none; transition: 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); z-index: 500; display: flex; flex-direction: column; }
+        .celi-modal.active { opacity: 1; transform: scale(1) translateY(0); pointer-events: auto; }
+        .modal-body { overflow-y: auto; scrollbar-width: none; flex: 1; }
+
+        .gloss-btn { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); padding: 18px; border-radius: 20px; text-align: center; font-size: 14px; font-weight: bold; margin-top: 12px; cursor: pointer; box-shadow: inset 0 1px 1px rgba(255,255,255,0.1); }
+
+        nav { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); width: 92%; height: 70px; border-radius: 100px; background: rgba(255,255,255,0.08); backdrop-filter: blur(40px); border: 1px solid rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: space-around; z-index: 200; }
+        .nav-label { font-size: 10px; font-weight: 900; text-transform: uppercase; opacity: 0.4; letter-spacing: 1px; }
+
+        #writer { position: fixed; inset: 0; background: #000; z-index: 600; display: none; flex-direction: column; align-items: center; justify-content: center; padding: 40px; }
+        #writer textarea { font-size: 28px; width: 100%; background: transparent; color: white; border: none; outline: none; text-align: center; }
+        #writer button { margin-top: 50px; background: white; color: black; padding: 22px 70px; border-radius: 100px; font-weight: 900; }
+
+        .archive-item { border-left: 2px solid rgba(255,255,255,0.1); padding-left: 15px; margin-bottom: 20px; }
+        .locked { opacity: 0.2; }
     </style>
 </head>
 <body>
     <div id="pulse-engine" class="pulse-bg"></div>
+
     <header>
+        <div class="profile-bar">
+            <div>
+                <div id="greeting" class="text-2xl font-black">Vessel Active</div>
+                <div id="rank-display" class="rank-tag" onclick="showNeuralArchive()">Observer V</div>
+            </div>
+            <div class="w-10 h-10 rounded-full border border-white/10 bg-white/5 flex items-center justify-center font-black text-xs" onclick="showNeuralArchive()">ME</div>
+        </div>
         <div class="cal-nav">
-            <button onclick="changeMonth(-1)">◀</button>
-            <div id="cal-title" class="text-xl font-black uppercase">January 2026</div>
-            <button onclick="changeMonth(1)">▶</button>
+            <button onclick="changeMonth(-1)" class="opacity-20">◀</button>
+            <div id="cal-title" class="text-sm font-black uppercase tracking-tighter">January 2026</div>
+            <button onclick="changeMonth(1)" class="opacity-20">▶</button>
         </div>
         <div class="cal-grid" id="calendar-days"></div>
     </header>
+
     <main class="scroll-area" id="feed"></main>
-    <div id="celi-node">
-        <div class="avatar-icon" onclick="showRankStatus()">
-            <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2z"/><path d="M12 6v6l4 2"/></svg>
-        </div>
-        <div id="celi-bubble" class="celi-bubble">
-            <div id="celi-text" class="text-sm font-light"></div>
-            <div id="celi-actions" class="flex flex-col gap-1 mt-4"></div>
-            <button onclick="closeBubble()" class="mt-6 text-[10px] uppercase opacity-30">Dismiss</button>
-        </div>
-        <div id="typing-tag" class="typing-tag">Celi is reflecting...</div>
+
+    <div id="celi-trigger" onclick="toggleCeli()">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
     </div>
+
+    <div id="celi-modal" class="celi-modal">
+        <div class="modal-body" id="modal-content">
+            <div id="celi-text" class="text-sm font-light leading-relaxed"></div>
+            <div id="celi-actions"></div>
+        </div>
+        <button onclick="toggleCeli()" class="mt-4 pt-4 border-t border-white/5 text-[9px] uppercase font-black opacity-30 text-center w-full">Close Interface</button>
+    </div>
+
     <nav>
-        <div onclick="location.reload()" class="text-[10px] font-black uppercase opacity-40">Sync</div>
-        <button onclick="promptInitiation()" class="w-16 h-16 bg-white text-black rounded-full text-3xl shadow-2xl">+</button>
-        <div onclick="logout()" class="text-[10px] font-black uppercase opacity-40">Exit</div>
+        <div onclick="location.reload()" class="nav-label">Sync</div>
+        <div class="w-12"></div>
+        <div onclick="logout()" class="nav-label">Exit</div>
     </nav>
-    <div id="writer" class="full-modal"><textarea id="entry-input"></textarea><button onclick="commitEntry()">Commit</button></div>
+
+    <div id="writer"><textarea id="entry-input"></textarea><button onclick="commitEntry()">Commit</button></div>
+
     <script>
-        let currDate = new Date(); let data = {};
+        let currDate = new Date();
+        let data = {};
+
         async function load() {
             const r = await fetch('/api/data'); data = await r.json();
-            renderCalendar();
-            document.documentElement.style.setProperty('--mood-color', data.mood === 'happy' ? '#10B981' : (data.mood === 'blue' ? '#3B82F6' : '#A855F7'));
+            document.getElementById('greeting').innerText = `Hello, ${data.name}`;
+            document.getElementById('rank-display').innerText = `${data.rank} ${data.level}`;
+            const colors = { happy: '#10B981', blue: '#3B82F6', neutral: '#A855F7' };
+            document.documentElement.style.setProperty('--mood-color', colors[data.mood] || colors.neutral);
             document.documentElement.style.setProperty('--rank-color', data.rank_info.color);
+            renderCalendar();
             const feed = Object.values(data.history).sort((a,b) => b.ts - a.ts);
-            document.getElementById('feed').innerHTML = feed.map(e => `<div class="entry-card"><div class="text-lg font-light mb-3">${e.user_msg}</div><div style="color:${e.color}" class="text-xs font-medium">CELI: ${e.reply}</div></div>`).join('');
+            document.getElementById('feed').innerHTML = feed.map(e => `
+                <div class="entry-card">
+                    <div class="text-[10px] uppercase font-black mb-2 opacity-40" style="color:${e.color}">Neural Entry</div>
+                    <div class="text-lg font-light mb-3">${e.user_msg}</div>
+                    <div style="color:${e.color}" class="text-xs font-medium opacity-80">CELI: ${e.reply}</div>
+                </div>`).join('');
         }
+
         function renderCalendar() {
             const grid = document.getElementById('calendar-days'); const title = document.getElementById('cal-title');
             grid.innerHTML = ['S','M','T','W','T','F','S'].map(d => `<div class="cal-day">${d}</div>`).join('');
@@ -75,32 +114,51 @@
             title.innerText = currDate.toLocaleString('default', { month: 'long', year: 'numeric' });
             for(let i=0; i<first.getDay(); i++) grid.innerHTML += '<div></div>';
             for(let d=1; d<=last.getDate(); d++) {
+                const dateStr = `${currDate.getFullYear()}-${String(currDate.getMonth()+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+                const hasEntry = data.active_days && data.active_days.includes(dateStr);
                 const isToday = d === new Date().getDate() && currDate.getMonth() === new Date().getMonth();
-                grid.innerHTML += `<div class="cal-date ${isToday?'cal-today':''}" onclick="promptInitiation()">${d}</div>`;
+                let pulse = (hasEntry && data.active_days.includes(`${currDate.getFullYear()}-${String(currDate.getMonth()+1).padStart(2,'0')}-${String(d+1).padStart(2,'0')}`)) ? `<div class="streak-pulse" style="width:100%; left:50%;"></div>` : "";
+                grid.innerHTML += `<div class="cal-date ${isToday?'cal-today':''}" style="opacity:${hasEntry?1:0.3}">${d}${pulse}${hasEntry?'<div class="absolute bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 bg-current rounded-full"></div>':''}</div>`;
             }
         }
-        function changeMonth(dir) { currDate.setMonth(currDate.getMonth() + dir); renderCalendar(); }
-        function promptInitiation() {
-            const text = document.getElementById('celi-text'); const actions = document.getElementById('celi-actions');
-            text.innerHTML = `Ready to write your journal entry? Or do you want a breather/to rant?`;
-            actions.innerHTML = `<div class="gloss-btn" onclick="openWriter('Journal Entry...')">Journal Entry</div><div class="gloss-btn" onclick="openWriter('Rant/Breather...')">Rant / Breather</div>`;
-            document.getElementById('celi-bubble').classList.add('active');
+
+        function toggleCeli() {
+            const modal = document.getElementById('celi-modal');
+            const isActive = modal.classList.toggle('active');
+            if(isActive) {
+                document.getElementById('celi-text').innerHTML = `I'm standing by. Ready to commit an entry or just need a breather?`;
+                document.getElementById('celi-actions').innerHTML = `
+                    <div class="gloss-btn" onclick="openWriter('Journaling...')">New Journal Entry</div>
+                    <div class="gloss-btn" onclick="openWriter('Venting...')">Rant / Breather</div>
+                `;
+            }
         }
-        function showRankStatus() {
-            const text = document.getElementById('celi-text'); document.getElementById('celi-actions').innerHTML = '';
-            text.innerHTML = `<div class="text-xl font-black mb-1">${data.rank} ${data.level}</div><div class="text-xs opacity-60 mb-3">${data.rank_info.state} State</div><div class="text-sm opacity-80">${data.rank_info.desc}</div>`;
-            document.getElementById('celi-bubble').classList.add('active');
+
+        function showNeuralArchive() {
+            const content = document.getElementById('modal-content');
+            let html = `<div class="text-[10px] font-black uppercase opacity-40 mb-5 tracking-widest">Neural Archive</div>`;
+            Object.keys(data.all_ranks).forEach(rn => {
+                const isUnlocked = data.unlocked.includes(rn);
+                const info = data.all_ranks[rn];
+                html += `<div class="archive-item ${isUnlocked?'':'locked'}" style="border-color:${isUnlocked?info.color:'rgba(255,255,255,0.1)'}">
+                    <div class="text-lg font-black" style="color:${isUnlocked?info.color:'#fff'}">${rn}</div>
+                    <div class="text-[10px] font-bold opacity-60">${info.state} State</div>
+                    <div class="text-xs mt-2 leading-relaxed ${isUnlocked?'opacity-80':'hidden'}">${info.desc}</div>
+                </div>`;
+            });
+            document.getElementById('celi-text').innerHTML = html;
+            document.getElementById('celi-actions').innerHTML = "";
+            document.getElementById('celi-modal').classList.add('active');
         }
-        function openWriter(p) { closeBubble(); document.getElementById('writer').style.display = 'flex'; document.getElementById('entry-input').placeholder = p; document.getElementById('entry-input').focus(); }
+
+        function openWriter(p) { document.getElementById('celi-modal').classList.remove('active'); document.getElementById('writer').style.display = 'flex'; document.getElementById('entry-input').placeholder = p; document.getElementById('entry-input').focus(); }
         async function commitEntry() {
             const val = document.getElementById('entry-input').value; if(!val) return;
             document.getElementById('writer').style.display = 'none';
-            document.getElementById('typing-tag').style.display = 'block';
-            document.documentElement.style.setProperty('--pulse-speed', '1s');
             await fetch('/api/process', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({message: val}) });
-            setTimeout(() => location.reload(), 1500);
+            location.reload();
         }
-        function closeBubble() { document.getElementById('celi-bubble').classList.remove('active'); }
+        function changeMonth(dir) { currDate.setMonth(currDate.getMonth() + dir); renderCalendar(); }
         async function logout() { await fetch('/api/logout'); location.reload(); }
         window.onload = load;
     </script>
