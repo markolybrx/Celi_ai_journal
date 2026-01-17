@@ -7,106 +7,194 @@
     <link rel="manifest" href="/manifest.json">
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        body { background: #000; color: #fff; font-family: monospace; overflow: hidden; height: 100dvh; margin: 0; }
-        #universe { position: absolute; height: 100dvh; display: flex; transition: transform 1s cubic-bezier(0.2, 0, 0.2, 1); will-change: transform; }
-        .sector { width: 100vw; height: 100dvh; position: relative; flex-shrink: 0; border-right: 1px solid #111; }
-        .star { position: absolute; border-radius: 50%; z-index: 10; transition: all 2s ease-in-out; }
+        body { background: #fff; color: #000; font-family: ui-sans-serif, system-ui, -apple-system; height: 100dvh; overflow: hidden; margin: 0; }
         
-        /* HUD and UI */
-        .glass { background: rgba(0,0,0,0.8); backdrop-filter: blur(10px); }
-        .god-mode #hud, .god-mode #ui { opacity: 0; pointer-events: none; }
-        .god-mode #universe { transform: scale(0.1) !important; flex-wrap: wrap; width: 500vw !important; }
-        .map-view { transform: scale(0.2) !important; }
+        #galaxy-container { position: absolute; inset: 0; background: #000; display: none; z-index: 10; }
+        #universe { display: flex; height: 100%; transition: transform 0.6s cubic-bezier(0.23, 1, 0.32, 1); }
+        .sector { width: 100vw; height: 100%; flex-shrink: 0; position: relative; }
+        .star { position: absolute; border-radius: 50%; width: 2.5px; height: 2.5px; }
+
+        .side-icon { width: 60px; height: 60px; background: #B266FF; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 800; cursor: pointer; box-shadow: 0 4px 20px rgba(178, 102, 255, 0.3); }
+        .vent-btn { width: 60px; height: 60px; background: #B266FF; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 800; cursor: pointer; }
+
+        .modal { position: fixed; inset: 0; background: #fff; z-index: 200; display: none; padding: 40px 24px; overflow-y: auto; }
+        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; }
+        .day-cell { aspect-ratio: 1; border: 1px solid #f0f0f0; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 11px; font-weight: 600; cursor: pointer; border-radius: 8px; position: relative; }
+        .mood-dot { width: 8px; height: 8px; border-radius: 50%; margin-top: 4px; }
+
+        #entry-viewer { position: fixed; bottom: 0; left: 0; right: 0; background: #000; color: #fff; padding: 30px; transform: translateY(100%); transition: 0.4s; z-index: 300; border-top-left-radius: 20px; border-top-right-radius: 20px; box-shadow: 0 -10px 40px rgba(0,0,0,0.5); }
+        #entry-viewer.active { transform: translateY(0); }
+
+        .nav-bar { position: fixed; bottom: 0; left: 0; right: 0; height: 85px; background: #fff; border-top: 1.5px solid #000; display: grid; grid-template-columns: repeat(4, 1fr); z-index: 150; }
+        .nav-link { display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 900; text-transform: uppercase; border-right: 1px solid #000; }
     </style>
 </head>
 <body>
 
-    <div id="universe"></div>
-
-    <div id="hud" class="fixed top-0 inset-x-0 p-6 z-50 flex justify-between items-start pointer-events-none transition-opacity">
-        <div class="pointer-events-auto">
-            <div id="rank" class="text-[10px] tracking-[0.5em] text-indigo-500 font-bold">LEVEL: NEOPHYTE</div>
-            <div id="sector-label" class="text-[8px] text-gray-500 mt-1 uppercase tracking-widest">Sector 0</div>
-        </div>
-        <div class="flex gap-2 pointer-events-auto">
-            <button onclick="toggleMap()" class="px-3 py-2 border border-white/10 text-[9px] uppercase">Map</button>
-            <button id="god-btn" onclick="toggleGod()" class="hidden px-3 py-2 border border-indigo-500 text-indigo-400 text-[9px] uppercase">God View</button>
+    <div id="home-view" class="p-8">
+        <div class="flex justify-between items-start">
+            <div>
+                <h1 id="greeting" class="text-2xl font-black italic">Good Morning, User!</h1>
+                <p class="text-gray-400 text-[10px] mt-1 tracking-widest uppercase">Core Active</p>
+            </div>
+            <div class="vent-btn" onclick="toggleChat()">Vent</div>
         </div>
     </div>
 
-    <div id="ui" class="fixed bottom-0 inset-x-0 p-6 z-50 transition-opacity">
-        <div id="terminal" class="mb-4 h-24 overflow-y-auto text-[10px] text-gray-400 space-y-1 uppercase"></div>
-        <div class="flex border-b border-white/20 pb-2">
-            <input id="input" class="bg-transparent flex-grow outline-none text-xs" placeholder="LOG ENTRY..." onkeydown="if(event.key==='Enter') send()">
-            <button onclick="send()" class="text-[10px] font-bold text-indigo-400 ml-4">SEND</button>
+    <div id="galaxy-container"><div id="universe"></div></div>
+
+    <div class="fixed bottom-28 inset-x-0 px-8 flex justify-between items-center z-50">
+        <div class="side-icon" onclick="toggleModal('cal-modal')">CAL</div>
+        <div class="side-icon" onclick="toggleChat()">AI</div>
+    </div>
+
+    <div id="cal-modal" class="modal">
+        <div class="flex justify-between items-center mb-10">
+            <h2 class="text-xl font-black tracking-tighter">TIMELINE</h2>
+            <button onclick="toggleModal('cal-modal')" class="text-[10px] font-bold border-2 border-black px-4 py-2">CLOSE</button>
+        </div>
+        <div id="calendar-body" class="calendar-grid"></div>
+    </div>
+
+    <div id="entry-viewer">
+        <div class="flex justify-between items-center mb-6">
+            <span id="view-date" class="text-[10px] text-gray-500 font-bold tracking-widest uppercase"></span>
+            <button onclick="closeViewer()" class="text-white opacity-50 hover:opacity-100">✕</button>
+        </div>
+        <div id="view-content" class="text-sm leading-relaxed mb-10 font-medium"></div>
+        <button onclick="blackHolePurge()" class="w-full py-4 border border-red-900 text-red-600 text-[10px] font-black tracking-[0.3em] uppercase hover:bg-red-900 hover:text-white transition-all">Black Hole Protocol</button>
+    </div>
+
+    <div id="chat-overlay" class="modal">
+        <div class="flex justify-between items-center mb-8">
+            <h2 class="text-xs font-black tracking-[.3em] uppercase">Sovereign Link</h2>
+            <button onclick="toggleChat()" class="text-[10px] font-bold border-2 border-black px-4 py-2">DISCONNECT</button>
+        </div>
+        <div id="chat-stream" class="h-2/3 overflow-y-auto space-y-6 text-sm mb-4 pr-2"></div>
+        <div class="flex border-b-2 border-black pb-3">
+            <input id="user-msg" class="bg-transparent flex-grow outline-none text-sm" placeholder="Input consciousness..." onkeydown="if(event.key==='Enter') sync()">
+            <button onclick="sync()" class="font-black text-[10px] ml-4">TRANSMIT</button>
         </div>
     </div>
+
+    <nav class="nav-bar">
+        <div class="nav-link" onclick="switchTab('home')">Home</div>
+        <div class="nav-link" onclick="switchTab('stars')">Star Collection</div>
+        <div class="nav-link"></div>
+        <div class="nav-link"></div>
+    </nav>
 
     <script>
-        if ('serviceWorker' in navigator) { navigator.serviceWorker.register('/sw.js'); }
+        let db = JSON.parse(localStorage.getItem('celi_v13')) || { sectors: [{ stars: [] }], history: {}, idx: 0 };
+        let activeKey = null;
 
-        let state = JSON.parse(localStorage.getItem('celi_data')) || { sectors: [{ stars: [] }], badges: [], currentIdx: 0 };
-        const SHAPES = {
-            "Sigil-Heart": (i, t) => { const a = (i/t)*2*Math.PI; return { x: 50+1.2*(16*Math.pow(Math.sin(a),3)), y: 50-1.2*(13*Math.cos(a)-5*Math.cos(2*a)-2*Math.cos(3*a)-Math.cos(4*a)) }; },
-            "Sigil-Shield": (i, t) => { const a = (i/t)*2*Math.PI; return { x: 50+22*Math.cos(a), y: 50+20*Math.sin(a)*(Math.abs(Math.cos(a))+0.5) }; },
-            "Sigil-ZenITH": (i, t) => { const a = (i/t)*2*Math.PI; return { x: 50+20*Math.cos(a), y: 50+20*Math.sin(a) }; }
-        };
+        function toggleModal(id) {
+            const el = document.getElementById(id);
+            const isClosing = el.style.display === 'block';
+            el.style.display = isClosing ? 'none' : 'block';
+            if(id === 'cal-modal' && !isClosing) renderCalendar();
+        }
 
-        async function send() {
-            const el = document.getElementById('input'); const val = el.value.trim(); if(!val) return;
-            el.value = '';
+        function renderCalendar() {
+            const grid = document.getElementById('calendar-body'); grid.innerHTML = '';
+            const now = new Date();
+            const days = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+            
+            for (let i = 1; i <= days; i++) {
+                const key = `${now.getFullYear()}-${now.getMonth()+1}-${i}`;
+                const entry = db.history[key];
+                const cell = document.createElement('div');
+                cell.className = 'day-cell';
+                cell.innerHTML = `<span>${i}</span>`;
+                
+                if (entry) {
+                    const dot = document.createElement('div');
+                    dot.className = 'mood-dot';
+                    dot.style.backgroundColor = entry.color;
+                    cell.appendChild(dot);
+                    cell.onclick = () => showEntry(key);
+                }
+                grid.appendChild(cell);
+            }
+        }
+
+        function showEntry(key) {
+            activeKey = key;
+            const e = db.history[key];
+            document.getElementById('view-date').innerText = key;
+            document.getElementById('view-content').innerText = e.text;
+            document.getElementById('entry-viewer').classList.add('active');
+        }
+
+        function closeViewer() { document.getElementById('entry-viewer').classList.remove('active'); activeKey = null; }
+
+        function blackHolePurge() {
+            if(!activeKey) return;
+            if(confirm("Initiate Black Hole Protocol? This record will cease to exist.")) {
+                const viewerContent = document.getElementById('view-content');
+                viewerContent.innerText = "sending journal to the black hole";
+                viewerContent.classList.add('animate-pulse');
+                
+                setTimeout(() => {
+                    delete db.history[activeKey];
+                    localStorage.setItem('celi_v13', JSON.stringify(db));
+                    renderCalendar();
+                    closeViewer();
+                    viewerContent.classList.remove('animate-pulse');
+                }, 2000);
+            }
+        }
+
+        async function sync() {
+            const input = document.getElementById('user-msg');
+            const val = input.value.trim(); if(!val) return;
+            input.value = '';
 
             const res = await fetch('/api/process', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ message: val, profile: state, current_star_count: state.sectors[state.currentIdx].stars.length })
+                body: JSON.stringify({ message: val, profile: db, current_star_count: db.sectors[db.idx].stars.length })
             });
             const data = await res.json();
             
-            addLog(data.reply);
-            const cur = state.sectors[state.currentIdx];
-            cur.stars.push({ color: data.color, x: 15 + Math.random()*70, y: 20 + Math.random()*60 });
+            const stream = document.getElementById('chat-stream');
+            stream.innerHTML += `<div class="font-bold text-gray-400"># ${val}</div><div class="font-medium text-purple-600">CELI: ${data.reply}</div>`;
+            stream.scrollTop = stream.scrollHeight;
 
-            if (data.close_sector) {
-                const shapeFn = SHAPES[data.shape] || SHAPES["Sigil-ZenITH"];
-                cur.stars.forEach((s, idx) => { const p = shapeFn(idx, cur.stars.length); s.x = p.x; s.y = p.y; });
-                state.badges.push(data.shape);
-                state.sectors.push({ stars: [] });
-                state.currentIdx++;
-            }
-
-            localStorage.setItem('celi_data', JSON.stringify(state));
-            render();
+            const today = new Date();
+            const key = `${today.getFullYear()}-${today.getMonth()+1}-${today.getDate()}`;
+            db.history[key] = { color: data.color, text: data.reply };
+            db.sectors[db.idx].stars.push({ color: data.color, x: Math.random()*80+10, y: Math.random()*70+10 });
+            localStorage.setItem('celi_v13', JSON.stringify(db));
         }
 
-        function render() {
-            const uni = document.getElementById('universe'); uni.innerHTML = '';
-            state.sectors.forEach(sec => {
-                const div = document.createElement('div'); div.className = 'sector';
-                sec.stars.forEach(s => {
-                    const st = document.createElement('div'); st.className = 'star';
-                    st.style.cssText = `width:2px; height:2px; left:${s.x}%; top:${s.y}%; background:${s.color}; box-shadow: 0 0 10px ${s.color};`;
-                    div.appendChild(st);
+        function switchTab(t) {
+            document.getElementById('galaxy-container').style.display = t === 'stars' ? 'block' : 'none';
+            if(t === 'stars') renderGalaxy();
+        }
+
+        function renderGalaxy() {
+            const u = document.getElementById('universe'); u.innerHTML = '';
+            db.sectors.forEach(s => {
+                const d = document.createElement('div'); d.className = 'sector';
+                s.stars.forEach(st => {
+                    const el = document.createElement('div'); el.className = 'star';
+                    el.style.cssText = `left:${st.x}%; top:${st.y}%; background:${st.color}; box-shadow:0 0 8px ${st.color};`;
+                    d.appendChild(el);
                 });
-                uni.appendChild(div);
+                u.appendChild(d);
             });
-            updateHUD();
-            jump(state.currentIdx);
         }
 
-        function updateHUD() {
-            const ranks = ["NEOPHYTE", "OBSERVER", "PATHFINDER", "ARCHITECT", "SOVEREIGN"];
-            document.getElementById('rank').innerText = "LEVEL: " + ranks[Math.min(state.badges.length, 4)];
-            document.getElementById('sector-label').innerText = `SECTOR ${state.currentIdx} | ${state.sectors[state.currentIdx].stars.length} STARS`;
-            if (state.badges.length >= 3) document.getElementById('god-btn').classList.remove('hidden');
+        function toggleChat() { 
+            const el = document.getElementById('chat-overlay');
+            el.style.display = el.style.display === 'block' ? 'none' : 'block';
         }
 
-        function jump(i) { document.getElementById('universe').style.transform = `translateX(-${i * 100}vw)`; }
-        function toggleMap() { document.getElementById('universe').classList.toggle('map-view'); }
-        function toggleGod() { document.body.classList.toggle('god-mode'); }
-        function addLog(t) { const term = document.getElementById('terminal'), d = document.createElement('div'); d.innerText = `> ${t}`; term.appendChild(d); term.scrollTop = term.scrollHeight; }
-
-        window.onload = render;
+        window.onload = () => {
+            const h = new Date().getHours();
+            document.getElementById('greeting').innerText = `${h < 12 ? 'Good Morning' : h < 18 ? 'Good Afternoon' : 'Good Evening'}, User!`;
+        };
     </script>
 </body>
 </html>
