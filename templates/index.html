@@ -2,57 +2,97 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Celi | AI Journal</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Celi | Sovereign Vault</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { background: #050505; color: #e2e8f0; font-family: sans-serif; height: 100dvh; display: flex; flex-direction: column; overflow: hidden; }
+        .btn { background: #6366f1; color: white; padding: 15px; border-radius: 15px; font-weight: bold; width: 100%; }
+        input { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: white; padding: 15px; border-radius: 15px; width: 100%; outline: none; margin-bottom: 10px; }
+        .mode-active { background: #ef4444; border-color: #ef4444; }
+    </style>
 </head>
-<body class="bg-black text-white p-5 font-sans">
+<body class="p-5">
 
-    <div id="setup" class="fixed inset-0 bg-black z-50 p-10">
-        <h1 class="text-xs tracking-widest text-gray-500 mb-5">SYSTEM START</h1>
-        <button onclick="initApp()" class="w-full bg-indigo-600 p-5 rounded-xl font-bold">ACTIVATE MIRROR</button>
-        <p class="text-[10px] text-gray-600 mt-5 text-center">Note: Use Safari or Chrome. Must be HTTPS.</p>
+    <div id="setup" class="fixed inset-0 bg-black z-50 p-10 flex flex-col justify-center">
+        <h1 class="text-center text-xs tracking-widest text-gray-500 mb-10">GENESIS PROTOCOL</h1>
+        <input id="reg-name" placeholder="What should I call you?">
+        <input id="reg-bday" type="date">
+        <button onclick="saveVault()" class="btn">ACTIVATE VAULT</button>
     </div>
 
-    <div class="flex flex-col h-[90dvh]">
-        <div id="chat-box" class="flex-grow overflow-y-auto space-y-4 pt-10">
-            <p class="text-indigo-400 text-sm italic">Mirror active. Speak.</p>
+    <div class="flex flex-col h-full">
+        <div class="flex justify-between items-center py-2">
+            <span class="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Celi Stream</span>
+            <button id="vent-btn" onclick="toggleVenting()" class="text-[10px] border border-gray-700 px-3 py-1 rounded-full text-gray-400 transition-all">
+                VENTING: OFF
+            </button>
+        </div>
+
+        <div id="chat-box" class="flex-grow overflow-y-auto space-y-4 pt-5 pb-5">
+            <p id="celi-status" class="text-indigo-400 text-sm italic">Celi is listening. What's on your heart?</p>
         </div>
         
-        <div class="mt-auto flex gap-2">
-            <input id="user-input" class="flex-grow bg-gray-900 border border-gray-800 p-4 rounded-xl" placeholder="Type here...">
-            <button onclick="sendMsg()" class="bg-indigo-600 px-6 rounded-xl font-bold">GO</button>
+        <div class="mt-auto pb-5 flex gap-2">
+            <input id="user-input" class="flex-grow !mb-0" placeholder="Speak..." onkeydown="if(event.key==='Enter') sendMsg()">
+            <button onclick="sendMsg()" class="bg-indigo-600 px-6 rounded-2xl font-bold">GO</button>
         </div>
     </div>
 
     <script>
-        let vault = { name: "User" };
+        let vaultData = { name: "User", bday: "" };
+        let ventingMode = false;
 
-        function initApp() {
+        function saveVault() {
+            const n = document.getElementById('reg-name').value;
+            const b = document.getElementById('reg-bday').value;
+            if(!n) return alert("I need a name to care for you properly.");
+            vaultData.name = n;
+            vaultData.bday = b;
             document.getElementById('setup').style.display = 'none';
+        }
+
+        function toggleVenting() {
+            ventingMode = !ventingMode;
+            const btn = document.getElementById('vent-btn');
+            const status = document.getElementById('celi-status');
+            
+            if(ventingMode) {
+                btn.innerText = "VENTING: ON";
+                btn.classList.add('mode-active', 'text-white');
+                status.innerText = "Venting mode active. I'm just here to listen. No advice, just you.";
+            } else {
+                btn.innerText = "VENTING: OFF";
+                btn.classList.remove('mode-active', 'text-white');
+                status.innerText = "Companion mode active. Ready for wit and wisdom.";
+            }
         }
 
         async function sendMsg() {
             const i = document.getElementById('user-input');
             const box = document.getElementById('chat-box');
-            const val = i.value;
+            const val = i.value.trim();
             if(!val) return;
 
-            box.innerHTML += `<p class="text-gray-500">YOU: ${val}</p>`;
+            box.innerHTML += `<div class="text-right"><p class="inline-block bg-indigo-900/30 p-3 rounded-2xl text-sm">${val}</p></div>`;
             i.value = '';
 
             try {
                 const response = await fetch('/api/process', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ message: val, profile: vault })
+                    body: JSON.stringify({ 
+                        message: val, 
+                        profile: vaultData,
+                        venting_mode: ventingMode 
+                    })
                 });
                 
                 const data = await response.json();
-                box.innerHTML += `<p class="text-white">CELI: ${data.reply}</p>`;
+                box.innerHTML += `<div class="text-left"><p class="inline-block bg-gray-800/50 p-3 rounded-2xl text-sm text-indigo-100">${data.reply}</p></div>`;
                 box.scrollTop = box.scrollHeight;
             } catch (e) {
-                box.innerHTML += `<p class="text-red-500">ERROR: Could not reach server. Check Render Logs.</p>`;
+                box.innerHTML += `<p class="text-red-500 text-xs">Handshake failed. Check connection.</p>`;
             }
         }
     </script>
