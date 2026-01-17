@@ -1,33 +1,26 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Celi | Access</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;800&display=swap" rel="stylesheet">
-    <style>body { background: #000; color: #fff; font-family: 'Inter', sans-serif; }</style>
+    <style>body { background: #000; color: #fff; font-family: sans-serif; }</style>
 </head>
-<body class="h-dvh flex items-center justify-center p-12">
-    <div class="w-full max-w-sm">
-        <h1 class="text-4xl font-light tracking-tighter mb-2">Celi</h1>
-        <p class="text-[9px] text-white/20 tracking-[0.4em] uppercase mb-12">AI Journal Companion</p>
-        <input id="u" class="w-full bg-white/5 border border-white/10 p-5 rounded-3xl outline-none focus:border-purple-500 mb-6 text-center" placeholder="Username">
-        <div class="grid grid-cols-2 gap-4">
-            <button onclick="go('login')" class="p-5 bg-white text-black font-extrabold text-[10px] rounded-3xl uppercase tracking-widest">Login</button>
-            <button onclick="go('register')" class="p-5 border border-white/20 font-extrabold text-[10px] rounded-3xl uppercase tracking-widest">Join</button>
-        </div>
+<body class="flex items-center justify-center h-screen p-6">
+    <div class="w-full max-w-sm text-center">
+        <div class="text-xs tracking-[0.5em] text-purple-500 font-black mb-4 uppercase">Identity Required</div>
+        <input id="uid" type="text" placeholder="Enter Name" class="w-full bg-white/5 border border-white/10 p-4 rounded-2xl mb-4 text-center text-xl outline-none focus:border-purple-500 transition">
+        <button onclick="login()" class="w-full bg-white text-black p-4 rounded-full font-bold uppercase tracking-widest text-[10px]">Enter the Void</button>
     </div>
     <script>
-        async function go(action) {
-            const username = document.getElementById('u').value;
+        async function login() {
+            const user_id = document.getElementById('uid').value;
+            if(!user_id) return;
             const res = await fetch('/api/auth', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({username, action})
+                body: JSON.stringify({ user_id })
             });
-            const data = await res.json();
-            if(data.success) window.location.reload();
-            else alert(data.error || "Connection Error");
+            if(res.ok) location.reload();
         }
     </script>
 </body>
