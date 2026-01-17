@@ -1,23 +1,127 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Celi: Arrival</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <style>body { background: #080808; color: #fff; font-family: sans-serif; }</style>
-</head>
-<body class="flex items-center justify-center h-screen p-8">
-    <div class="w-full max-w-sm text-center">
-        <div class="text-[10px] tracking-[0.5em] text-purple-500 font-black mb-8 uppercase">Sync Designation</div>
-        <input id="uid" type="text" placeholder="Designation" class="w-full bg-white/5 border border-white/10 p-6 rounded-[2rem] mb-8 text-center text-xl outline-none focus:border-purple-500 transition-all font-light text-whitePlaceholder">
-        <button onclick="login()" class="w-full bg-white text-black p-6 rounded-full font-bold uppercase tracking-widest text-[11px] shadow-xl hover:scale-105 transition-transform">Access Galaxy</button>
-    </div>
-    <script>
-        async function login() {
-            const uid = document.getElementById('uid').value;
-            if(!uid) return;
-            await fetch('/api/auth', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ user_id: uid }) });
-            location.reload();
+    <style>
+        html, body { background: #000; color: #fff; margin: 0; height: 100%; overflow: hidden; font-family: sans-serif; }
+        #auth-chat { 
+            display: flex; flex-direction: column-reverse; /* Bottom-up flow */
+            height: 100vh; padding: 100px 24px 140px; overflow-y: scroll; scrollbar-width: none;
         }
+        #auth-chat::-webkit-scrollbar { display: none; }
+        .message { margin-bottom: 20px; max-width: 85%; animation: fadeIn 0.5s ease forwards; }
+        .celi-msg { align-self: flex-start; color: #A855F7; font-weight: 300; font-size: 1.1rem; }
+        .user-msg { align-self: flex-end; color: #fff; background: rgba(255,255,255,0.1); padding: 12px 20px; border-radius: 20px; }
+        
+        .input-bar { 
+            position: fixed; bottom: 40px; left: 50%; transform: translateX(-50%);
+            width: 90%; max-width: 450px; display: flex; gap: 10px; z-index: 100;
+        }
+        input { 
+            flex: 1; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); 
+            border-radius: 100px; padding: 14px 24px; color: #fff; outline: none; font-size: 16px;
+        }
+        button { 
+            background: #fff; color: #000; border-radius: 100px; padding: 0 24px; 
+            font-weight: bold; font-size: 14px; transition: 0.2s;
+        }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body>
+    <div id="auth-chat">
+        <div id="chat-anchor"></div>
+    </div>
+
+    <div class="input-bar">
+        <input type="text" id="user-input" placeholder="Type here...">
+        <button onclick="handleInput()">Send</button>
+    </div>
+
+    <script>
+        let step = 0;
+        let userData = { name: '', user_id: '', password: '', birthday: '', fav_color: '' };
+        const chat = document.getElementById('auth-chat');
+
+        function addMsg(text, isCeli = true) {
+            const div = document.createElement('div');
+            div.className = `message ${isCeli ? 'celi-msg' : 'user-msg'}`;
+            div.innerText = isCeli ? `CELI: ${text}` : text;
+            chat.prepend(div); // Since container is column-reverse, prepend adds to "bottom" visually
+        }
+
+        async function handleInput() {
+            const input = document.getElementById('user-input');
+            const val = input.value.trim();
+            if (!val) return;
+
+            addMsg(val, false);
+            input.value = '';
+
+            switch(step) {
+                case 0:
+                    userData.name = val;
+                    addMsg(`Nice to meet you, ${val}. What user ID would you like to use for your journey?`);
+                    step++;
+                    break;
+                case 1:
+                    userData.user_id = val;
+                    addMsg(`Gotcha! Now enter your preferred password.`, true);
+                    input.type = "password";
+                    step++;
+                    break;
+                case 2:
+                    userData.password = val;
+                    addMsg(`Confirm your password please.`);
+                    step++;
+                    break;
+                case 3:
+                    if (val !== userData.password) {
+                        addMsg(`That doesn't match the initial password. Do you wish to try again or enter a new one? (Type 'new' to reset)`);
+                    } else {
+                        addMsg(`Match confirmed. When was your birthday? (YYYY-MM-DD)`);
+                        input.type = "text";
+                        step++;
+                    }
+                    if (val.toLowerCase() === 'new') { step = 2; addMsg("Let's try again. Enter a new password."); }
+                    break;
+                case 4:
+                    userData.birthday = val;
+                    const res = await fetch('/api/birthday_trivia', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({birthday: val})
+                    });
+                    const trivia = await res.json();
+                    addMsg(trivia.trivia);
+                    setTimeout(() => addMsg(`And lastly, what is your favorite color?`), 1500);
+                    step++;
+                    break;
+                case 5:
+                    userData.fav_color = val;
+                    addMsg(`Processing your place in the galaxy...`);
+                    const regRes = await fetch('/api/register', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify(userData)
+                    });
+                    const final = await regRes.json();
+                    if (final.success) {
+                        addMsg(`Congratulations! Your celestial vessel is ready. Welcome to Voyager.`);
+                        setTimeout(() => window.location.reload(), 2000);
+                    } else {
+                        addMsg(`Error: ${final.error}. Please refresh to try again.`);
+                    }
+                    break;
+            }
+        }
+
+        window.onload = () => {
+            addMsg("Hi, this is Celi. Your AI companion in your celestial journal experience. Let's get to know each other first. How should I call you?");
+        };
     </script>
 </body>
 </html>
