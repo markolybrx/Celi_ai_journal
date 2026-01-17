@@ -1,24 +1,29 @@
-import os, requests
+import os, requests, re
 from flask import Flask, render_template, request, jsonify
+from flask_cors import CORS
 
 app = Flask(__name__)
+CORS(app) # Necessary for APK/PWA cross-origin stability
+
 GROQ_API_KEY = os.environ.get("GROQ_API_KEY")
+
+def scrub_emojis(text):
+    # Removes all non-ASCII characters to enforce the no-emoji rule
+    return re.sub(r'[^\x00-\x7f]', '', text)
 
 def ask_groq(messages):
     url = "https://api.groq.com/openai/v1/chat/completions"
     headers = {"Authorization": f"Bearer {GROQ_API_KEY}", "Content-Type": "application/json"}
     payload = {
-        "model": "llama-3.3-70b-versatile", 
-        "messages": messages, 
-        "temperature": 0.7,
+        "model": "llama-3.3-70b-versatile",
+        "messages": messages,
+        "temperature": 0.75,
         "response_format": {"type": "json_object"}
     }
     try:
-        res = requests.post(url, headers=headers, json=payload, timeout=25)
-        res.raise_for_status()
+        res = requests.post(url, headers=headers, json=payload, timeout=20)
         return res.json()['choices'][0]['message']['content']
-    except Exception as e:
-        print(f"Check Error: {e}")
+    except Exception:
         return None
 
 @app.route('/')
@@ -31,26 +36,29 @@ def process():
     profile = data.get('profile', {})
     star_count = data.get('current_star_count', 0)
     badges_count = len(profile.get('badges', []))
-    is_venting = data.get('venting_mode', False)
     
-    # Scaling Logic: Start at 3, increase by 2 per constellation
+    # Scaling Difficulty: Initial 3, increases by 2 per constellation
     threshold = 3 + (badges_count * 2)
     should_close = star_count >= threshold
 
-    if is_venting:
-        sys_msg = "Event Horizon mode. Validate briefly. No emojis. JSON: {'reply': '...', 'color': '#000000', 'is_void': true}"
-    elif data.get('whisper_entry'):
-        sys_msg = "Memory Retrieval. Summarize entry. No emojis. JSON: {'reply': '...'}"
-    else:
-        sys_msg = (
-            f"You are Celi, a brutally honest Stellar Guide. Strictly NO emojis. "
-            f"Current constellation progress: {star_count}/{threshold}. "
-            f"If {should_close} is True, include 'close_sector': true and 'shape': 'Sigil-Heart' or 'Sigil-Shield'. "
-            "Return JSON: {'reply': '...', 'color': '#hex', 'vibe': '...', 'close_sector': bool, 'shape': '...'}"
-        )
+    sys_msg = (
+        f"You are Celi, a brutally honest and sharp Stellar Guide. Strictly NO emojis. "
+        f"Current Sector Progress: {star_count}/{threshold}. "
+        f"If {should_close} is True, you MUST set 'close_sector': true and choose a 'shape': "
+        "('Sigil-Heart', 'Sigil-Shield', 'Sigil-ZenITH'). "
+        "Return JSON: {'reply': '...', 'color': '#hex', 'vibe': '...', 'close_sector': bool, 'shape': '...'}"
+    )
     
-    ai_raw = ask_groq([{"role": "system", "content": sys_msg}, {"role": "user", "content": data.get('message', 'Hello')}])
-    return ai_raw if ai_raw else jsonify({"reply": "The signal is lost in the void.", "color": "#ffffff"}), 500
+    raw_response = ask_groq([{"role": "system", "content": sys_msg}, {"role": "user", "content": data.get('message', 'Init')}])
+    
+    if raw_response:
+        # Final safety scrub on the AI text
+        import json
+        clean_data = json.loads(raw_response)
+        clean_data['reply'] = scrub_emojis(clean_data['reply'])
+        return jsonify(clean_data)
+        
+    return jsonify({"reply": "The void is silent.", "color": "#444"}), 500
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=int(os.environ.get("PORT", 5000)))
