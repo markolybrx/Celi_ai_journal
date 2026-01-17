@@ -1,95 +1,164 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>Celi</title>
+    <title>Celi | Sovereign</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        body { background: #050505; color: #e2e8f0; font-family: sans-serif; height: 100dvh; display: flex; flex-direction: column; overflow: hidden; }
-        #chat-box { display: flex; flex-direction: column; } /* Natural flow from top to bottom */
-        .msg-container { display: flex; flex-direction: column; justify-content: flex-end; height: 100%; }
-        .btn { background: #6366f1; color: white; padding: 15px; border-radius: 15px; font-weight: bold; width: 100%; }
-        input { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: white; padding: 15px; border-radius: 15px; width: 100%; outline: none; }
-        .dot { width: 6px; height: 6px; background: #6366f1; border-radius: 50%; display: inline-block; animation: wave 1.3s linear infinite; }
-        .dot:nth-child(2) { animation-delay: -1.1s; }
-        .dot:nth-child(3) { animation-delay: -0.9s; }
-        @keyframes wave { 0%, 60%, 100% { transform: initial; } 30% { transform: translateY(-5px); } }
+        :root { --gold: #FFD700; --indigo: #6366f1; }
+        body { background: #000; color: #fff; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; height: 100dvh; overflow: hidden; margin: 0; }
+        
+        #universe { position: absolute; height: 100dvh; display: flex; transition: all 1.2s cubic-bezier(0.4, 0, 0.2, 1); z-index: 0; }
+        .sector { width: 100vw; height: 100dvh; position: relative; flex-shrink: 0; }
+        .unlocked-star { position: absolute; border-radius: 50%; z-index: 50; transition: all 1.5s ease; cursor: pointer; }
+        
+        /* God View state */
+        .god-mode #ui-container, .god-mode #hud, .god-mode #celi-mascot { opacity: 0 !important; pointer-events: none !important; }
+        .god-mode #universe { transform: scale(0.05) !important; flex-wrap: wrap; width: 800vw !important; }
+
+        #celi-mascot { position: fixed; top: 15%; left: 50%; transform: translateX(-50%); z-index: 100; display: flex; flex-direction: column; align-items: center; pointer-events: none; transition: 0.5s; }
+        .celi-star { width: 12px; height: 12px; background: var(--gold); border-radius: 50%; box-shadow: 0 0 20px var(--gold); animation: pulse 4s infinite; }
+        .celi-speech { margin-top: 15px; background: #000; padding: 10px 20px; border: 1px solid #222; font-size: 10px; color: var(--gold); text-transform: uppercase; letter-spacing: 2px; opacity: 0; transition: 0.4s; }
+        .show-speech { opacity: 1; }
+
+        @keyframes pulse { 0%, 100% { transform: scale(1); opacity: 0.8; } 50% { transform: scale(1.4); opacity: 1; } }
+        .galaxy-view { transform: scale(0.12) !important; flex-wrap: wrap; width: 600vw !important; }
     </style>
 </head>
-<body class="p-5">
+<body onclick="resumeAudio()">
 
-    <div id="setup" class="fixed inset-0 bg-black z-50 p-10 flex flex-col justify-center">
-        <h1 class="text-center text-xs tracking-widest text-gray-500 mb-10">GENESIS</h1>
-        <input id="reg-name" placeholder="Name">
-        <input id="reg-bday" type="date" class="mt-2">
-        <button onclick="saveVault()" class="btn mt-4">START</button>
+    <div id="universe"></div>
+
+    <div id="celi-mascot">
+        <div class="celi-star"></div>
+        <div id="celi-bubble" class="celi-speech"></div>
     </div>
 
-    <div class="flex flex-col h-full">
-        <div class="flex justify-between items-center py-2 border-b border-white/5">
-            <span class="text-[10px] font-bold text-gray-600 uppercase">Neural Stream</span>
-            <button id="vent-btn" onclick="toggleVenting()" class="text-[10px] border border-gray-700 px-3 py-1 rounded-full">VENTING: OFF</button>
+    <div id="hud" class="fixed top-0 left-0 right-0 p-8 z-50 flex justify-between pointer-events-none">
+        <div class="pointer-events-auto">
+            <p id="rank-text" class="text-[10px] tracking-[0.3em] text-indigo-500 font-bold">NEOPHYTE</p>
+            <p id="progress-text" class="text-[8px] text-gray-600 mt-1">SECTOR 0 | STABILITY NOMINAL</p>
         </div>
+        <div class="flex gap-4 pointer-events-auto">
+            <button onclick="toggleZoom()" class="text-[9px] tracking-widest border border-white/10 px-4 py-2 hover:bg-white/5">GALAXY</button>
+            <button id="god-btn" onclick="toggleGodMode()" class="hidden text-[9px] tracking-widest border border-indigo-500 px-4 py-2 text-indigo-400">GOD VIEW</button>
+        </div>
+    </div>
 
-        <div class="flex-grow overflow-y-auto flex flex-col">
-            <div class="mt-auto"></div> <div id="chat-box" class="space-y-4 p-2">
-                <p class="text-indigo-400 text-sm italic">Celi is here.</p>
-            </div>
-            <div id="typing" class="hidden p-4 space-x-1">
-                <div class="dot"></div><div class="dot"></div><div class="dot"></div>
-            </div>
-        </div>
-        
-        <div class="mt-auto pb-5 pt-4 flex gap-2">
-            <input id="user-input" class="flex-grow" placeholder="Speak..." onkeydown="if(event.key==='Enter') sendMsg()">
-            <button onclick="sendMsg()" class="bg-indigo-600 px-6 rounded-2xl font-bold">GO</button>
+    <div id="ui-container" class="fixed inset-x-0 bottom-0 p-6 z-50 transition-opacity duration-500">
+        <div id="chat-box" class="mb-6 space-y-2 overflow-y-auto max-h-[20vh] text-[11px] uppercase tracking-wider text-gray-400"></div>
+        <div class="flex items-center border-b border-white/10 py-2">
+            <input id="user-input" class="bg-transparent flex-grow outline-none text-xs" placeholder="TYPE ENTRY..." oninput="resetIdle()" onkeydown="if(event.key==='Enter') sendMsg()">
+            <button onclick="sendMsg()" class="text-[10px] font-bold tracking-widest ml-4">EXECUTE</button>
         </div>
     </div>
 
     <script>
-        let vaultData = { name: "User", bday: "" };
-        let ventingMode = false;
+        let vault = JSON.parse(localStorage.getItem('celi_sovereign')) || { sectors: [{ stars: [] }], badges: [], current_idx: 0 };
+        let audioCtx, idleTimer, isZoomed = false, isGod = false;
 
-        function saveVault() {
-            const n = document.getElementById('reg-name').value;
-            if(!n) return alert("I need a name.");
-            vaultData.name = n;
-            document.getElementById('setup').style.display = 'none';
+        function resumeAudio() { 
+            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            if (audioCtx.state === 'suspended') audioCtx.resume();
         }
 
-        function toggleVenting() {
-            ventingMode = !ventingMode;
-            document.getElementById('vent-btn').innerText = ventingMode ? "VENTING: ON" : "VENTING: OFF";
-            document.getElementById('vent-btn').style.background = ventingMode ? "#ef4444" : "transparent";
+        const SHAPES = {
+            "Sigil-Heart": (i, t) => { const a = (i/t)*2*Math.PI; return { x: 50+1.2*(16*Math.pow(Math.sin(a),3)), y: 50-1.2*(13*Math.cos(a)-5*Math.cos(2*a)-2*Math.cos(3*a)-Math.cos(4*a)) }; },
+            "Sigil-Shield": (i, t) => { const a = (i/t)*2*Math.PI; return { x: 50+25*Math.cos(a), y: 50+25*Math.sin(a)*(Math.abs(Math.cos(a))+0.5) }; }
+        };
+
+        function celiPing(text) {
+            const b = document.getElementById('celi-bubble');
+            b.innerText = text.replace(/[^\x00-\x7F]/g, ""); // Robust Emoji Strip
+            b.classList.add('show-speech');
+            setTimeout(() => b.classList.remove('show-speech'), 5000);
+        }
+
+        function resetIdle() {
+            clearTimeout(idleTimer);
+            if (!isGod) idleTimer = setTimeout(() => celiPing("I am waiting. Continue."), 60000);
         }
 
         async function sendMsg() {
-            const i = document.getElementById('user-input');
-            const box = document.getElementById('chat-box');
-            const type = document.getElementById('typing');
-            const val = i.value.trim();
-            if(!val) return;
+            const input = document.getElementById('user-input');
+            const val = input.value.trim(); if (!val) return;
+            input.value = ''; clearTimeout(idleTimer);
 
-            box.innerHTML += `<div class="text-right"><p class="inline-block bg-indigo-900/40 p-3 rounded-2xl text-sm">${val}</p></div>`;
-            i.value = '';
-            type.classList.remove('hidden');
-            box.parentElement.scrollTop = box.parentElement.scrollHeight;
+            const res = await fetch('/api/process', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ message: val, profile: vault, current_star_count: vault.sectors[vault.current_idx].stars.length })
+            });
+            const data = await res.json();
+            
+            addMsg(data.reply);
+            
+            const sector = vault.sectors[vault.current_idx];
+            sector.stars.push({ color: data.color, x: 10 + Math.random()*80, y: 20 + Math.random()*60, date: new Date().toLocaleDateString(), memory: val });
+            
+            if (data.close_sector) {
+                const shape = SHAPES[data.shape] || SHAPES["Sigil-Shield"];
+                sector.stars.forEach((s, i) => { const t = shape(i, sector.stars.length); s.x = t.x; s.y = t.y; });
+                vault.badges.push(data.shape);
+                vault.sectors.push({ stars: [] });
+                vault.current_idx++;
+                celiPing("Constellation finalized.");
+            }
 
-            try {
-                const response = await fetch('/api/process', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ message: val, profile: vaultData, venting_mode: ventingMode })
+            localStorage.setItem('celi_sovereign', JSON.stringify(vault));
+            render();
+        }
+
+        function render() {
+            const uni = document.getElementById('universe'); uni.innerHTML = '';
+            vault.sectors.forEach((sec, sIdx) => {
+                const d = document.createElement('div'); d.className = 'sector';
+                sec.stars.forEach(s => {
+                    const el = document.createElement('div');
+                    el.className = 'unlocked-star';
+                    el.style.cssText = `width:3px; height:3px; left:${s.x}%; top:${s.y}%; background:${s.color}; box-shadow: 0 0 8px ${s.color};`;
+                    d.appendChild(el);
                 });
-                const data = await response.json();
-                type.classList.add('hidden');
-                box.innerHTML += `<div class="text-left animate-in fade-in duration-500"><p class="inline-block bg-gray-800/80 p-3 rounded-2xl text-sm text-indigo-100">${data.reply}</p></div>`;
-                box.parentElement.scrollTop = box.parentElement.scrollHeight;
-            } catch (e) {
-                type.classList.add('hidden');
+                uni.appendChild(d);
+            });
+            updateUI();
+        }
+
+        function updateUI() {
+            const ranks = ["NEOPHYTE", "OBSERVER", "PATHFINDER", "ARCHITECT", "SOVEREIGN"];
+            document.getElementById('rank-text').innerText = ranks[Math.min(vault.badges.length, 4)];
+            document.getElementById('progress-text').innerText = `SECTOR ${vault.current_idx} | STRENGTH ${vault.sectors[vault.current_idx].stars.length}`;
+            if (vault.badges.length >= 5) document.getElementById('god-btn').classList.remove('hidden');
+        }
+
+        function toggleGodMode() {
+            isGod = !isGod;
+            document.body.classList.toggle('god-mode', isGod);
+            if (isGod) {
+                render();
+            } else {
+                jumpTo(vault.current_idx);
             }
         }
+
+        function toggleZoom() {
+            isZoomed = !isZoomed;
+            document.getElementById('universe').classList.toggle('galaxy-view', isZoomed);
+            if (!isZoomed) jumpTo(vault.current_idx);
+        }
+
+        function jumpTo(i) {
+            document.getElementById('universe').style.transform = `translateX(-${i * 100}vw)`;
+        }
+
+        function addMsg(t) {
+            const b = document.getElementById('chat-box'), d = document.createElement('div');
+            d.innerText = t.replace(/[^\x00-\x7F]/g, "");
+            b.appendChild(d); b.scrollTop = b.scrollHeight;
+        }
+
+        window.onload = () => { render(); jumpTo(vault.current_idx); };
     </script>
 </body>
 </html>
