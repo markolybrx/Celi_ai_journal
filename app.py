@@ -3,7 +3,7 @@ from flask import Flask, render_template, request, jsonify
 
 app = Flask(__name__)
 
-# SECURITY: Pulled from Render Environment Variables
+# Pulls from Render Environment Variables
 GROQ_API_KEY = os.environ.get("GROQ_API_KEY")
 
 def ask_groq(messages):
@@ -13,14 +13,15 @@ def ask_groq(messages):
         "Content-Type": "application/json"
     }
     payload = {
-        "model": "llama3-8b-8192",
-        "messages": messages
+        "model": "llama-3.3-70b-versatile", # UPDATED TO CURRENT STABLE MODEL
+        "messages": messages,
+        "temperature": 0.8
     }
     try:
         res = requests.post(url, headers=headers, json=payload, timeout=20)
         if res.status_code != 200:
             print(f"GROQ ERROR: {res.status_code} - {res.text}")
-            return f"ERROR: {res.status_code}"
+            return f"SYSTEM ERROR: {res.status_code}"
         return res.json()['choices'][0]['message']['content']
     except Exception as e:
         print(f"SYSTEM CRASH: {str(e)}")
@@ -32,7 +33,6 @@ def index():
 
 @app.route('/api/process', methods=['POST', 'OPTIONS'])
 def process():
-    # Handle the "handshake" pre-flight from browsers
     if request.method == 'OPTIONS':
         return '', 200
 
@@ -41,8 +41,10 @@ def process():
         return jsonify({"reply": "API KEY MISSING IN RENDER"}), 500
     
     profile = data.get('profile', {})
+    # Use the name from the vault, default to 'Seeker'
+    user_name = profile.get('name', 'Seeker')
     
-    sys_msg = f"You are Celi, the sovereign advisor for {profile.get('name')}. Be brutally honest."
+    sys_msg = f"You are Celi, the sovereign advisor for {user_name}. Be brutally honest, witty, and direct."
     
     ai_raw = ask_groq([{"role": "system", "content": sys_msg}, {"role": "user", "content": data['message']}])
     
