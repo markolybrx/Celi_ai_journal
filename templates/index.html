@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Celi | Sovereign Mirror</title>
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        :root {
+            --safe-top: env(safe-area-inset-top, 20px);
+            --safe-bottom: env(safe-area-inset-bottom, 20px);
+            --safe-left: env(safe-area-inset-left, 20px);
+            --safe-right: env(safe-area-inset-right, 20px);
+            --accent: #6366f1;
+            --deep-space: #050508;
+        }
+
+        body { 
+            background: var(--deep-space);
+            color: #f8fafc;
+            font-family: 'Inter', -apple-system, sans-serif;
+            height: 100dvh;
+            overflow: hidden;
+            margin: 0;
+            padding: var(--safe-top) var(--safe-right) var(--safe-bottom) var(--safe-left);
+        }
+
+        /* Ambient Nebula Background */
+        .nebula {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: radial-gradient(circle at 50% -20%, rgba(99, 102, 241, 0.15) 0%, transparent 50%),
+                        radial-gradient(circle at 0% 100%, rgba(168, 85, 247, 0.1) 0%, transparent 40%);
+            z-index: -1;
+        }
+
+        /* Glassmorphism Logic */
+        .glass {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(20px) saturate(180%);
+            -webkit-backdrop-filter: blur(20px) saturate(180%);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        /* Floating Galaxy Lens */
+        .lens { 
+            width: 260px; height: 260px; border-radius: 50%; 
+            position: relative; margin: 40px auto; 
+            box-shadow: 0 0 80px rgba(0,0,0,0.5), inset 0 0 40px rgba(255,255,255,0.02);
+            display: flex; align-items: center; justify-content: center;
+        }
+
+        /* Chat Panel - 2026 Floating Canvas style */
+        .chat-panel { 
+            position: fixed; bottom: 12px; left: 12px; right: 12px; 
+            height: 85dvh; border-radius: 32px;
+            transform: translateY(110%); transition: 0.7s cubic-bezier(0.19, 1, 0.22, 1); 
+            z-index: 100; display: flex; flex-direction: column;
+            padding: 24px;
+        }
+        .chat-open { transform: translateY(0); }
+
+        /* Liquid Glass Message Bubbles */
+        .msg { max-width: 85%; padding: 16px 20px; border-radius: 24px; font-size: 15px; line-height: 1.6; position: relative; }
+        .msg-celi { 
+            background: rgba(255, 255, 255, 0.04); align-self: flex-start; 
+            border-bottom-left-radius: 4px; color: #cbd5e1;
+        }
+        .msg-user { 
+            background: linear-gradient(135deg, var(--accent) 0%, rgba(99, 102, 241, 0.8) 100%); 
+            align-self: flex-end; border-bottom-right-radius: 4px;
+            box-shadow: 0 12px 24px -10px var(--accent);
+        }
+
+        /* Kinetic Stars */
+        .star { 
+            position: absolute; background: #fff; border-radius: 50%; 
+            filter: drop-shadow(0 0 4px var(--accent));
+        }
+
+        /* Safe Area Inputs */
+        input { 
+            background: rgba(255, 255, 255, 0.05) !important; 
+            border: 1px solid rgba(255, 255, 255, 0.1) !important; 
+            color: #fff !important; padding: 16px 20px; width: 100%; border-radius: 20px;
+            font-size: 16px; outline: none; transition: 0.3s;
+        }
+        input:focus { border-color: var(--accent) !important; background: rgba(255, 255, 255, 0.08) !important; }
+
+        #setup-overlay { 
+            position: fixed; inset: 0; background: var(--deep-space); z-index: 200; 
+            padding: var(--safe-top) 30px var(--safe-bottom) 30px;
+        }
+
+        .primary-btn { 
+            background: var(--accent); color: white; padding: 18px; 
+            border-radius: 20px; font-weight: 600; letter-spacing: 0.5px;
+            transition: transform 0.2s;
+        }
+        .primary-btn:active { transform: scale(0.97); }
+
+        @keyframes float { 0% { transform: translateY(0px); } 50% { transform: translateY(-10px); } 100% { transform: translateY(0px); } }
+        .float-anim { animation: float 4s ease-in-out infinite; }
+    </style>
+</head>
+<body class="flex flex-col">
+    <div class="nebula"></div>
+
+    <div id="setup-overlay" class="flex flex-col">
+        <div class="mt-12 text-center">
+            <h1 class="text-[10px] font-bold tracking-[0.8em] text-slate-500 uppercase">System Initializing</h1>
+        </div>
+        <div id="reg-chat" class="flex-grow overflow-y-auto flex flex-col justify-end gap-4 pb-10">
+            <div class="msg msg-celi">The mirror is dark. Shall we ignite a new trajectory or restore an existing vault?</div>
+        </div>
+        <div id="reg-controls" class="pb-8">
+            <div id="initial-choice" class="flex gap-4">
+                <button onclick="startRegChat()" class="primary-btn flex-grow">New Genesis</button>
+                <button onclick="initFile(false)" class="glass flex-grow p-4 rounded-[20px] text-sm font-semibold">Restore Vault</button>
+            </div>
+            <div id="reg-input-area" class="hidden flex gap-2">
+                <div id="input-wrapper" class="flex-grow"></div>
+                <button onclick="handleRegInput()" class="primary-btn px-8">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <header class="flex justify-between items-center px-4 pt-2">
+        <div>
+            <p id="header-id" class="text-[10px] font-bold tracking-[0.2em] text-slate-500 uppercase">ID: ---</p>
+            <div class="flex items-center gap-1.5 mt-1">
+                <div class="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_#10b981]"></div>
+                <span class="text-[9px] font-bold text-slate-600 uppercase">Neural Link Stable</span>
+            </div>
+        </div>
+        <button onclick="toggleModal('vault-modal')" class="glass px-4 py-2 rounded-full text-[10px] font-bold tracking-widest text-slate-400">VAULT</button>
+    </header>
+
+    <div class="lens float-anim">
+        <div id="galaxy" class="relative w-full h-full rounded-full overflow-hidden"></div>
+    </div>
+
+    <div class="mt-auto px-8 mb-12 flex flex-col items-center gap-8">
+        <p id="greeting" class="text-sm text-slate-400 text-center leading-relaxed italic max-w-[280px]"></p>
+        <button onclick="toggleChat()" class="primary-btn w-full shadow-2xl shadow-indigo-500/20">Initialize Dialogue</button>
+    </div>
+
+    <div id="chat-panel" class="chat-panel glass">
+        <div class="flex justify-between items-center mb-6">
+            <span class="text-[10px] font-bold tracking-[0.3em] text-slate-500 uppercase">Neural Stream</span>
+            <button onclick="toggleChat()" class="text-xs font-bold text-slate-500">Minimize</button>
+        </div>
+        <div id="chat-box" class="flex-grow overflow-y-auto space-y-6 pr-2"></div>
+        <div id="typing" class="hidden flex gap-2 my-4"><div class="w-1.5 h-1.5 bg-indigo-500 rounded-full animate-bounce"></div></div>
+        <div class="mt-4 flex gap-2">
+            <input id="user-input" placeholder="Speak your truth..." onkeydown="if(event.key==='Enter') sendMsg()">
+            <button onclick="sendMsg()" class="primary-btn px-6 py-4 text-[11px]">SEND</button>
+        </div>
+    </div>
+
+    <div id="vault-modal" class="modal hidden p-8 glass m-4 rounded-[32px] absolute inset-0 z-[150] flex flex-col">
+        <div class="flex justify-between items-center mb-10 border-b border-white/5 pb-6">
+            <h2 class="text-xs font-bold uppercase tracking-[0.2em]">Sovereign Core</h2>
+            <button onclick="toggleModal('vault-modal')" class="text-xs opacity-40">CLOSE</button>
+        </div>
+        <div class="space-y-8 flex-grow overflow-y-auto">
+            <div class="bg-white/[0.03] p-6 rounded-3xl border border-white/5">
+                <p class="text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-2">Mirror Insight</p>
+                <p id="vault-insight" class="text-sm italic text-slate-300 leading-relaxed"></p>
+            </div>
+            <div class="space-y-5">
+                <div><label class="text-[10px] uppercase text-slate-500 ml-1">Identity Name</label><input id="p-name" class="mt-2"></div>
+                <div><label class="text-[10px] uppercase text-slate-500 ml-1">Signature Hex</label><input id="p-color" class="mt-2"></div>
+                <button onclick="updateProfile()" class="primary-btn w-full mt-4">Sync Identity</button>
+            </div>
+        </div>
+        <button onclick="wipeData()" class="mt-8 text-red-900 text-[10px] font-bold uppercase opacity-30">Purge Vault</button>
+    </div>
+
+    <script>
+        let fileHandle;
+        let LOCAL_DB = { profile: {}, entries: [], insights: [] };
+        let regStep = 0;
+        const questions = [
+            { k: "uid", q: "Define User ID", t: "text" },
+            { k: "pw", q: "Set Secret Key", t: "password" },
+            { k: "pwc", q: "Confirm Secret Key", t: "password" },
+            { k: "name", q: "Identity Designation?", t: "text" },
+            { k: "bday", q: "Origin Date?", t: "date" },
+            { k: "color", q: "Signature Color (Hex)?", t: "text" }
+        ];
+
+        function startRegChat() { document.getElementById('initial-choice').classList.add('hidden'); document.getElementById('reg-input-area').classList.remove('hidden'); askNextReg(); }
+        function askNextReg() { const q = questions[regStep]; addRegMsg(q.q, 'celi'); document.getElementById('input-wrapper').innerHTML = `<input id="reg-field" type="${q.t}" autofocus onkeydown="if(event.key==='Enter') handleRegInput()">`; }
+        function addRegMsg(t, s) { const b = document.getElementById('reg-chat'); const d = document.createElement('div'); d.className = `msg msg-${s}`; d.innerText = (questions[regStep-1] && questions[regStep-1].t === 'password' && s === 'user') ? "••••" : t; b.appendChild(d); b.scrollTop = b.scrollHeight; }
+
+        async function handleRegInput() {
+            const i = document.getElementById('reg-field'); const v = i.value.trim(); if(!v) return;
+            if(questions[regStep].k === "pwc" && v !== LOCAL_DB.profile.pw) { regStep = 1; askNextReg(); return; }
+            LOCAL_DB.profile[questions[regStep].k] = v;
+            regStep++; addRegMsg(v, 'user'); i.value = '';
+            if(regStep < questions.length) setTimeout(askNextReg, 400);
+            else { addRegMsg("Establishing Secure Link...", 'celi'); setTimeout(() => initFile(true), 800); }
+        }
+
+        async function initFile(isNew) {
+            try {
+                if(isNew) {
+                    fileHandle = await window.showSaveFilePicker({ suggestedName: 'celi_vault.json' });
+                    const w = await fileHandle.createWritable(); await w.write(JSON.stringify(LOCAL_DB)); await w.close();
+                } else {
+                    [fileHandle] = await window.showOpenFilePicker();
+                    LOCAL_DB = JSON.parse(await (await fileHandle.getFile()).text());
+                }
+                document.getElementById('setup-overlay').style.display = 'none';
+                loadDashboard();
+            } catch(e) {}
+        }
+
+        function loadDashboard() {
+            document.getElementById('header-id').innerText = `ID: ${LOCAL_DB.profile.uid}`;
+            document.getElementById('greeting').innerText = `Your mirror is calibrated, ${LOCAL_DB.profile.name}. Shall we scan your current trajectory?`;
+            document.documentElement.style.setProperty('--accent', LOCAL_DB.profile.color || '#6366f1');
+            document.getElementById('p-name').value = LOCAL_DB.profile.name;
+            document.getElementById('p-color').value = LOCAL_DB.profile.color || '#6366f1';
+            updateGalaxy();
+        }
+
+        async function sendMsg() {
+            const i = document.getElementById('user-input'); const val = i.value.trim(); if(!val) return;
+            addChat("YOU", val, 'text-slate-500'); i.value = '';
+            document.getElementById('typing').classList.remove('hidden');
+            try {
+                const r = await fetch('/api/process', { 
+                    method: 'POST', 
+                    headers: {'Content-Type': 'application/json'}, 
+                    body: JSON.stringify({ message: val, profile: LOCAL_DB.profile, history: LOCAL_DB.entries.slice(-5).map(e => e.text) }) 
+                });
+                const d = await r.json();
+                document.getElementById('typing').classList.add('hidden');
+                LOCAL_DB.entries.push({ text: val, date: new Date().toISOString() });
+                if(d.insight) { LOCAL_DB.insights.push(d.insight); document.getElementById('vault-insight').innerText = d.insight; }
+                saveToDisk(); addChat("CELI", d.reply, 'text-white font-medium');
+            } catch(e) { document.getElementById('typing').classList.add('hidden'); }
+        }
+
+        async function saveToDisk() { if(fileHandle) { try{ const w = await fileHandle.createWritable(); await w.write(JSON.stringify(LOCAL_DB)); await w.close(); }catch(e){} } }
+        function addChat(s,t,c) { const box = document.getElementById('chat-box'); box.innerHTML += `<div><p class="text-[9px] font-bold ${c} tracking-widest mb-1">[${s}]</p><p class="text-[15px] leading-relaxed">${t}</p></div>`; box.scrollTop = box.scrollHeight; }
+        function toggleChat() { document.getElementById('chat-panel').classList.toggle('chat-open'); }
+        function toggleModal(id) { document.getElementById(id).classList.toggle('hidden'); }
+        
+        function updateGalaxy() {
+            const g = document.getElementById('galaxy'); g.innerHTML = '';
+            for(let i=0; i<30; i++) {
+                const s = document.createElement('div'); s.className = 'star';
+                const size = Math.random() * 3;
+                s.style.width = size + 'px'; s.style.height = size + 'px';
+                s.style.left = Math.random() * 100 + '%'; s.style.top = Math.random() * 100 + '%';
+                s.style.opacity = Math.random();
+                s.style.animation = `pulse ${2 + Math.random() * 3}s infinite alternate`;
+                g.appendChild(s);
+            }
+        }
+        async function wipeData() { if(confirm("Erase Vault?")) { LOCAL_DB = { profile:{}, entries:[], insights:[] }; await saveToDisk(); location.reload(); } }
+    </script>
+    <style>@keyframes pulse { from { opacity: 0.2; transform: scale(0.8); } to { opacity: 1; transform: scale(1.2); } }</style>
+</body>
+</html>
