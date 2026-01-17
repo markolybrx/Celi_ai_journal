@@ -7,74 +7,136 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
     <style>
         :root { --accent: #A855F7; --bg: #000; }
-        body { background: var(--bg); color: #fff; font-family: 'Inter', sans-serif; margin: 0; overflow: hidden; height: 100dvh; -webkit-font-smoothing: antialiased; }
-        .nebula { position: fixed; top: -10%; left: -10%; width: 120%; height: 40%; background: radial-gradient(circle, rgba(168,85,247,0.1) 0%, transparent 70%); filter: blur(80px); z-index: 0; pointer-events: none; }
+        body { background: var(--bg); color: #fff; font-family: 'Inter', sans-serif; margin: 0; overflow: hidden; height: 100dvh; }
+        
+        /* Star & Galaxy Background */
+        #galaxy { position: fixed; inset: 0; z-index: 0; pointer-events: none; }
+        .star { position: absolute; width: 2px; height: 2px; border-radius: 50%; box-shadow: 0 0 10px currentColor; }
+        .nebula { position: fixed; top: -10%; left: -10%; width: 120%; height: 40%; background: radial-gradient(circle, rgba(168,85,247,0.1) 0%, transparent 70%); filter: blur(80px); z-index: 1; opacity: 0.5; }
+
+        /* Scannable Feed */
         .feed { position: relative; z-index: 10; height: 100%; overflow-y: auto; padding: 100px 20px 140px; }
         .feed::-webkit-scrollbar { display: none; }
-        .card { background: rgba(255,255,255,0.03); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border-radius: 28px; padding: 24px; margin-bottom: 16px; border: 1px solid rgba(255,255,255,0.05); }
-        .u-msg { font-weight: 300; font-size: 1.05rem; line-height: 1.6; color: #fff; margin-bottom: 14px; }
-        .c-msg { font-weight: 600; font-size: 0.85rem; color: var(--accent); line-height: 1.5; }
-        .ts { font-size: 0.65rem; font-weight: 800; color: rgba(255,255,255,0.2); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 6px; }
-        .nav { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); width: 90%; height: 74px; background: rgba(15,15,15,0.9); border-radius: 37px; display: flex; align-items: center; justify-content: space-around; z-index: 100; border: 1px solid rgba(255,255,255,0.1); }
-        .add-btn { width: 58px; height: 58px; background: #fff; color: #000; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 32px; font-weight: 200; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
-        #writer { position: fixed; inset: 0; background: #000; z-index: 200; display: none; padding: 60px 24px; flex-direction: column; }
-        textarea { background: transparent; border: none; outline: none; font-weight: 300; font-size: 1.7rem; width: 100%; height: 50%; color: #fff; line-height: 1.4; }
+        .card { background: rgba(255,255,255,0.03); backdrop-filter: blur(20px); border-radius: 28px; padding: 24px; margin-bottom: 16px; border: 1px solid rgba(255,255,255,0.05); }
+
+        /* Floating Nav */
+        .nav { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); width: 92%; height: 74px; background: rgba(15,15,15,0.9); border-radius: 37px; display: flex; align-items: center; justify-content: space-around; z-index: 100; border: 1px solid rgba(255,255,255,0.1); }
+        .btn-plus { width: 58px; height: 58px; background: #fff; color: #000; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 30px; font-weight: 200; }
+
+        /* Modals */
+        .modal { position: fixed; inset: 0; background: #000; z-index: 200; display: none; padding: 60px 24px; flex-direction: column; }
+        .calendar-grid { display: grid; grid-cols: 7; gap: 8px; }
+        .day { aspect-ratio: 1; background: rgba(255,255,255,0.03); border-radius: 12px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 10px; border: 1px solid transparent; }
+        
+        /* Rank Progress Bar */
+        #rank-bar { position: fixed; top: 0; left: 0; height: 3px; background: var(--accent); z-index: 300; transition: width 1s ease; box-shadow: 0 0 10px var(--accent); }
     </style>
 </head>
 <body>
+    <div id="rank-bar" style="width: 0%"></div>
+    <div id="galaxy"></div>
     <div class="nebula" id="neb"></div>
+
     <header class="fixed top-0 inset-x-0 p-8 z-50 flex justify-between items-center bg-gradient-to-b from-black to-transparent">
-        <h1 class="text-xl font-semibold tracking-tighter">Celi</h1>
-        <button onclick="logout()" class="text-[10px] font-bold text-white/20 uppercase tracking-widest">Logout</button>
+        <div>
+            <h1 class="text-xl font-semibold tracking-tighter">Celi</h1>
+            <p id="rank-label" class="text-[9px] font-black text-white/20 uppercase tracking-[0.3em]">Sector 01</p>
+        </div>
+        <button onclick="logout()" class="text-[9px] font-bold text-white/30 uppercase tracking-widest">Exit</button>
     </header>
 
     <main class="feed" id="feed"></main>
 
     <nav class="nav">
-        <div class="text-[9px] font-black text-white/20 uppercase">Journal</div>
-        <div class="add-btn" onclick="openW()">+</div>
-        <div class="text-[9px] font-black text-white/20 uppercase">History</div>
+        <div onclick="toggleModal('cal-modal')" class="text-[9px] font-black text-white/20 uppercase">Log</div>
+        <div class="btn-plus" onclick="toggleModal('writer')">+</div>
+        <div onclick="toggleGalaxy()" class="text-[9px] font-black text-white/20 uppercase">Stars</div>
     </nav>
 
-    <div id="writer">
-        <div class="flex justify-between items-center mb-12">
-            <span class="text-[10px] font-black text-white/20 uppercase tracking-widest">Write</span>
-            <button onclick="closeW()" class="text-xs font-bold text-white/40">Close</button>
+    <div id="writer" class="modal">
+        <div class="flex justify-between items-center mb-10"><span class="text-[10px] uppercase font-black text-white/20">Sync</span><button onclick="toggleModal('writer')">Close</button></div>
+        <textarea id="entry-in" class="bg-transparent border-none outline-none font-light text-2xl" placeholder="Say it..."></textarea>
+        <button onclick="send()" id="s-btn" class="mt-auto w-full py-6 bg-white text-black rounded-full font-extrabold text-[10px] uppercase tracking-widest">Transmit</button>
+    </div>
+
+    <div id="cal-modal" class="modal">
+        <div class="flex justify-between items-center mb-8"><span class="text-[10px] uppercase font-black text-white/20">Temporal Log</span><button onclick="toggleModal('cal-modal')">Close</button></div>
+        <div id="calendar-body" class="grid grid-cols-7 gap-3"></div>
+        <div id="entry-viewer" class="mt-8 p-6 bg-white/5 rounded-3xl hidden">
+            <p id="v-text" class="text-lg font-light mb-6"></p>
+            <button onclick="purge()" class="w-full py-4 text-red-500 bg-red-500/10 rounded-2xl text-[9px] font-black uppercase tracking-widest">Black Hole Purge</button>
         </div>
-        <textarea id="entry-in" placeholder="What's happening?"></textarea>
-        <button onclick="send()" id="s-btn" class="mt-auto w-full py-6 bg-white text-black rounded-full font-extrabold text-[10px] uppercase tracking-[0.3em]">Sync Consciousness</button>
     </div>
 
     <script>
+        let activeDate = null;
         async function load() {
-            const res = await fetch('/api/history');
+            const res = await fetch('/api/data');
             const data = await res.json();
-            document.getElementById('feed').innerHTML = data.map(e => `
+            
+            // Render Feed
+            const history = Object.values(data.history).sort((a,b) => b.ts - a.ts);
+            document.getElementById('feed').innerHTML = history.map(e => `
                 <div class="card">
-                    <div class="ts">${new Date(e.ts * 1000).toLocaleDateString()}</div>
-                    <div class="u-msg">${e.user_msg}</div>
-                    <div class="c-msg">CELI: ${e.reply}</div>
+                    <div class="text-[9px] font-black text-white/20 uppercase mb-4">${new Date(e.ts * 1000).toLocaleDateString()}</div>
+                    <div class="font-light text-lg leading-relaxed mb-4">${e.user_msg}</div>
+                    <div style="color:${e.color}" class="font-semibold text-sm leading-snug">CELI: ${e.reply}</div>
                 </div>
-            `).reverse().join('');
+            `).join('');
+
+            // Render Stars
+            const gal = document.getElementById('galaxy'); gal.innerHTML = '';
+            data.stars.forEach(s => {
+                const el = document.createElement('div'); el.className = 'star';
+                el.style.cssText = `left:${s.x}%; top:${s.y}%; color:${s.color};`;
+                gal.appendChild(el);
+            });
+
+            // Update Rank
+            document.getElementById('rank-label').innerText = `${data.rank} — Sector 0${data.level}`;
+            document.getElementById('rank-bar').style.width = (data.stars.length % 5) * 20 + '%';
         }
-        function openW() { document.getElementById('writer').style.display='flex'; document.getElementById('entry-in').focus(); }
-        function closeW() { document.getElementById('writer').style.display='none'; }
+
+        function toggleModal(id) {
+            const m = document.getElementById(id);
+            m.style.display = m.style.display === 'flex' ? 'none' : 'flex';
+            if(id === 'cal-modal') renderCalendar();
+        }
+
+        async function renderCalendar() {
+            const res = await fetch('/api/data');
+            const data = await res.json();
+            const grid = document.getElementById('calendar-body'); grid.innerHTML = '';
+            for(let i=1; i<=30; i++) {
+                const key = `2026-01-${i < 10 ? '0'+i : i}`;
+                const has = data.history[key];
+                const day = document.createElement('div'); day.className = 'day';
+                day.innerHTML = `<span>${i}</span>`;
+                if(has) {
+                    day.style.borderColor = has.color;
+                    day.onclick = () => {
+                        activeDate = key;
+                        document.getElementById('v-text').innerText = has.reply;
+                        document.getElementById('entry-viewer').classList.remove('hidden');
+                    };
+                }
+                grid.appendChild(day);
+            }
+        }
+
         async function send() {
             const msg = document.getElementById('entry-in').value.trim();
             if(!msg) return;
-            document.getElementById('s-btn').innerText = "Connecting...";
-            const res = await fetch('/api/process', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ message: msg })
-            });
-            const data = await res.json();
-            document.getElementById('neb').style.background = `radial-gradient(circle, ${data.color}22 0%, transparent 70%)`;
-            document.getElementById('entry-in').value = '';
-            document.getElementById('s-btn').innerText = "Sync Consciousness";
-            closeW(); load();
+            const res = await fetch('/api/process', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({message:msg}) });
+            toggleModal('writer'); document.getElementById('entry-in').value = ''; load();
         }
-        async function logout() { await fetch('/api/logout'); window.location.reload(); }
+
+        async function purge() {
+            await fetch('/api/purge', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({date:activeDate}) });
+            document.getElementById('entry-viewer').classList.add('hidden'); renderCalendar(); load();
+        }
+
+        function logout() { fetch('/api/logout').then(() => window.location.reload()); }
         window.onload = load;
     </script>
 </body>
