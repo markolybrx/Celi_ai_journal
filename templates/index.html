@@ -3,87 +3,132 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>Celi</title>
+    <title>Celi: v6.7</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         :root { --mood: #00f2fe; }
         body { background: #000; color: #fff; overflow: hidden; font-family: sans-serif; margin: 0; }
         
-        /* Galaxy Layers */
-        #galaxy-layer { position: fixed; inset: 0; background: radial-gradient(circle at 50% 100%, #050510 0%, #000 100%); z-index: 80; transform: translateY(100%); transition: 0.8s cubic-bezier(0.16, 1, 0.3, 1); }
-        #galaxy-layer.active { transform: translateY(0); }
-        .dust { position: absolute; background: #fff; border-radius: 50%; opacity: 0.1; pointer-events: none; transition: transform 0.1s; }
-        
-        /* Trivia Modal */
-        #celi-bubble { 
-            position: fixed; bottom: 210px; right: 24px; width: 260px; 
-            background: #fff; color: #000; padding: 22px; border-radius: 25px 25px 5px 25px; 
-            display: none; z-index: 450; box-shadow: 0 0 30px var(--mood); 
-            animation: popUp 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        /* Persistent Static Header */
+        #static-header { 
+            position: fixed; top: 0; left: 0; width: 100%; 
+            z-index: 2000; padding: 40px 30px 20px; 
+            background: linear-gradient(to bottom, #000 60%, transparent);
+            pointer-events: none; 
         }
-        #celi-bubble::after { content: ''; position: absolute; bottom: -10px; right: 10px; border-width: 10px 10px 0 0; border-color: #fff transparent transparent transparent; }
-        
-        @keyframes popUp { from { transform: scale(0.5); opacity: 0; } to { transform: scale(1); opacity: 1; } }
-        
-        /* Nav & Sync */
-        #sync-indicator { position: fixed; top: 30px; left: 50%; transform: translateX(-50%); background: rgba(0,242,254,0.1); border: 1px solid rgba(0,242,254,0.3); padding: 8px 16px; border-radius: 100px; display: none; z-index: 1000; }
+        #static-header * { pointer-events: auto; }
+
+        /* Calendar View (Default Open) */
+        #main-calendar {
+            position: fixed; inset: 0; padding: 120px 24px 100px;
+            z-index: 100; transition: opacity 0.5s ease, transform 0.5s ease;
+            overflow-y: auto;
+        }
+        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 10px; margin-top: 20px; }
+        .day-cell { aspect-ratio: 1; background: rgba(255,255,255,0.05); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 800; border: 1px solid rgba(255,255,255,0.05); }
+        .day-active { background: var(--mood); color: #000; box-shadow: 0 0 15px var(--mood); border: none; }
+
+        /* Galaxy Layer */
+        #galaxy-layer { position: fixed; inset: 0; background: radial-gradient(circle at 50% 100%, #050510 0%, #000 100%); z-index: 50; transform: translateY(100%); transition: 0.8s cubic-bezier(0.16, 1, 0.3, 1); }
+        #galaxy-layer.active { transform: translateY(0); }
+
+        /* Transitions */
+        .hidden-view { opacity: 0; pointer-events: none; transform: scale(0.95); }
+
+        /* Navigation & AI preserved from v6.6 */
+        nav { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); width: 92%; height: 70px; border-radius: 40px; background: rgba(255,255,255,0.08); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: space-around; z-index: 1000; }
+        #celi-trigger { position: fixed; bottom: 120px; right: 24px; z-index: 1000; width: 65px; height: 65px; background: rgba(255,255,255,0.1); border: 2px solid rgba(255,255,255,0.2); border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+        #celi-bubble { position: fixed; bottom: 200px; right: 24px; width: 260px; background: #fff; color: #000; padding: 20px; border-radius: 25px 25px 5px 25px; display: none; z-index: 1001; box-shadow: 0 0 30px var(--mood); }
     </style>
 </head>
 <body>
-    <div id="sync-indicator" class="text-[9px] font-black uppercase tracking-widest text-[#00f2fe]">Syncing Thoughts...</div>
+    <header id="static-header">
+        <h1 class="text-4xl font-black tracking-tighter">Celi</h1>
+        <div class="flex justify-between items-center mt-2">
+            <p id="rank-text" class="text-[10px] font-black uppercase text-blue-400">Observer V</p>
+            <p class="text-[10px] font-black uppercase opacity-40">January 2026</p>
+        </div>
+    </header>
+
+    <main id="main-calendar">
+        <div class="calendar-grid" id="calendar-body">
+            </div>
+        <div class="mt-8 p-6 bg-white/5 rounded-3xl border border-white/10">
+            <h3 class="text-[10px] font-black uppercase text-white/40 mb-2">Today's Focus</h3>
+            <p class="text-sm font-bold leading-tight">No entries yet. Tap the chat icon to share your thoughts with Celi.</p>
+        </div>
+    </main>
 
     <div id="galaxy-layer">
         <div id="dust-field" class="absolute inset-0"></div>
         <div id="star-field" class="relative w-full h-full"></div>
     </div>
 
+    <div id="celi-trigger" onclick="toggleChat()">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+    </div>
+
     <div id="celi-bubble">
-        <div class="text-[10px] font-black uppercase text-blue-600 mb-1">Celi's Discovery</div>
-        <p id="trivia-text" class="text-sm font-medium leading-tight"></p>
-        <button onclick="hideBubble()" class="mt-3 text-[9px] font-black uppercase opacity-40">Dismiss</button>
+        <p id="trivia-text" class="text-sm font-medium leading-tight">I'm ready when you are.</p>
+        <button onclick="hideBubble()" class="mt-3 text-[9px] font-black uppercase opacity-30">Dismiss</button>
     </div>
 
-    <div id="celi-trigger" onclick="toggleChat()" class="fixed bottom-[130px] right-[24px] z-[400] w-[68px] h-[68px] bg-white/10 border-2 border-white/20 rounded-full flex items-center justify-center">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-    </div>
-
-    <nav class="fixed bottom-8 left-1/2 -translate-x-1/2 w-[90%] bg-white/5 backdrop-blur-xl border border-white/10 h-16 rounded-full flex justify-around items-center z-[500]">
-        <span class="text-[9px] font-black uppercase opacity-40" onclick="toggleGalaxy()">View Galaxy</span>
+    <nav>
+        <div class="text-[10px] font-black opacity-40">Vault</div>
+        <div class="text-[10px] font-black cursor-pointer" onclick="toggleGalaxy()" id="galaxy-btn">View Galaxy</div>
+        <div class="text-[10px] font-black opacity-40">Gallery</div>
     </nav>
 
     <script>
         let isGalaxyOpen = false;
-        let queue = JSON.parse(localStorage.getItem('celi_queue') || "[]");
+
+        function initCalendar() {
+            const body = document.getElementById('calendar-body');
+            body.innerHTML = '';
+            for(let i=1; i<=31; i++) {
+                const day = document.createElement('div');
+                day.className = 'day-cell' + (i === 18 ? ' day-active' : '');
+                day.innerText = i;
+                body.appendChild(day);
+            }
+        }
 
         function toggleGalaxy() {
             isGalaxyOpen = !isGalaxyOpen;
-            document.getElementById('galaxy-layer').classList.toggle('active', isGalaxyOpen);
+            const layer = document.getElementById('galaxy-layer');
+            const calendar = document.getElementById('main-calendar');
+            const btn = document.getElementById('galaxy-btn');
+            
+            if(isGalaxyOpen) {
+                layer.classList.add('active');
+                calendar.classList.add('hidden-view');
+                btn.innerText = "Back to Home";
+            } else {
+                layer.classList.remove('active');
+                calendar.classList.remove('hidden-view');
+                btn.innerText = "View Galaxy";
+            }
         }
 
-        function announceTrivia(text, color) {
-            document.documentElement.style.setProperty('--mood', color);
-            document.getElementById('trivia-text').innerText = text;
-            document.getElementById('celi-bubble').style.display = 'block';
+        function toggleChat() {
+            const bubble = document.getElementById('celi-bubble');
+            bubble.style.display = bubble.style.display === 'block' ? 'none' : 'block';
         }
 
         function hideBubble() { document.getElementById('celi-bubble').style.display = 'none'; }
 
-        // Parallax Effect
-        window.addEventListener('deviceorientation', (e) => {
-            if(!isGalaxyOpen) return;
-            const x = e.gamma / 5, y = e.beta / 5;
-            document.getElementById('dust-field').style.transform = `translate(${x*2}px, ${y*2}px)`;
-        });
-
-        // Initialize Background Dust
-        const field = document.getElementById('dust-field');
-        for(let i=0; i<50; i++) {
-            const d = document.createElement('div');
-            d.className = 'dust';
-            d.style.width = '2px'; d.style.height = '2px';
-            d.style.left = Math.random()*100+'%'; d.style.top = Math.random()*100+'%';
-            field.appendChild(d);
-        }
+        // Start systems
+        window.onload = () => {
+            initCalendar();
+            // Star dust particles
+            const dust = document.getElementById('dust-field');
+            for(let i=0; i<50; i++) {
+                const d = document.createElement('div');
+                d.className = 'absolute w-[1px] h-[1px] bg-white opacity-20';
+                d.style.left = Math.random()*100+'%'; d.style.top = Math.random()*100+'%';
+                dust.appendChild(d);
+            }
+        };
     </script>
 </body>
 </html>
