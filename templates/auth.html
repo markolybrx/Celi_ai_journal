@@ -3,54 +3,83 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>Celi: AI Journal | Access</title>
+    <title>Celi: Identity</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        :root { --accent: #A855F7; }
-        html, body { background: #000; color: #fff; margin: 0; font-family: sans-serif; overflow: hidden; height: 100%; }
-        .void-bg { position: fixed; inset: 0; background: radial-gradient(circle at 50% 100%, #1a1a2e 0%, #000 100%); z-index: -1; }
-        .modal { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; padding: 20px; z-index: 100; transition: 0.4s ease; }
-        .modal-content { background: rgba(20,20,20,0.7); border: 1px solid rgba(255,255,255,0.08); backdrop-filter: blur(50px); border-radius: 48px; padding: 50px 40px; width: 100%; max-width: 440px; box-shadow: 0 40px 100px -20px rgba(0,0,0,0.8); }
-        h2 { font-size: 36px; font-weight: 900; letter-spacing: -1.5px; margin-bottom: 40px; text-align: center; }
-        input { width: 100%; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1); border-radius: 24px; padding: 22px 28px; color: #fff; outline: none; margin-bottom: 18px; font-size: 16px; }
-        .btn-row { display: flex; gap: 14px; margin-top: 20px; }
-        .btn-primary { background: #fff; color: #000; padding: 20px; border-radius: 24px; font-weight: 900; flex: 1.2; text-align: center; cursor: pointer; }
-        .btn-secondary { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: #fff; padding: 20px; border-radius: 24px; font-weight: 800; flex: 1; text-align: center; cursor: pointer; }
-        .hidden { display: none !important; }
+        body { background: #000; color: #fff; font-family: sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; }
+        .auth-container { width: 90%; max-width: 360px; text-align: center; }
+        
+        input {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 24px;
+            padding: 22px 28px;
+            color: #fff;
+            outline: none;
+            margin-bottom: 20px;
+            transition: 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            font-size: 16px;
+        }
+        input:focus { background: rgba(255, 255, 255, 0.1); border-color: rgba(255, 255, 255, 0.4); transform: scale(1.02); }
+        
+        .btn { width: 100%; padding: 22px; border-radius: 24px; font-weight: 900; text-transform: uppercase; letter-spacing: 2.5px; transition: 0.3s; font-size: 12px; }
+        .btn-primary { background: #fff; color: #000; box-shadow: 0 10px 30px rgba(255,255,255,0.1); }
+        .btn-secondary { background: transparent; border: 1px solid rgba(255,255,255,0.15); color: rgba(255,255,255,0.5); margin-top: 15px; }
+        
+        #status-msg { margin-top: 25px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; min-height: 20px; transition: 0.3s; }
+        .status-error { color: #ff4b2b; text-shadow: 0 0 10px rgba(255,75,43,0.3); }
+        .status-success { color: #00f2fe; text-shadow: 0 0 10px rgba(0,242,254,0.3); }
     </style>
 </head>
 <body>
-    <div class="void-bg"></div>
-    <div id="login-modal" class="modal">
-        <div class="modal-content">
-            <h2>Celi: AI Journal</h2>
-            <input type="text" id="log-id" placeholder="User ID">
-            <input type="password" id="log-pass" placeholder="Password">
-            <div class="btn-row"><div class="btn-primary" onclick="doLogin()">Enter</div><div class="btn-secondary" onclick="showModal('register')">Join</div></div>
-        </div>
+    <div class="auth-container">
+        <h2 class="text-5xl font-black mb-12 tracking-tighter">Celi</h2>
+        
+        <input type="text" id="username" placeholder="Identity Name" autocomplete="off">
+        <input type="password" id="password" placeholder="Vault Passkey">
+        
+        <button class="btn btn-primary" onclick="handleAuth('login')">Access Vault</button>
+        <button class="btn btn-secondary" onclick="handleAuth('register')">Create Identity</button>
+        
+        <div id="status-msg"></div>
     </div>
-    <div id="register-modal" class="modal hidden">
-        <div class="modal-content">
-            <h2 class="mb-8">Initiation</h2>
-            <input type="text" id="reg-name" placeholder="Name">
-            <input type="text" id="reg-id" placeholder="User ID">
-            <input type="password" id="reg-pass" placeholder="Password">
-            <input type="date" id="reg-birth" class="text-white">
-            <input type="text" id="reg-color" placeholder="Favorite Color">
-            <div class="btn-row"><div class="btn-primary" onclick="doRegister()">Create</div><div class="btn-secondary" onclick="showModal('login')">Back</div></div>
-        </div>
-    </div>
+
     <script>
-        function showModal(t) { document.querySelectorAll('.modal').forEach(m => m.classList.add('hidden')); document.getElementById(`${t}-modal`).classList.remove('hidden'); }
-        async function doLogin() {
-            const data = { user_id: document.getElementById('log-id').value, password: document.getElementById('log-pass').value };
-            const r = await fetch('/api/login', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data) });
-            if(r.ok) location.reload();
-        }
-        async function doRegister() {
-            const data = { name: document.getElementById('reg-name').value, user_id: document.getElementById('reg-id').value, password: document.getElementById('reg-pass').value, birthday: document.getElementById('reg-birth').value, fav_color: document.getElementById('reg-color').value };
-            const r = await fetch('/api/register', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data) });
-            if(r.ok) location.reload();
+        async function handleAuth(type) {
+            const u = document.getElementById('username').value;
+            const p = document.getElementById('password').value;
+            const status = document.getElementById('status-msg');
+            
+            if(!u || !p) {
+                status.innerText = "Fields are empty";
+                status.className = "status-error";
+                return;
+            }
+
+            status.innerText = type === 'login' ? "Opening Vault..." : "Forging Identity...";
+            status.className = "text-white/40";
+
+            try {
+                const r = await fetch('/api/auth', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({username: u, password: p, type: type})
+                });
+                const res = await r.json();
+
+                if(r.ok) {
+                    status.innerText = res.message;
+                    status.className = "status-success";
+                    setTimeout(() => window.location.href = '/', 1200);
+                } else {
+                    status.innerText = res.error;
+                    status.className = "status-error";
+                }
+            } catch (e) {
+                status.innerText = "No connection to stars";
+                status.className = "status-error";
+            }
         }
     </script>
 </body>
