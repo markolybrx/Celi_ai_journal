@@ -3,7 +3,7 @@ from flask import Flask, render_template, request, jsonify, session
 from datetime import datetime, date, timedelta
 
 app = Flask(__name__)
-app.secret_key = "celi_voyager_fchq_2026_v3.7_final"
+app.secret_key = "celi_voyager_fchq_2026_v3.8_full"
 app.permanent_session_lifetime = timedelta(days=30)
 
 VAULT_PATH = 'vault.json'
@@ -82,19 +82,15 @@ def get_data():
     vault = get_vault()
     u = vault['users'][session['user']]
     rn, rs, pts, sn, nr = calculate_prestige(u['points'], u['last_seen'])
-    
-    # Emotional detection
     mood = "neutral"
     if u['history']:
         last = list(u['history'].values())[-1]
         if last.get('sig', 5) >= 8: mood = "happy"
         elif last.get('sig', 5) <= 3: mood = "blue"
-
     return jsonify({
         "name": u.get('name'), "rank": rn, "level": rs, "points": pts,
         "history": u['history'], "stars": u['stars'], "mood": mood,
-        "rank_info": RANK_DATA[rn], "next_rank": nr, "stars_needed": sn,
-        "all_ranks": RANK_DATA
+        "rank_info": RANK_DATA[rn], "next_rank": nr, "stars_needed": sn
     })
 
 @app.route('/api/process', methods=['POST'])
@@ -119,4 +115,4 @@ def logout(): session.clear(); return jsonify({"success": True})
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
-    
+            
