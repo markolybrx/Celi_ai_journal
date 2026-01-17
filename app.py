@@ -63,7 +63,6 @@ def auth():
         vault['users'][uid] = {"points": 0, "stars": [], "history": {}, "last_seen": str(date.today())}
         save_vault(vault)
     session['user'] = uid
-    session.permanent = True
     return jsonify({"success": True})
 
 @app.route('/api/process', methods=['POST'])
@@ -73,35 +72,44 @@ def process():
     user_data = vault['users'][session['user']]
     rn, rs, pts, pen = calculate_prestige(user_data['points'], user_data['last_seen'])
     
-    # Self-Learning Context
-    history_list = sorted(user_data['history'].values(), key=lambda x: x['ts'], reverse=True)[:5]
-    memory = "\n".join([f"User: {h['user_msg']}\nCeli: {h['reply']}" for h in history_list])
+    history_list = sorted(user_data['history'].values(), key=lambda x: x['ts'], reverse=True)[:10]
+    memory_log = "\n".join([f"User: {h['user_msg']} -> Celi: {h['reply']}" for h in history_list])
 
     msg = request.json.get('message', '')
-    p_state = RANK_DATA[rn]['state']
-    
     sys_msg = (
-        f"You are Celi, a friendly, compassionate, and witty AI advisor. "
-        f"User is Rank {rn} {rs} ({p_state}). Recognize their progress. "
-        f"Use the Memory Log of past entries to show you are learning about them: {memory}. "
-        f"Be direct but caring. Return JSON: {{'reply':'...', 'color':'#hex'}}"
+        f"You are Celi. User: {session['user']}. Rank: {rn} {rs}. "
+        f"Be empathetic, witty, and self-learning. Use Memory: {memory_log}. "
+        f"No emojis. Return JSON: {{'reply':'...', 'color':'#hex'}}"
     )
     
     try:
         res = requests.post("https://api.groq.com/openai/v1/chat/completions",
             headers={"Authorization": f"Bearer {os.environ.get('GROQ_API_KEY')}"},
-            json={"model": "llama-3.3-70b-versatile", "messages": [{"role": "system", "content": sys_msg}, {"role": "user", "content": msg}], "response_format": {"type": "json_object"}},
-            timeout=10)
+            json={"model": "llama-3.3-70b-versatile", "messages": [{"role": "system", "content": sys_msg}, {"role": "user", "content": msg}], "response_format": {"type": "json_object"}})
         ai_resp = json.loads(res.json()['choices'][0]['message']['content'])
         
         user_data['points'] = pts + 1
         user_data['last_seen'] = str(date.today())
         user_data['stars'].append({"color": ai_resp['color'], "x": 10+(time.time()%80), "y": 20+(time.time()%60)})
         user_data['history'][str(time.time())] = {"user_msg": msg, "reply": ai_resp['reply'], "color": ai_resp['color'], "ts": time.time()}
-        
         save_vault(vault)
         return jsonify(ai_resp)
-    except: return jsonify({"reply": "The connection to your core is flickering.", "color": "#ff4444"})
+    except: return jsonify({"reply": "The void is silent.", "color": "#ff4444"})
+
+@app.route('/api/memory_summary')
+def memory_summary():
+    if 'user' not in session: return jsonify({"error": "Unauthorized"}), 401
+    vault = get_vault()
+    user_data = vault['users'][session['user']]
+    full_history = "\n".join([h['user_msg'] for h in user_data['history'].values()])
+    
+    sys_msg = "Summarize what you have learned about this user's psychological journey since day 1. Be compassionate and witty. No emojis."
+    try:
+        res = requests.post("https://api.groq.com/openai/v1/chat/completions",
+            headers={"Authorization": f"Bearer {os.environ.get('GROQ_API_KEY')}"},
+            json={"model": "llama-3.3-70b-versatile", "messages": [{"role": "system", "content": sys_msg}, {"role": "user", "content": full_history}]})
+        return jsonify({"summary": res.json()['choices'][0]['message']['content']})
+    except: return jsonify({"summary": "I am still gathering the fragments of your journey."})
 
 @app.route('/api/data')
 def get_data():
@@ -109,9 +117,7 @@ def get_data():
     vault = get_vault()
     user_data = vault['users'][session['user']]
     rn, rs, pts, pen = calculate_prestige(user_data['points'], user_data['last_seen'])
-    user_data['points'], user_data['last_seen'] = pts, str(date.today())
-    save_vault(vault)
-    return jsonify({"rank": rn, "level": rs, "points": pts, "penalty": pen, "history": user_data['history'], "stars": user_data['stars'], "theme": RANK_DATA[rn]})
+    return jsonify({"user_id": session['user'], "rank": rn, "level": rs, "history": user_data['history'], "stars": user_data['stars'], "theme": RANK_DATA[rn]})
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
