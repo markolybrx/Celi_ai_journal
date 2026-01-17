@@ -3,195 +3,105 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Celi: Voyager FCHQ</title>
+    <title>Celi: Voyager Vessel</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        :root { --rank-color: #3B82F6; }
+        :root { --rank-color: #3B82F6; --pulse-speed: 8s; --mood-color: #A855F7; }
         html, body { background: #050505; color: #fff; margin: 0; padding: 0; overflow: hidden; height: 100%; font-family: sans-serif; }
-        header { position: fixed; top: 0; left: 0; right: 0; height: 110px; background: rgba(10, 10, 15, 0.85); backdrop-filter: blur(30px); z-index: 100; display: flex; align-items: center; justify-content: space-between; padding: 0 24px; padding-top: env(safe-area-inset-top); border-bottom: 1px solid rgba(255,255,255,0.05); }
-        .scroll-area { position: absolute; inset: 0; display: flex; flex-direction: column-reverse; overflow-y: scroll; padding: 130px 24px 140px; z-index: 10; scrollbar-width: none; }
-        nav { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); width: 90%; max-width: 400px; height: 65px; border-radius: 100px; background: rgba(255,255,255,0.08); backdrop-filter: blur(40px); border: 1px solid rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: space-around; z-index: 100; }
-        .full-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.98); backdrop-filter: blur(40px); z-index: 500; display: none; flex-direction: column; align-items: center; justify-content: center; padding: 40px; }
-        
-        /* Rank Up Animation */
-        #rank-up-overlay { position: fixed; inset: 0; background: #000; z-index: 999; display: none; align-items: center; justify-content: center; flex-direction: column; }
-        .orbit-pulse { position: absolute; border: 2px solid var(--rank-color); border-radius: 50%; animation: pulse 2s infinite; }
-        @keyframes pulse { 0% { width: 0; height: 0; opacity: 1; } 100% { width: 500px; height: 500px; opacity: 0; } }
-        
-        /* Floating Celi Message */
-        .celi-toast { position: absolute; top: 40px; left: 24px; right: 24px; background: rgba(255,255,255,0.1); backdrop-filter: blur(20px); border-radius: 20px; padding: 20px; border: 1px solid rgba(255,255,255,0.1); transform: translateY(-100px); transition: 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); opacity: 0; z-index: 600; }
-        .celi-toast.show { transform: translateY(0); opacity: 1; }
-
-        /* Timeline */
-        .timeline-container { width: 100%; overflow-x: auto; display: flex; gap: 12px; padding: 20px 0; scrollbar-width: none; }
-        .timeline-node { flex-shrink: 0; display: flex; flex-direction: column; align-items: center; }
-        .node-dot { width: 12px; height: 12px; border-radius: 50%; margin-bottom: 8px; box-shadow: 0 0 10px currentColor; }
-        .node-bar { width: 2px; background: currentColor; opacity: 0.3; }
-        .profile-input { width: 100%; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 12px; color: #fff; font-size: 14px; margin-bottom: 10px; }
+        .pulse-bg { position: fixed; inset: 0; z-index: -1; box-shadow: inset 0 0 150px -50px var(--rank-color); animation: voidBreath var(--pulse-speed) infinite alternate; }
+        @keyframes voidBreath { 0% { opacity: 0.2; } 100% { opacity: 0.5; } }
+        header { position: fixed; top: 0; width: 100%; z-index: 100; background: rgba(5,5,5,0.95); backdrop-filter: blur(20px); padding-top: env(safe-area-inset-top); border-bottom: 1px solid rgba(255,255,255,0.05); }
+        .cal-nav { display: flex; justify-content: space-between; align-items: center; padding: 15px 24px; }
+        .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; padding: 10px 20px 20px; text-align: center; }
+        .cal-day { font-size: 10px; opacity: 0.4; }
+        .cal-date { font-size: 14px; padding: 8px 0; border-radius: 12px; cursor: pointer; }
+        .cal-today { background: var(--rank-color); color: #000; font-weight: 900; }
+        .scroll-area { position: absolute; inset: 0; overflow-y: scroll; padding: 300px 24px 150px; z-index: 10; scrollbar-width: none; }
+        .entry-card { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); border-radius: 24px; padding: 24px; margin-bottom: 15px; }
+        #celi-node { position: fixed; bottom: 115px; left: 24px; z-index: 300; display: flex; align-items: flex-end; }
+        .avatar-icon { width: 65px; height: 65px; border-radius: 50%; background: var(--mood-color); border: 2px solid rgba(255,255,255,0.3); box-shadow: 0 0 25px var(--mood-color); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: 0.5s; }
+        .celi-bubble { margin-left: 15px; width: 280px; background: rgba(15, 15, 20, 0.98); backdrop-filter: blur(25px); border: 1px solid rgba(255,255,255,0.1); border-radius: 28px; border-bottom-left-radius: 4px; padding: 24px; opacity: 0; transform: scale(0.9) translateX(-10px); pointer-events: none; transition: 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        .celi-bubble.active { opacity: 1; transform: scale(1) translateX(0); pointer-events: auto; }
+        .gloss-btn { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); padding: 16px; border-radius: 20px; text-align: center; font-size: 14px; font-weight: bold; margin-top: 10px; cursor: pointer; box-shadow: inset 0 1px 1px rgba(255,255,255,0.1); }
+        nav { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); width: 92%; height: 75px; border-radius: 100px; background: rgba(255,255,255,0.08); backdrop-filter: blur(40px); border: 1px solid rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: space-around; z-index: 200; }
+        #writer { position: fixed; inset: 0; background: #000; z-index: 500; display: none; flex-direction: column; align-items: center; justify-content: center; padding: 40px; }
+        #writer textarea { font-size: 28px; width: 100%; background: transparent; color: white; border: none; outline: none; text-align: center; line-height: 1.4; }
+        #writer button { margin-top: 50px; background: white; color: black; padding: 24px 80px; border-radius: 100px; font-weight: 900; }
+        .typing-tag { position: absolute; left: 80px; bottom: 10px; font-size: 11px; opacity: 0.5; display: none; }
     </style>
 </head>
 <body>
-    <div id="rank-up-overlay">
-        <div class="orbit-pulse"></div>
-        <div class="text-[10px] font-black tracking-[1em] uppercase mb-4">Ascending</div>
-        <div id="new-rank-display" class="text-4xl font-black"></div>
-    </div>
-
-    <div id="celi-toast" class="celi-toast">
-        <div class="text-[8px] font-black text-purple-400 uppercase tracking-widest mb-1">Celi Mirror</div>
-        <div id="toast-text" class="text-sm font-light leading-relaxed"></div>
-    </div>
-
+    <div id="pulse-engine" class="pulse-bg"></div>
     <header>
-        <div class="flex flex-col">
-            <div id="greeting" class="text-2xl font-black text-white leading-tight">...</div>
-            <div class="flex items-center gap-2 cursor-pointer mt-1" onclick="openPrestige()">
-                <div id="header-badge" class="w-3 h-3"></div>
-                <div id="header-rank" class="text-[10px] font-black uppercase tracking-widest" style="color: var(--rank-color)">...</div>
-            </div>
+        <div class="cal-nav">
+            <button onclick="changeMonth(-1)">◀</button>
+            <div id="cal-title" class="text-xl font-black uppercase">January 2026</div>
+            <button onclick="changeMonth(1)">▶</button>
         </div>
-        <button class="w-11 h-11 rounded-full border border-white/10 flex items-center justify-center bg-white/5" onclick="openProfile()">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-        </button>
+        <div class="cal-grid" id="calendar-days"></div>
     </header>
-
     <main class="scroll-area" id="feed"></main>
-
+    <div id="celi-node">
+        <div class="avatar-icon" onclick="showRankStatus()">
+            <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2z"/><path d="M12 6v6l4 2"/></svg>
+        </div>
+        <div id="celi-bubble" class="celi-bubble">
+            <div id="celi-text" class="text-sm font-light"></div>
+            <div id="celi-actions" class="flex flex-col gap-1 mt-4"></div>
+            <button onclick="closeBubble()" class="mt-6 text-[10px] uppercase opacity-30">Dismiss</button>
+        </div>
+        <div id="typing-tag" class="typing-tag">Celi is reflecting...</div>
+    </div>
     <nav>
-        <div class="text-[9px] font-bold uppercase opacity-40" onclick="openSync()">Deep Sync</div>
-        <button onclick="openWriter()" class="w-12 h-12 bg-white text-black rounded-full text-2xl font-light">+</button>
-        <div class="text-[9px] font-bold uppercase opacity-40" onclick="location.reload()">Refresh</div>
+        <div onclick="location.reload()" class="text-[10px] font-black uppercase opacity-40">Sync</div>
+        <button onclick="promptInitiation()" class="w-16 h-16 bg-white text-black rounded-full text-3xl shadow-2xl">+</button>
+        <div onclick="logout()" class="text-[10px] font-black uppercase opacity-40">Exit</div>
     </nav>
-
-    <div id="prestige-modal" class="full-modal">
-        <div id="p-icon" class="w-20 h-20 mb-4"></div>
-        <div id="p-name" class="text-4xl font-black mb-1"></div>
-        <div id="p-level" class="text-sm opacity-40 font-bold uppercase tracking-widest mb-6"></div>
-        <div class="w-full text-center px-4 mb-8">
-            <div class="text-[10px] font-black uppercase tracking-[0.2em] opacity-40 mb-4">Spectrum of Self</div>
-            <div id="timeline" class="timeline-container"></div>
-        </div>
-        <div id="p-needed" class="text-lg font-light mb-8"></div>
-        <button onclick="closeModal('prestige-modal')" class="bg-white/10 px-8 py-3 rounded-full text-[10px] font-bold uppercase">Close</button>
-    </div>
-
-    <div id="writer" class="full-modal">
-        <textarea id="input" class="bg-transparent w-full h-1/2 text-center text-2xl font-light outline-none" placeholder="Transmit..."></textarea>
-        <button onclick="submit()" class="bg-white text-black px-12 py-4 rounded-full font-bold">Commit</button>
-    </div>
-
-    <div id="confirm-modal" class="full-modal">
-        <div id="confirm-text" class="text-xl text-center mb-8"></div>
-        <div class="flex gap-4 w-full max-w-xs">
-            <button id="confirm-btn" class="flex-1 bg-white text-black py-4 rounded-full font-bold">Confirm</button>
-            <button onclick="closeModal('confirm-modal')" class="flex-1 bg-white/10 py-4 rounded-full font-bold">Cancel</button>
-        </div>
-    </div>
-
-    <div id="profile-modal" class="full-modal">
-        <input id="edit-name" class="profile-input" placeholder="Name">
-        <input id="edit-bday" class="profile-input" type="date">
-        <input id="edit-color" class="profile-input" placeholder="Favorite Color">
-        <div class="flex gap-3 w-full mt-4">
-            <button onclick="saveProfile()" class="flex-1 bg-white text-black py-3 rounded-xl font-bold">Update</button>
-            <button onclick="closeModal('profile-modal')" class="flex-1 bg-white/10 py-3 rounded-xl font-bold">Close</button>
-        </div>
-        <div class="flex gap-3 w-full mt-10">
-            <button onclick="confirmAction('delete')" class="flex-1 bg-red-500/10 text-red-500 py-3 rounded-xl text-xs font-bold uppercase">Delete Data</button>
-            <button onclick="confirmAction('logout')" class="flex-1 bg-white/5 py-3 rounded-xl text-xs font-bold uppercase">Log Out</button>
-        </div>
-    </div>
-
+    <div id="writer" class="full-modal"><textarea id="entry-input"></textarea><button onclick="commitEntry()">Commit</button></div>
     <script>
-        const ICONS = {
-            "Observer": `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 5v14M5 12h14"/></svg>`,
-            "Moonwalker": `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="8"/><path d="M12 2v20M2 12h20"/></svg>`,
-            "Stellar": `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3 7h7l-5 5 2 7-7-4-7 4 2-7-5-5h7z"/></svg>`,
-            "Celestial": `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>`,
-            "Interstellar": `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M13 2L3 14h9l-1 8 10-12h-9z"/></svg>`,
-            "Galactic": `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2m-3-7l1.5-1.5M4.5 19.5L6 18m12 0l1.5 1.5M4.5 4.5L6 6"/></svg>`,
-            "Ethereal": `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><circle cx="12" cy="12" r="10" stroke-dasharray="4 4"/><circle cx="12" cy="12" r="5" stroke-dasharray="2 2"/></svg>`
-        };
-        let data = {};
-
+        let currDate = new Date(); let data = {};
         async function load() {
             const r = await fetch('/api/data'); data = await r.json();
-            const h = new Date().getHours();
-            const g = h < 12 ? "morning" : h < 18 ? "afternoon" : "evening";
-            document.getElementById('greeting').innerText = `Good ${g}, ${data.name}!`;
-            document.getElementById('header-rank').innerText = `${data.rank} ${data.level}`;
-            document.getElementById('header-badge').innerHTML = ICONS[data.rank] || ICONS.Observer;
-            document.documentElement.style.setProperty('--rank-color', data.theme.color);
-            
-            const feed = Object.values(data.history).sort((a,b) => a.ts - b.ts);
-            document.getElementById('feed').innerHTML = feed.map(e => `<div class="entry-card"><div class="text-[8px] font-black opacity-20 uppercase mb-3">${new Date(e.ts*1000).toLocaleDateString()}</div><div class="text-lg font-light mb-4">${e.user_msg}</div><div style="color:${e.color}" class="text-sm">CELI: ${e.reply}</div></div>`).join('');
+            renderCalendar();
+            document.documentElement.style.setProperty('--mood-color', data.mood === 'happy' ? '#10B981' : (data.mood === 'blue' ? '#3B82F6' : '#A855F7'));
+            document.documentElement.style.setProperty('--rank-color', data.rank_info.color);
+            const feed = Object.values(data.history).sort((a,b) => b.ts - a.ts);
+            document.getElementById('feed').innerHTML = feed.map(e => `<div class="entry-card"><div class="text-lg font-light mb-3">${e.user_msg}</div><div style="color:${e.color}" class="text-xs font-medium">CELI: ${e.reply}</div></div>`).join('');
         }
-
-        function openPrestige() {
-            document.getElementById('prestige-modal').style.display = 'flex';
-            document.getElementById('p-icon').innerHTML = ICONS[data.rank] || ICONS.Observer;
-            document.getElementById('p-icon').style.color = data.theme.color;
-            document.getElementById('p-name').innerText = data.rank;
-            document.getElementById('p-level').innerText = `Level ${data.level}`;
-            document.getElementById('p-needed').innerText = `${data.stars_needed} stars to ${data.next_rank}`;
-            
-            // Floating State Toast
-            const toast = document.getElementById('celi-toast');
-            document.getElementById('toast-text').innerText = data.theme.desc;
-            toast.classList.add('show');
-            
-            const timeline = document.getElementById('timeline');
-            const history = Object.values(data.history).sort((a,b) => a.ts - b.ts);
-            timeline.innerHTML = history.map(e => `<div class="timeline-node"><div class="node-dot" style="color: ${e.color}"></div><div class="node-bar" style="height: ${e.sig * 6}px; color: ${e.color}"></div></div>`).join('');
-        }
-
-        function closeModal(id) { 
-            document.getElementById(id).style.display = 'none'; 
-            if(id === 'prestige-modal') document.getElementById('celi-toast').classList.remove('show');
-        }
-
-        async function submit() {
-            const v = document.getElementById('input').value; if(!v) return;
-            const oldRank = data.rank; const oldLevel = data.level;
-            
-            await fetch('/api/process', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({message:v}) });
-            
-            // Check for Rank/Level up
-            const r = await fetch('/api/data'); const newData = await r.json();
-            if(newData.rank !== oldRank || newData.level !== oldLevel) {
-                const overlay = document.getElementById('rank-up-overlay');
-                document.getElementById('new-rank-display').innerText = `${newData.rank} ${newData.level}`;
-                overlay.style.display = 'flex';
-                setTimeout(() => location.reload(), 2500);
-            } else { location.reload(); }
-        }
-
-        function openProfile() {
-            document.getElementById('profile-modal').style.display = 'flex';
-            document.getElementById('edit-name').value = data.name;
-            document.getElementById('edit-bday').value = data.birthday;
-            document.getElementById('edit-color').value = data.fav_color;
-        }
-
-        async function saveProfile() {
-            const up = { name: document.getElementById('edit-name').value, birthday: document.getElementById('edit-bday').value, fav_color: document.getElementById('edit-color').value };
-            await fetch('/api/update_profile', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(up) });
-            location.reload();
-        }
-
-        function confirmAction(type) {
-            const m = document.getElementById('confirm-modal'); m.style.display = 'flex';
-            const btn = document.getElementById('confirm-btn');
-            if(type === 'logout') {
-                document.getElementById('confirm-text').innerText = "Log out?";
-                btn.onclick = async () => { await fetch('/api/logout'); location.reload(); };
-            } else {
-                document.getElementById('confirm-text').innerText = "Delete everything?";
-                btn.onclick = async () => { await fetch('/api/delete_account'); location.reload(); };
+        function renderCalendar() {
+            const grid = document.getElementById('calendar-days'); const title = document.getElementById('cal-title');
+            grid.innerHTML = ['S','M','T','W','T','F','S'].map(d => `<div class="cal-day">${d}</div>`).join('');
+            const first = new Date(currDate.getFullYear(), currDate.getMonth(), 1); const last = new Date(currDate.getFullYear(), currDate.getMonth() + 1, 0);
+            title.innerText = currDate.toLocaleString('default', { month: 'long', year: 'numeric' });
+            for(let i=0; i<first.getDay(); i++) grid.innerHTML += '<div></div>';
+            for(let d=1; d<=last.getDate(); d++) {
+                const isToday = d === new Date().getDate() && currDate.getMonth() === new Date().getMonth();
+                grid.innerHTML += `<div class="cal-date ${isToday?'cal-today':''}" onclick="promptInitiation()">${d}</div>`;
             }
         }
-
-        function openWriter() { document.getElementById('writer').style.display = 'flex'; document.getElementById('input').focus(); }
+        function changeMonth(dir) { currDate.setMonth(currDate.getMonth() + dir); renderCalendar(); }
+        function promptInitiation() {
+            const text = document.getElementById('celi-text'); const actions = document.getElementById('celi-actions');
+            text.innerHTML = `Ready to write your journal entry? Or do you want a breather/to rant?`;
+            actions.innerHTML = `<div class="gloss-btn" onclick="openWriter('Journal Entry...')">Journal Entry</div><div class="gloss-btn" onclick="openWriter('Rant/Breather...')">Rant / Breather</div>`;
+            document.getElementById('celi-bubble').classList.add('active');
+        }
+        function showRankStatus() {
+            const text = document.getElementById('celi-text'); document.getElementById('celi-actions').innerHTML = '';
+            text.innerHTML = `<div class="text-xl font-black mb-1">${data.rank} ${data.level}</div><div class="text-xs opacity-60 mb-3">${data.rank_info.state} State</div><div class="text-sm opacity-80">${data.rank_info.desc}</div>`;
+            document.getElementById('celi-bubble').classList.add('active');
+        }
+        function openWriter(p) { closeBubble(); document.getElementById('writer').style.display = 'flex'; document.getElementById('entry-input').placeholder = p; document.getElementById('entry-input').focus(); }
+        async function commitEntry() {
+            const val = document.getElementById('entry-input').value; if(!val) return;
+            document.getElementById('writer').style.display = 'none';
+            document.getElementById('typing-tag').style.display = 'block';
+            document.documentElement.style.setProperty('--pulse-speed', '1s');
+            await fetch('/api/process', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({message: val}) });
+            setTimeout(() => location.reload(), 1500);
+        }
+        function closeBubble() { document.getElementById('celi-bubble').classList.remove('active'); }
+        async function logout() { await fetch('/api/logout'); location.reload(); }
         window.onload = load;
     </script>
 </body>
