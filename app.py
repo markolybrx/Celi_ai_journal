@@ -1,4 +1,4 @@
-import os, requests, json, time
+import os, requests, json, time, math
 from flask import Flask, render_template, request, jsonify, session
 from datetime import datetime, date, timedelta
 
@@ -15,7 +15,7 @@ RANK_DATA = {
     "Celestial": {"desc": "Navigational. Understanding emotional mechanics.", "state": "Navigational", "color": "#06B6D4"},
     "Interstellar": {"desc": "Voyaging. Navigating the deep void with discipline.", "state": "Voyaging", "color": "#8B5CF6"},
     "Galactic": {"desc": "Systemic. Managing history as a unified structure.", "state": "Systemic", "color": "#D946EF"},
-    "Ethereal": {"desc": "Transcendent. The boundary between you and the universe is gone.", "state": "Transcendent", "color": "#FFFFFF"}
+    "Ethereal": {"desc": "Transcendent. The boundary is gone.", "state": "Transcendent", "color": "#FFFFFF"}
 }
 
 def get_vault():
@@ -29,21 +29,23 @@ def save_vault(data):
 def calculate_prestige(points, last_seen_str):
     today = date.today()
     last_seen = datetime.strptime(last_seen_str, '%Y-%m-%d').date()
-    days_missed = (today - last_seen).days
-    penalty = max(0, days_missed - 1)
+    penalty = max(0, (today - last_seen).days - 1)
     adj_pts = max(0, points - penalty)
+    
     config = [("Observer", 3, 2), ("Moonwalker", 3, 2), ("Stellar", 4, 3), ("Celestial", 4, 3), ("Interstellar", 5, 4), ("Galactic", 5, 4), ("Ethereal", 5, 8)]
     temp_pts = adj_pts
-    for name, level_count, req in config:
+    for i, (name, level_count, req) in enumerate(config):
         rank_total = level_count * req
         if temp_pts >= rank_total:
-            if name == "Ethereal": return name, "I", adj_pts, penalty
+            if name == "Ethereal": return name, "I", adj_pts, 0, "Max"
             temp_pts -= rank_total
         else:
+            stars_needed = req - (temp_pts % req)
             sub_idx = level_count - (temp_pts // req)
             roman = {5:"V", 4:"IV", 3:"III", 2:"II", 1:"I"}
-            return name, roman.get(sub_idx, "V"), adj_pts, penalty
-    return "Observer", "V", adj_pts, penalty
+            next_rank = config[i+1][0] if (sub_idx == 1 and i < len(config)-1) else name
+            return name, roman.get(sub_idx, "V"), adj_pts, stars_needed, next_rank
+    return "Observer", "V", adj_pts, 2, "Observer"
 
 @app.route('/')
 def index(): return render_template('index.html' if 'user' in session else 'auth.html')
@@ -64,44 +66,51 @@ def process():
     if 'user' not in session: return jsonify({"error": "Unauthorized"}), 401
     vault = get_vault()
     user_data = vault['users'][session['user']]
-    rn, rs, pts, pen = calculate_prestige(user_data['points'], user_data['last_seen'])
-    history_list = sorted(user_data['history'].values(), key=lambda x: x['ts'], reverse=True)[:10]
-    memory_log = "\n".join([f"User: {h['user_msg']} -> Celi: {h['reply']}" for h in history_list])
+    rn, rs, pts, sn, nr = calculate_prestige(user_data['points'], user_data['last_seen'])
     msg = request.json.get('message', '')
-    sys_msg = f"You are Celi. User: {session['user']}. Rank: {rn} {rs}. Be empathetic, witty, and self-learning. Use Memory: {memory_log}. No emojis. Return JSON: {{'reply':'...', 'color':'#hex', 'significance': 1-10}}"
+    sys_msg = f"Celi here. User: {session['user']}. Rank: {rn} {rs}. Be brutally honest but empathetic. Return JSON: {{'reply':'...', 'color':'#hex', 'sig': 1-10}}"
     try:
         res = requests.post("https://api.groq.com/openai/v1/chat/completions",
             headers={"Authorization": f"Bearer {os.environ.get('GROQ_API_KEY')}"},
             json={"model": "llama-3.3-70b-versatile", "messages": [{"role": "system", "content": sys_msg}, {"role": "user", "content": msg}], "response_format": {"type": "json_object"}})
-        ai_resp = json.loads(res.json()['choices'][0]['message']['content'])
+        ai = json.loads(res.json()['choices'][0]['message']['content'])
         user_data['points'] = pts + 1
         user_data['last_seen'] = str(date.today())
-        user_data['stars'].append({"color": ai_resp['color'], "x": 10+(time.time()%80), "y": 20+(time.time()%60)})
-        user_data['history'][str(time.time())] = {"user_msg": msg, "reply": ai_resp['reply'], "color": ai_resp['color'], "ts": time.time(), "sig": ai_resp.get('significance', 5)}
+        user_data['stars'].append({"color": ai['color'], "x": 10+(time.time()*7%80), "y": 20+(time.time()*3%60)})
+        user_data['history'][str(time.time())] = {"user_msg": msg, "reply": ai['reply'], "color": ai['color'], "ts": time.time(), "sig": ai.get('sig', 5)}
         save_vault(vault)
-        return jsonify(ai_resp)
-    except: return jsonify({"reply": "The void is silent.", "color": "#ff4444", "significance": 1})
+        return jsonify(ai)
+    except: return jsonify({"reply": "The void is heavy.", "color": "#ff4444"})
 
 @app.route('/api/data')
 def get_data():
     if 'user' not in session: return jsonify({})
     vault = get_vault()
-    user_data = vault['users'][session['user']]
-    rn, rs, pts, pen = calculate_prestige(user_data['points'], user_data['last_seen'])
-    return jsonify({"user_id": session['user'], "rank": rn, "level": rs, "history": user_data['history'], "stars": user_data['stars'], "theme": RANK_DATA[rn]})
+    u = vault['users'][session['user']]
+    rn, rs, pts, sn, nr = calculate_prestige(u['points'], u['last_seen'])
+    
+    # Calculate Star DNA (History of colors)
+    dna = {}
+    for s in u['stars']:
+        dna[s['color']] = dna.get(s['color'], 0) + 1
+    
+    return jsonify({
+        "user_id": session['user'], "rank": rn, "level": rs, "history": u['history'], 
+        "stars": u['stars'], "theme": RANK_DATA[rn], "next_rank": nr, 
+        "stars_needed": sn, "dna": dna
+    })
 
 @app.route('/api/memory_summary')
 def memory_summary():
     if 'user' not in session: return jsonify({"error": "Unauthorized"}), 401
     vault = get_vault()
-    full_history = "\n".join([h['user_msg'] for h in vault['users'][session['user']]['history'].values()])
-    sys_msg = "Summarize the user's psychological journey. No emojis."
+    h = "\n".join([x['user_msg'] for x in vault['users'][session['user']]['history'].values()])
     try:
         res = requests.post("https://api.groq.com/openai/v1/chat/completions",
             headers={"Authorization": f"Bearer {os.environ.get('GROQ_API_KEY')}"},
-            json={"model": "llama-3.3-70b-versatile", "messages": [{"role": "system", "content": sys_msg}, {"role": "user", "content": full_history}]})
+            json={"model": "llama-3.3-70b-versatile", "messages": [{"role": "system", "content": "Analyze user journey. No emojis."}, {"role": "user", "content": h}]})
         return jsonify({"summary": res.json()['choices'][0]['message']['content']})
-    except: return jsonify({"summary": "Gathering fragments..."})
+    except: return jsonify({"summary": "Analyzing fragments..."})
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
