@@ -3,50 +3,75 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Celi: Arrival</title>
+    <title>Celi: Gateway</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         html, body { background: #050505; color: #fff; margin: 0; height: 100%; overflow: hidden; font-family: sans-serif; }
-        #auth-chat { display: flex; flex-direction: column-reverse; height: 100vh; padding: 100px 24px 140px; overflow-y: scroll; scrollbar-width: none; }
-        .message { margin-bottom: 24px; max-width: 85%; animation: fadeIn 0.4s ease; }
-        .celi-msg { align-self: flex-start; color: #A855F7; font-weight: 300; font-size: 1.1rem; }
-        .user-msg { align-self: flex-end; background: rgba(255,255,255,0.08); padding: 14px 22px; border-radius: 24px; border: 1px solid rgba(255,255,255,0.1); }
-        .input-bar { position: fixed; bottom: 40px; left: 50%; transform: translateX(-50%); width: 90%; max-width: 400px; display: flex; gap: 12px; z-index: 100; }
-        input { flex: 1; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 100px; padding: 16px 24px; color: #fff; outline: none; }
-        button { background: #fff; color: #000; border-radius: 100px; padding: 0 28px; font-weight: bold; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        #auth-container { height: 100vh; display: flex; flex-direction: column; padding: 60px 24px 40px; }
+        #chat-flow { flex: 1; display: flex; flex-direction: column-reverse; overflow-y: scroll; scrollbar-width: none; margin-bottom: 20px; }
+        .msg { margin-bottom: 24px; max-width: 85%; animation: slide 0.4s ease; font-size: 1.15rem; line-height: 1.6; }
+        .celi { color: #A855F7; font-weight: 300; }
+        .user { align-self: flex-end; background: rgba(255,255,255,0.08); padding: 20px 26px; border-radius: 30px; border: 1px solid rgba(255,255,255,0.1); }
+        .typing { font-size: 0.9rem; opacity: 0.5; font-style: italic; margin-bottom: 20px; display: none; }
+        .input-box { display: flex; gap: 12px; width: 100%; }
+        input { flex: 1; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 24px; padding: 24px 30px; color: #fff; font-size: 18px; outline: none; }
+        button { background: #fff; color: #000; border-radius: 24px; padding: 0 45px; font-weight: 900; font-size: 18px; }
+        .hidden { display: none !important; }
+        @keyframes slide { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+        #login-form { background: rgba(255,255,255,0.03); padding: 35px; border-radius: 35px; border: 1px solid rgba(255,255,255,0.05); }
     </style>
 </head>
 <body>
-    <div id="auth-chat"></div>
-    <div class="input-bar">
-        <input type="text" id="user-input" placeholder="Initiate...">
-        <button onclick="handleInput()">Send</button>
+    <div id="auth-container">
+        <div id="chat-flow"><div id="typing-indicator" class="typing">Celi is reflecting...</div></div>
+        <div id="chat-input" class="input-box">
+            <input type="text" id="user-field" placeholder="Talk to Celi...">
+            <input type="date" id="date-field" class="hidden">
+            <button onclick="handleFlow()" id="send-btn">Send</button>
+        </div>
+        <div id="login-form" class="hidden flex flex-col gap-5">
+            <h2 class="text-3xl font-black mb-2">Welcome Back</h2>
+            <input type="text" id="log-id" placeholder="User ID">
+            <input type="password" id="log-pass" placeholder="Password">
+            <button onclick="doLogin()" class="py-6 uppercase">Enter Orbit</button>
+        </div>
     </div>
     <script>
-        let step = 0; let userData = { name: '', user_id: '', password: '', birthday: '', fav_color: '' };
-        function addMsg(t, isC = true) {
-            const d = document.createElement('div'); d.className = `message ${isC ? 'celi-msg' : 'user-msg'}`;
-            d.innerText = isC ? `CELI: ${t}` : t; document.getElementById('auth-chat').prepend(d);
+        let step = 0; let data = { name:'', user_id:'', password:'', birthday:'', fav_color:'' };
+        function addMsg(t, isC=true) {
+            const d = document.createElement('div'); d.className = `msg ${isC ? 'celi' : 'user'}`;
+            d.innerText = isC ? `CELI: ${t}` : t;
+            const flow = document.getElementById('chat-flow'); flow.insertBefore(d, flow.firstChild);
         }
-        async function handleInput() {
-            const i = document.getElementById('user-input'); const v = i.value.trim(); if (!v) return;
-            addMsg(v, false); i.value = '';
-            if(step === 0) { userData.name = v; addMsg(`Hello ${v}. Set your user ID.`); step++; }
-            else if(step === 1) { userData.user_id = v; addMsg(`Password?`); i.type = "password"; step++; }
-            else if(step === 2) { userData.password = v; addMsg(`Confirm it.`); step++; }
-            else if(step === 3) { 
-                if(v !== userData.password) addMsg("No match. Try again.");
-                else { addMsg("Match. Birthday (YYYY-MM-DD)?"); i.type="text"; step++; }
-            }
-            else if(step === 4) { userData.birthday = v; addMsg("Favorite color?"); step++; }
-            else if(step === 5) {
-                userData.fav_color = v;
-                const r = await fetch('/api/register', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(userData) });
-                if(r.ok) { addMsg("Identity verified. Loading galaxy..."); setTimeout(()=>location.reload(), 1500); }
-            }
+        async function handleFlow() {
+            const field = document.getElementById('user-field'); const dateField = document.getElementById('date-field');
+            const val = step === 4 ? dateField.value : field.value.trim();
+            if(!val && step !== 0) return;
+            if(step > 0) addMsg(val, false);
+            field.value = ''; document.getElementById('typing-indicator').style.display = 'block';
+            setTimeout(async () => {
+                document.getElementById('typing-indicator').style.display = 'none';
+                if(step === 0) { addMsg("Welcome to Voyager. I'm Celi. Is this your first time in the vessel?"); step = 1; }
+                else if(step === 1) {
+                    if(val.toLowerCase().includes('no')) { document.getElementById('chat-input').classList.add('hidden'); document.getElementById('login-form').classList.remove('hidden'); }
+                    else { addMsg("A new soul! Love it. What should I call you?"); step = 2; }
+                }
+                else if(step === 2) { data.name = val; addMsg(`Pleasure, ${val}. Choose a unique User ID.`); step = 3; }
+                else if(step === 3) { data.user_id = val; addMsg("Birthday?"); field.classList.add('hidden'); dateField.classList.remove('hidden'); step = 4; }
+                else if(step === 4) { data.birthday = val; addMsg("Favorite color?"); dateField.classList.add('hidden'); field.classList.remove('hidden'); step = 5; }
+                else if(step === 5) { data.fav_color = val; addMsg("Set your password."); field.type = "password"; step = 6; }
+                else if(step === 6) {
+                    data.password = val;
+                    const r = await fetch('/api/register', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(data) });
+                    if(r.ok) location.reload(); else alert("ID taken.");
+                }
+            }, 1500);
         }
-        window.onload = () => addMsg("I am Celi. What is your name?");
+        async function doLogin() {
+            const r = await fetch('/api/login', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({user_id: document.getElementById('log-id').value, password: document.getElementById('log-pass').value}) });
+            if(r.ok) location.reload(); else alert("Invalid.");
+        }
+        window.onload = () => handleFlow();
     </script>
 </body>
 </html>
