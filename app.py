@@ -3,7 +3,6 @@ from flask import Flask, render_template, request, jsonify
 
 app = Flask(__name__)
 
-# Pulls from Render Environment Variables
 GROQ_API_KEY = os.environ.get("GROQ_API_KEY")
 
 def ask_groq(messages):
@@ -13,18 +12,16 @@ def ask_groq(messages):
         "Content-Type": "application/json"
     }
     payload = {
-        "model": "llama-3.3-70b-versatile", # UPDATED TO CURRENT STABLE MODEL
+        "model": "llama-3.3-70b-versatile",
         "messages": messages,
         "temperature": 0.8
     }
     try:
         res = requests.post(url, headers=headers, json=payload, timeout=20)
-        if res.status_code != 200:
-            print(f"GROQ ERROR: {res.status_code} - {res.text}")
-            return f"SYSTEM ERROR: {res.status_code}"
+        res.raise_for_status()
         return res.json()['choices'][0]['message']['content']
     except Exception as e:
-        print(f"SYSTEM CRASH: {str(e)}")
+        print(f"SYSTEM ERROR: {str(e)}")
         return None
 
 @app.route('/')
@@ -37,23 +34,35 @@ def process():
         return '', 200
 
     data = request.json
-    if not GROQ_API_KEY:
-        return jsonify({"reply": "API KEY MISSING IN RENDER"}), 500
-    
     profile = data.get('profile', {})
-    # Use the name from the vault, default to 'Seeker'
-    user_name = profile.get('name', 'Seeker')
+    is_venting = data.get('venting_mode', False)
+    user_name = profile.get('name', 'friend')
     
-    sys_msg = f"You are Celi, the sovereign advisor for {user_name}. Be brutally honest, witty, and direct."
+    # DYNAMIC SYSTEM PROMPT
+    if is_venting:
+        sys_msg = (
+            f"You are Celi, {user_name}'s compassionate listener. "
+            "MODE: VENTING. Do NOT give advice. Do NOT try to fix things. "
+            "Your only job is to listen, validate, and let them vent. "
+            "Use phrases like 'I'm listening', 'That sounds so hard', or 'Let it all out.' "
+            "Be a silent, supportive presence. No wit, just pure empathy."
+        )
+    else:
+        sys_msg = (
+            f"You are Celi, the compassionate, witty best friend of {user_name}. "
+            "MODE: COMPANION. Be warm, insightful, and funny. "
+            "If they are stressed, give a 'Bestie Prescription' (rest, walk, hydration). "
+            "Use gentle humor to lift their spirits."
+        )
     
     ai_raw = ask_groq([{"role": "system", "content": sys_msg}, {"role": "user", "content": data['message']}])
     
     if ai_raw:
         return jsonify({"reply": ai_raw})
     
-    return jsonify({"reply": "Handshake failed at the AI level."}), 500
+    return jsonify({"reply": "I'm right here. My connection blinked, but I'm still listening."}), 500
 
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=port)
-    
+                                                                     
