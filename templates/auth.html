@@ -2,84 +2,50 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Celi: Identity</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body { background: #000; color: #fff; font-family: sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; }
-        .auth-container { width: 90%; max-width: 360px; text-align: center; }
-        
+        .auth-container { width: 90%; max-width: 400px; text-align: center; }
         input {
-            width: 100%;
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 24px;
-            padding: 22px 28px;
-            color: #fff;
-            outline: none;
-            margin-bottom: 20px;
-            transition: 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            font-size: 16px;
+            width: 100%; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 24px; padding: 25px 30px; color: #fff; outline: none; margin-bottom: 20px;
+            font-size: 18px; display: block; box-sizing: border-box; transition: 0.3s;
         }
-        input:focus { background: rgba(255, 255, 255, 0.1); border-color: rgba(255, 255, 255, 0.4); transform: scale(1.02); }
-        
-        .btn { width: 100%; padding: 22px; border-radius: 24px; font-weight: 900; text-transform: uppercase; letter-spacing: 2.5px; transition: 0.3s; font-size: 12px; }
-        .btn-primary { background: #fff; color: #000; box-shadow: 0 10px 30px rgba(255,255,255,0.1); }
-        .btn-secondary { background: transparent; border: 1px solid rgba(255,255,255,0.15); color: rgba(255,255,255,0.5); margin-top: 15px; }
-        
-        #status-msg { margin-top: 25px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; min-height: 20px; transition: 0.3s; }
-        .status-error { color: #ff4b2b; text-shadow: 0 0 10px rgba(255,75,43,0.3); }
-        .status-success { color: #00f2fe; text-shadow: 0 0 10px rgba(0,242,254,0.3); }
+        input:focus { border-color: #00f2fe; background: rgba(255, 255, 255, 0.1); }
+        .btn { width: 100%; padding: 22px; border-radius: 24px; font-weight: 900; text-transform: uppercase; cursor: pointer; transition: 0.3s; }
+        .btn-primary { background: #fff; color: #000; margin-top: 10px; }
+        .btn-secondary { background: transparent; border: 1px solid rgba(255,255,255,0.2); color: rgba(255,255,255,0.6); margin-top: 15px; }
+        #status-msg { margin-top: 30px; font-size: 12px; font-weight: 800; text-transform: uppercase; min-height: 24px; }
+        .status-error { color: #ff4b2b; }
+        .status-success { color: #00f2fe; }
     </style>
 </head>
 <body>
     <div class="auth-container">
-        <h2 class="text-5xl font-black mb-12 tracking-tighter">Celi</h2>
-        
-        <input type="text" id="username" placeholder="Identity Name" autocomplete="off">
-        <input type="password" id="password" placeholder="Vault Passkey">
-        
-        <button class="btn btn-primary" onclick="handleAuth('login')">Access Vault</button>
-        <button class="btn btn-secondary" onclick="handleAuth('register')">Create Identity</button>
-        
+        <h2 class="text-5xl font-black mb-12">Celi</h2>
+        <input type="text" id="username" placeholder="Username">
+        <input type="password" id="password" placeholder="Passkey">
+        <button class="btn btn-primary" onclick="handleAuth('login')">Enter Vault</button>
+        <button class="btn btn-secondary" onclick="handleAuth('register')">Register Identity</button>
         <div id="status-msg"></div>
     </div>
-
     <script>
         async function handleAuth(type) {
             const u = document.getElementById('username').value;
             const p = document.getElementById('password').value;
             const status = document.getElementById('status-msg');
-            
-            if(!u || !p) {
-                status.innerText = "Fields are empty";
-                status.className = "status-error";
-                return;
-            }
-
-            status.innerText = type === 'login' ? "Opening Vault..." : "Forging Identity...";
-            status.className = "text-white/40";
-
-            try {
-                const r = await fetch('/api/auth', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({username: u, password: p, type: type})
-                });
-                const res = await r.json();
-
-                if(r.ok) {
-                    status.innerText = res.message;
-                    status.className = "status-success";
-                    setTimeout(() => window.location.href = '/', 1200);
-                } else {
-                    status.innerText = res.error;
-                    status.className = "status-error";
-                }
-            } catch (e) {
-                status.innerText = "No connection to stars";
-                status.className = "status-error";
-            }
+            if(!u || !p) { status.innerText = "Fields are empty"; status.className = "status-error"; return; }
+            status.innerText = "Processing..."; status.className = "text-white/40";
+            const r = await fetch('/api/auth', {
+                method: 'POST', headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({username: u, password: p, type: type})
+            });
+            const res = await r.json();
+            status.innerText = r.ok ? res.message : res.error;
+            status.className = r.ok ? "status-success" : "status-error";
+            if(r.ok && type === 'login') setTimeout(() => window.location.href = '/', 1000);
         }
     </script>
 </body>
