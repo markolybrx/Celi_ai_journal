@@ -3,173 +3,54 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>Voyager: Access</title>
+    <title>Celi: AI Journal | Access</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         :root { --accent: #A855F7; }
         html, body { background: #000; color: #fff; margin: 0; font-family: sans-serif; overflow: hidden; height: 100%; }
-        .void-bg { position: fixed; inset: 0; background: radial-gradient(circle at center, #111 0%, #000 100%); z-index: -1; }
-        
-        .modal { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; padding: 24px; z-index: 100; transition: 0.5s cubic-bezier(0.19, 1, 0.22, 1); }
-        .modal-content { background: rgba(15,15,15,0.8); border: 1px solid rgba(255,255,255,0.1); backdrop-filter: blur(40px); border-radius: 40px; padding: 40px; width: 100%; max-width: 400px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); transform: translateY(0); opacity: 1; }
-        .hidden { display: none !important; opacity: 0; transform: translateY(20px); }
-
-        h2 { font-size: 32px; font-weight: 900; letter-spacing: -1px; margin-bottom: 30px; }
-        .input-group { margin-bottom: 20px; position: relative; }
-        input { width: 100%; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 20px; padding: 18px 24px; color: #fff; outline: none; transition: 0.3s; font-size: 16px; }
-        input:focus { border-color: var(--accent); background: rgba(255,255,255,0.08); }
-        
-        .modern-radio { display: flex; align-items: center; gap: 10px; cursor: pointer; font-size: 14px; opacity: 0.6; }
-        .radio-dot { width: 18px; height: 18px; border: 2px solid rgba(255,255,255,0.3); border-radius: 6px; position: relative; }
-        input[type="checkbox"]:checked + .radio-dot { background: var(--accent); border-color: var(--accent); }
-
-        .btn-primary { background: #fff; color: #000; padding: 18px 30px; border-radius: 20px; font-weight: 900; flex: 1; text-align: center; }
-        .btn-secondary { border: 1px solid rgba(255,255,255,0.2); color: #fff; padding: 18px 30px; border-radius: 20px; font-weight: 900; flex: 1; text-align: center; }
-        .status-icon { position: absolute; right: 20px; top: 50%; transform: translateY(-50%); font-size: 14px; display: none; }
-        
-        .success-overlay { position: fixed; inset: 0; background: #000; z-index: 1000; display: none; align-items: center; justify-content: center; text-align: center; }
+        .void-bg { position: fixed; inset: 0; background: radial-gradient(circle at 50% 100%, #1a1a2e 0%, #000 100%); z-index: -1; }
+        .modal { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; padding: 20px; z-index: 100; transition: 0.4s ease; }
+        .modal-content { background: rgba(20,20,20,0.7); border: 1px solid rgba(255,255,255,0.08); backdrop-filter: blur(50px); border-radius: 48px; padding: 50px 40px; width: 100%; max-width: 440px; box-shadow: 0 40px 100px -20px rgba(0,0,0,0.8); }
+        h2 { font-size: 36px; font-weight: 900; letter-spacing: -1.5px; margin-bottom: 40px; text-align: center; }
+        input { width: 100%; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1); border-radius: 24px; padding: 22px 28px; color: #fff; outline: none; margin-bottom: 18px; font-size: 16px; }
+        .btn-row { display: flex; gap: 14px; margin-top: 20px; }
+        .btn-primary { background: #fff; color: #000; padding: 20px; border-radius: 24px; font-weight: 900; flex: 1.2; text-align: center; cursor: pointer; }
+        .btn-secondary { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: #fff; padding: 20px; border-radius: 24px; font-weight: 800; flex: 1; text-align: center; cursor: pointer; }
+        .hidden { display: none !important; }
     </style>
 </head>
 <body>
     <div class="void-bg"></div>
-
     <div id="login-modal" class="modal">
         <div class="modal-content">
-            <h2>Voyager Log</h2>
-            <div class="input-group"><input type="text" id="log-id" placeholder="User ID"></div>
-            <div class="input-group"><input type="password" id="log-pass" placeholder="Password"></div>
-            
-            <div class="flex justify-between items-center mb-8">
-                <label class="modern-radio">
-                    <input type="checkbox" id="remember" class="hidden">
-                    <div class="radio-dot"></div>
-                    Remember me
-                </label>
-            </div>
-
-            <div class="flex gap-4">
-                <button class="btn-primary" onclick="doLogin()">Log In</button>
-                <button class="btn-secondary" onclick="showModal('register')">Register</button>
-            </div>
-            
-            <button onclick="showModal('forgot')" class="w-full mt-6 text-xs opacity-40 hover:opacity-100 transition">Forgot Password?</button>
+            <h2>Celi: AI Journal</h2>
+            <input type="text" id="log-id" placeholder="User ID">
+            <input type="password" id="log-pass" placeholder="Password">
+            <div class="btn-row"><div class="btn-primary" onclick="doLogin()">Enter</div><div class="btn-secondary" onclick="showModal('register')">Join</div></div>
         </div>
     </div>
-
     <div id="register-modal" class="modal hidden">
         <div class="modal-content">
-            <h2 class="mb-4">New Soul</h2>
-            <div class="flex flex-col gap-3">
-                <input type="text" id="reg-name" placeholder="Full Name">
-                <input type="text" id="reg-id" placeholder="User ID">
-                <input type="password" id="reg-pass" placeholder="Password">
-                <input type="password" id="reg-confirm" placeholder="Confirm Password">
-                <input type="date" id="reg-birth" class="text-white">
-                <input type="text" id="reg-color" placeholder="Favorite Color">
-                <div class="flex gap-4 mt-4">
-                    <button class="btn-primary" onclick="doRegister()">Create</button>
-                    <button class="btn-secondary" onclick="showModal('login')">Back</button>
-                </div>
-            </div>
+            <h2 class="mb-8">Initiation</h2>
+            <input type="text" id="reg-name" placeholder="Name">
+            <input type="text" id="reg-id" placeholder="User ID">
+            <input type="password" id="reg-pass" placeholder="Password">
+            <input type="date" id="reg-birth" class="text-white">
+            <input type="text" id="reg-color" placeholder="Favorite Color">
+            <div class="btn-row"><div class="btn-primary" onclick="doRegister()">Create</div><div class="btn-secondary" onclick="showModal('login')">Back</div></div>
         </div>
     </div>
-
-    <div id="forgot-modal" class="modal hidden">
-        <div class="modal-content">
-            <h2 class="mb-4">Recovery</h2>
-            <div class="flex flex-col gap-3">
-                <div class="relative">
-                    <input type="text" id="f-id" placeholder="User ID" oninput="validateRecovery()">
-                    <span id="check-id" class="status-icon">✓</span>
-                </div>
-                <div class="relative">
-                    <input type="text" id="f-color" placeholder="Favorite Color" oninput="validateRecovery()">
-                    <span id="check-color" class="status-icon">✓</span>
-                </div>
-                <div id="reset-fields" class="hidden flex flex-col gap-3">
-                    <input type="password" id="f-pass" placeholder="New Password">
-                    <input type="password" id="f-conf" placeholder="Confirm New Password">
-                    <button class="btn-primary mt-4" onclick="doReset()">Update Password</button>
-                </div>
-                <button class="btn-secondary mt-2" onclick="showModal('login')">Cancel</button>
-            </div>
-        </div>
-    </div>
-
-    <div id="success-overlay" class="success-overlay">
-        <div>
-            <div class="text-6xl mb-4">✦</div>
-            <h1 class="text-3xl font-black">Registered</h1>
-            <p class="opacity-40 mt-2">Redirecting to Login...</p>
-        </div>
-    </div>
-
     <script>
-        function showModal(type) {
-            document.querySelectorAll('.modal').forEach(m => m.classList.add('hidden'));
-            document.getElementById(`${type}-modal`).classList.remove('hidden');
-        }
-
+        function showModal(t) { document.querySelectorAll('.modal').forEach(m => m.classList.add('hidden')); document.getElementById(`${t}-modal`).classList.remove('hidden'); }
         async function doLogin() {
-            const data = {
-                user_id: document.getElementById('log-id').value,
-                password: document.getElementById('log-pass').value,
-                remember: document.getElementById('remember').checked
-            };
+            const data = { user_id: document.getElementById('log-id').value, password: document.getElementById('log-pass').value };
             const r = await fetch('/api/login', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data) });
-            if(r.ok) location.reload(); else alert("Invalid Credentials");
+            if(r.ok) location.reload();
         }
-
         async function doRegister() {
-            const pass = document.getElementById('reg-pass').value;
-            if(pass !== document.getElementById('reg-confirm').value) return alert("Passwords mismatch");
-            
-            const data = {
-                name: document.getElementById('reg-name').value,
-                user_id: document.getElementById('reg-id').value,
-                password: pass,
-                birthday: document.getElementById('reg-birth').value,
-                fav_color: document.getElementById('reg-color').value
-            };
+            const data = { name: document.getElementById('reg-name').value, user_id: document.getElementById('reg-id').value, password: document.getElementById('reg-pass').value, birthday: document.getElementById('reg-birth').value, fav_color: document.getElementById('reg-color').value };
             const r = await fetch('/api/register', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data) });
-            if(r.ok) {
-                document.getElementById('success-overlay').style.display = 'flex';
-                setTimeout(() => location.reload(), 2000);
-            } else alert("Registration failed. ID may be taken.");
-        }
-
-        async function validateRecovery() {
-            const uid = document.getElementById('f-id').value;
-            const color = document.getElementById('f-color').value;
-            if(!uid || !color) return;
-            
-            const r = await fetch('/api/recover-check', { 
-                method:'POST', 
-                headers:{'Content-Type':'application/json'}, 
-                body:JSON.stringify({user_id: uid, fav_color: color}) 
-            });
-            const res = await r.json();
-            if(res.success) {
-                document.getElementById('check-id').style.display = 'block';
-                document.getElementById('check-color').style.display = 'block';
-                document.getElementById('reset-fields').classList.remove('hidden');
-            } else {
-                document.getElementById('check-id').style.display = 'none';
-                document.getElementById('check-color').style.display = 'none';
-                document.getElementById('reset-fields').classList.add('hidden');
-            }
-        }
-
-        async function doReset() {
-            const np = document.getElementById('f-pass').value;
-            if(np !== document.getElementById('f-conf').value) return alert("Mismatch");
-            const data = {
-                user_id: document.getElementById('f-id').value,
-                fav_color: document.getElementById('f-color').value,
-                new_password: np
-            };
-            const r = await fetch('/api/reset-password', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data) });
-            if(r.ok) { alert("Updated. Please Log In."); showModal('login'); }
+            if(r.ok) location.reload();
         }
     </script>
 </body>
