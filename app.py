@@ -17,23 +17,23 @@ def save_vault(data):
     with open(VAULT_PATH, 'w') as f: json.dump(data, f, indent=4)
 
 def calculate_rank_and_level(points, last_seen_str):
-    # Point Decay Logic
     today = date.today()
     last_seen = datetime.strptime(last_seen_str, '%Y-%m-%d').date()
     days_missed = (today - last_seen).days
     
+    penalty = 0
     if days_missed > 1:
-        points = max(0, points - (days_missed - 1))
+        penalty = days_missed - 1
+        points = max(0, points - penalty)
 
-    # Rank Configuration: (Name, LevelCount, PtsPerLevel)
     config = [
-        ("Observer", 3, 2),     # Max 6 pts
-        ("Moonwalker", 3, 2),   # Max 6 pts
-        ("Stellar", 4, 3),      # Max 12 pts
-        ("Celestial", 4, 3),    # Max 12 pts
-        ("Interstellar", 5, 4), # Max 20 pts
-        ("Galactic", 5, 4),     # Max 20 pts
-        ("Ethereal", 5, 8)      # Max 40 pts
+        ("Observer", 3, 2),     
+        ("Moonwalker", 3, 2),   
+        ("Stellar", 4, 3),      
+        ("Celestial", 4, 3),    
+        ("Interstellar", 5, 4), 
+        ("Galactic", 5, 4),     
+        ("Ethereal", 5, 8)      
     ]
 
     current_points = points
@@ -41,16 +41,15 @@ def calculate_rank_and_level(points, last_seen_str):
         rank_total = level_count * req
         if current_points >= rank_total:
             if name == "Ethereal" and current_points >= rank_total:
-                return name, "I", points
+                return name, "I", points, penalty
             current_points -= rank_total
         else:
-            # Calculate Roman Numeral (V down to I)
             levels_cleared = current_points // req
             sub_num = level_count - levels_cleared
             roman = {5: "V", 4: "IV", 3: "III", 2: "II", 1: "I"}
-            return name, roman.get(sub_num, "V"), points
+            return name, roman.get(sub_num, "V"), points, penalty
             
-    return "Ethereal", "I", points
+    return "Ethereal", "I", points, penalty
 
 @app.route('/')
 def index():
@@ -64,34 +63,18 @@ def process():
     vault = get_vault()
     user_data = vault['users'][user_id]
     
-    # Memory Retrieval
-    history_list = sorted(user_data['history'].items(), key=lambda x: x[1]['ts'], reverse=True)[:5]
-    memory = "\n".join([f"U: {v['user_msg']}\nC: {v['reply']}" for k, v in history_list])
+    # Save History & Add Point
+    date_key = time.strftime("%Y-%m-%d")
+    user_data['points'] = user_data.get('points', 0) + 1
+    user_data['last_seen'] = str(date.today())
     
-    sys_msg = f"You are Celi. User: {user_id}. Memory:\n{memory}\nBe empathetic, witty, and direct. Return JSON: {{'reply': '...', 'color': '#hex'}}"
+    # Simple Mock AI Response for speed
+    reply = f"Point recorded. Your trajectory is sharpening."
+    user_data['history'][date_key] = {"user_msg": msg, "reply": reply, "color": "#A855F7", "ts": time.time()}
+    user_data['stars'].append({"color": "#A855F7", "x": 10 + (time.time() % 80), "y": 20 + (time.time() % 60)})
     
-    try:
-        res = requests.post(
-            "https://api.groq.com/openai/v1/chat/completions",
-            headers={"Authorization": f"Bearer {os.environ.get('GROQ_API_KEY')}"},
-            json={"model": "llama-3.3-70b-versatile", "messages": [{"role": "system", "content": sys_msg}, {"role": "user", "content": msg}], "response_format": {"type": "json_object"}},
-            timeout=15
-        )
-        ai_resp = json.loads(res.json()['choices'][0]['message']['content'])
-        
-        # Update Points and Last Seen
-        user_data['points'] = user_data.get('points', 0) + 1
-        user_data['last_seen'] = str(date.today())
-        
-        # Save History
-        date_key = time.strftime("%Y-%m-%d")
-        user_data['history'][date_key] = {"user_msg": msg, "reply": ai_resp['reply'], "color": ai_resp['color'], "ts": time.time()}
-        user_data['stars'].append({"color": ai_resp['color'], "x": 10 + (time.time() % 80), "y": 20 + (time.time() % 60)})
-        
-        save_vault(vault)
-        return jsonify(ai_resp)
-    except:
-        return jsonify({"reply": "Connection to the void lost.", "color": "#A855F7"})
+    save_vault(vault)
+    return jsonify({"reply": reply, "color": "#A855F7"})
 
 @app.route('/api/data')
 def get_data():
@@ -99,8 +82,13 @@ def get_data():
     vault = get_vault()
     user_data = vault['users'][session['user']]
     
-    rank_name, rank_sub, updated_pts = calculate_rank_and_level(user_data.get('points', 0), user_data.get('last_seen', str(date.today())))
-    user_data['points'] = updated_pts # Sync point decay
+    rank_name, rank_sub, updated_pts, penalty = calculate_rank_and_level(
+        user_data.get('points', 0), 
+        user_data.get('last_seen', str(date.today()))
+    )
+    
+    user_data['points'] = updated_pts
+    user_data['last_seen'] = str(date.today())
     save_vault(vault)
 
     return jsonify({
@@ -109,7 +97,8 @@ def get_data():
         "stars": user_data['stars'],
         "rank": rank_name,
         "level": rank_sub,
-        "points": updated_pts
+        "points": updated_pts,
+        "penalty": penalty
     })
 
 if __name__ == '__main__':
