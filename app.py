@@ -3,7 +3,7 @@ from flask import Flask, render_template, request, jsonify, session
 from datetime import datetime, date, timedelta
 
 app = Flask(__name__)
-app.secret_key = "celi_voyager_fchq_2026_v3.8_full"
+app.secret_key = "celi_voyager_fchq_2026_v4.3_auth_overhaul"
 app.permanent_session_lifetime = timedelta(days=30)
 
 VAULT_PATH = 'vault.json'
@@ -35,18 +35,24 @@ def calculate_prestige(points, last_seen_str):
     config = [("Observer", 3, 2), ("Moonwalker", 3, 2), ("Stellar", 4, 3), 
               ("Celestial", 4, 3), ("Interstellar", 5, 4), ("Galactic", 5, 4), ("Ethereal", 5, 8)]
     temp_pts = adj_pts
+    unlocked = []
+    current_rn, current_rs, sn, nr = "Observer", "V", 2, "Observer"
     for i, (name, level_count, req) in enumerate(config):
         rank_total = level_count * req
+        unlocked.append(name)
         if temp_pts >= rank_total:
-            if name == "Ethereal": return name, "I", adj_pts, 0, "Max"
+            if name == "Ethereal": 
+                current_rn, current_rs, sn, nr = name, "I", 0, "Max"
+                break
             temp_pts -= rank_total
         else:
             sn = req - (temp_pts % req)
             sub = level_count - (temp_pts // req)
             rom = {5:"V", 4:"IV", 3:"III", 2:"II", 1:"I"}
+            current_rn, current_rs = name, rom.get(sub, "V")
             nr = config[i+1][0] if (sub == 1 and i < len(config)-1) else name
-            return name, rom.get(sub, "V"), adj_pts, sn, nr
-    return "Observer", "V", adj_pts, 2, "Observer"
+            break
+    return current_rn, current_rs, adj_pts, sn, nr, unlocked
 
 @app.route('/')
 def index(): return render_template('index.html' if 'user' in session else 'auth.html')
@@ -58,6 +64,7 @@ def login():
     vault = get_vault()
     if uid in vault['users'] and vault['users'][uid]['password'] == data.get('password'):
         session['user'] = uid
+        session.permanent = data.get('remember', False)
         return jsonify({"success": True})
     return jsonify({"success": False}), 401
 
@@ -66,23 +73,47 @@ def register():
     data = request.json
     uid = data.get('user_id', '').strip().lower()
     vault = get_vault()
-    if uid in vault['users']: return jsonify({"success": False}), 400
+    if uid in vault['users']: return jsonify({"success": False, "msg": "ID taken"}), 400
     vault['users'][uid] = {
         "name": data.get('name'), "password": data.get('password'),
-        "birthday": data.get('birthday'), "fav_color": data.get('fav_color'),
+        "birthday": data.get('birthday'), "fav_color": data.get('fav_color').strip().lower(),
         "points": 0, "stars": [], "history": {}, "last_seen": str(date.today())
     }
     save_vault(vault)
-    session['user'] = uid
     return jsonify({"success": True})
+
+@app.route('/api/recover-check', methods=['POST'])
+def recover_check():
+    data = request.json
+    uid = data.get('user_id', '').strip().lower()
+    color = data.get('fav_color', '').strip().lower()
+    vault = get_vault()
+    user = vault['users'].get(uid)
+    if user and user.get('fav_color') == color:
+        return jsonify({"success": True})
+    return jsonify({"success": False})
+
+@app.route('/api/reset-password', methods=['POST'])
+def reset_password():
+    data = request.json
+    uid = data.get('user_id', '').strip().lower()
+    color = data.get('fav_color', '').strip().lower()
+    vault = get_vault()
+    user = vault['users'].get(uid)
+    if user and user.get('fav_color') == color:
+        user['password'] = data.get('new_password')
+        save_vault(vault)
+        return jsonify({"success": True})
+    return jsonify({"success": False}), 400
 
 @app.route('/api/data')
 def get_data():
     if 'user' not in session: return jsonify({})
     vault = get_vault()
     u = vault['users'][session['user']]
-    rn, rs, pts, sn, nr = calculate_prestige(u['points'], u['last_seen'])
+    rn, rs, pts, sn, nr, unlocked = calculate_prestige(u['points'], u['last_seen'])
     mood = "neutral"
+    active_days = [datetime.fromtimestamp(float(ts)).strftime('%Y-%m-%d') for ts in u['history'].keys()]
     if u['history']:
         last = list(u['history'].values())[-1]
         if last.get('sig', 5) >= 8: mood = "happy"
@@ -90,7 +121,8 @@ def get_data():
     return jsonify({
         "name": u.get('name'), "rank": rn, "level": rs, "points": pts,
         "history": u['history'], "stars": u['stars'], "mood": mood,
-        "rank_info": RANK_DATA[rn], "next_rank": nr, "stars_needed": sn
+        "rank_info": RANK_DATA[rn], "next_rank": nr, "stars_needed": sn,
+        "all_ranks": RANK_DATA, "unlocked": unlocked, "active_days": list(set(active_days))
     })
 
 @app.route('/api/process', methods=['POST'])
@@ -99,7 +131,7 @@ def process():
     vault = get_vault()
     u = vault['users'][session['user']]
     msg = request.json.get('message', '')
-    sys = f"Celi. User: {u.get('name')}. Smart-casual, witty, empathetic advisor. Mirror the truth. JSON: {{'reply':'...', 'color':'#hex', 'sig':1-10}}"
+    sys = f"Celi. User: {u.get('name')}. Smart-casual, witty advisor. Mirror the truth. JSON: {{'reply':'...', 'color':'#hex', 'sig':1-10}}"
     res = requests.post("https://api.groq.com/openai/v1/chat/completions",
         headers={"Authorization": f"Bearer {os.environ.get('GROQ_API_KEY')}"},
         json={"model": "llama-3.3-70b-versatile", "messages": [{"role": "system", "content": sys}, {"role": "user", "content": msg}], "response_format": {"type": "json_object"}})
@@ -115,4 +147,4 @@ def logout(): session.clear(); return jsonify({"success": True})
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
-            
+    
