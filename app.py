@@ -3,7 +3,7 @@ from flask import Flask, render_template, request, jsonify, session
 from datetime import datetime, date, timedelta
 
 app = Flask(__name__)
-app.secret_key = "celi_voyager_fchq_2026_v4.3_auth_overhaul"
+app.secret_key = "celi_ai_journal_fchq_2026_v4.9"
 app.permanent_session_lifetime = timedelta(days=30)
 
 VAULT_PATH = 'vault.json'
@@ -37,22 +37,25 @@ def calculate_prestige(points, last_seen_str):
     temp_pts = adj_pts
     unlocked = []
     current_rn, current_rs, sn, nr = "Observer", "V", 2, "Observer"
+    current_rank_progress = 0
     for i, (name, level_count, req) in enumerate(config):
         rank_total = level_count * req
         unlocked.append(name)
         if temp_pts >= rank_total:
             if name == "Ethereal": 
                 current_rn, current_rs, sn, nr = name, "I", 0, "Max"
+                current_rank_progress = 100
                 break
             temp_pts -= rank_total
         else:
             sn = req - (temp_pts % req)
+            current_rank_progress = (temp_pts / rank_total) * 100
             sub = level_count - (temp_pts // req)
             rom = {5:"V", 4:"IV", 3:"III", 2:"II", 1:"I"}
             current_rn, current_rs = name, rom.get(sub, "V")
             nr = config[i+1][0] if (sub == 1 and i < len(config)-1) else name
             break
-    return current_rn, current_rs, adj_pts, sn, nr, unlocked
+    return current_rn, current_rs, adj_pts, sn, nr, unlocked, current_rank_progress
 
 @app.route('/')
 def index(): return render_template('index.html' if 'user' in session else 'auth.html')
@@ -73,7 +76,7 @@ def register():
     data = request.json
     uid = data.get('user_id', '').strip().lower()
     vault = get_vault()
-    if uid in vault['users']: return jsonify({"success": False, "msg": "ID taken"}), 400
+    if uid in vault['users']: return jsonify({"success": False}), 400
     vault['users'][uid] = {
         "name": data.get('name'), "password": data.get('password'),
         "birthday": data.get('birthday'), "fav_color": data.get('fav_color').strip().lower(),
@@ -111,18 +114,19 @@ def get_data():
     if 'user' not in session: return jsonify({})
     vault = get_vault()
     u = vault['users'][session['user']]
-    rn, rs, pts, sn, nr, unlocked = calculate_prestige(u['points'], u['last_seen'])
+    rn, rs, pts, sn, nr, unlocked, progress = calculate_prestige(u['points'], u['last_seen'])
     mood = "neutral"
-    active_days = [datetime.fromtimestamp(float(ts)).strftime('%Y-%m-%d') for ts in u['history'].keys()]
     if u['history']:
         last = list(u['history'].values())[-1]
         if last.get('sig', 5) >= 8: mood = "happy"
         elif last.get('sig', 5) <= 3: mood = "blue"
+    active_days = [datetime.fromtimestamp(float(ts)).strftime('%Y-%m-%d') for ts in u['history'].keys()]
     return jsonify({
         "name": u.get('name'), "rank": rn, "level": rs, "points": pts,
         "history": u['history'], "stars": u['stars'], "mood": mood,
         "rank_info": RANK_DATA[rn], "next_rank": nr, "stars_needed": sn,
-        "all_ranks": RANK_DATA, "unlocked": unlocked, "active_days": list(set(active_days))
+        "all_ranks": RANK_DATA, "unlocked": unlocked, "active_days": list(set(active_days)),
+        "progress": progress
     })
 
 @app.route('/api/process', methods=['POST'])
@@ -131,7 +135,7 @@ def process():
     vault = get_vault()
     u = vault['users'][session['user']]
     msg = request.json.get('message', '')
-    sys = f"Celi. User: {u.get('name')}. Smart-casual, witty advisor. Mirror the truth. JSON: {{'reply':'...', 'color':'#hex', 'sig':1-10}}"
+    sys = f"Celi. User: {u.get('name')}. You are heart-spoken, friendly, caring, empathetic, and compassionate. Use a smart-casual and witty approach. Act as a supportive but brutally honest advisor and mirror. JSON: {{'reply':'...', 'color':'#hex', 'sig':1-10}}"
     res = requests.post("https://api.groq.com/openai/v1/chat/completions",
         headers={"Authorization": f"Bearer {os.environ.get('GROQ_API_KEY')}"},
         json={"model": "llama-3.3-70b-versatile", "messages": [{"role": "system", "content": sys}, {"role": "user", "content": msg}], "response_format": {"type": "json_object"}})
