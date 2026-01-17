@@ -3,7 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>Celi</title>
+    
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
+
+    <title>Celi: Voyager v2.0</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         :root { --rank-color: #A855F7; }
@@ -23,7 +28,7 @@
             backdrop-filter: blur(30px); -webkit-backdrop-filter: blur(30px);
             z-index: 100; display: flex; align-items: center; justify-content: space-between; 
             padding: 0 28px; padding-top: env(safe-area-inset-top); 
-            border-bottom: 1px solid rgba(255,255,255,0.15); /* Stronger border */
+            border-bottom: 1px solid rgba(255,255,255,0.15); 
         }
 
         .profile-btn {
@@ -60,7 +65,8 @@
         <div class="text-purple-500 text-[10px] font-black uppercase tracking-[0.5em] mb-8">Deep Memory Analysis</div>
         <div id="memory-text" class="text-xl font-light leading-relaxed text-white/80">Reading the fragments of your void...</div>
         <div class="mt-16 text-white/20 text-[9px] uppercase tracking-widest italic">Tap to return</div>
-    </div
+    </div>
+
     <header>
         <div class="flex flex-col">
             <div id="greeting" class="text-2xl font-light tracking-tight mb-2 text-white">Hello, Voyager</div>
@@ -108,7 +114,6 @@
             const svg = document.getElementById('constellation-svg');
             const x = (window.innerWidth / 2 - e.pageX) / 50, y = (window.innerHeight / 2 - e.pageY) / 50;
             stars.forEach(s => { const spd = s.getAttribute('data-speed'); s.style.transform = `translateX(${x*spd}px) translateY(${y*spd}px)`; });
-            // Move constellations slightly less to create depth between stars and lines
             if(constellationsActive) svg.style.transform = `translateX(${x*0.5}px) translateY(${y*0.5}px)`;
         }
 
@@ -132,7 +137,6 @@
                 if (stars.length < 2) return;
                 let pathD = `M ${stars[0].x}% ${stars[0].y}%`;
                 for(let i=1; i<stars.length; i++) pathD += ` L ${stars[i].x}% ${stars[i].y}%`;
-                // Optional: Close the loop for larger groups
                 if (stars.length > 3) pathD += " Z";
                 const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
                 path.setAttribute("d", pathD);
@@ -143,6 +147,7 @@
         }
 
         async function load() {
+            console.log("Loading Celi v2.0");
             const res = await fetch('/api/data');
             const data = await res.json();
             starsData = data.stars || [];
@@ -170,7 +175,6 @@
                 </div>`).join('');
             
             const gal = document.getElementById('galaxy');
-            // Clear only stars, keep SVG
             Array.from(gal.getElementsByClassName('star')).forEach(el => el.remove());
             
             starsData.forEach(s => {
