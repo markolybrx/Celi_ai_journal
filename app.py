@@ -92,6 +92,7 @@ def process():
         user_data['last_seen'] = str(date.today())
         user_data['stars'].append({"color": ai_resp['color'], "x": 10+(time.time()%80), "y": 20+(time.time()%60)})
         user_data['history'][str(time.time())] = {"user_msg": msg, "reply": ai_resp['reply'], "color": ai_resp['color'], "ts": time.time()}
+        
         save_vault(vault)
         return jsonify(ai_resp)
     except: return jsonify({"reply": "The void is silent.", "color": "#ff4444"})
@@ -103,7 +104,7 @@ def memory_summary():
     user_data = vault['users'][session['user']]
     full_history = "\n".join([h['user_msg'] for h in user_data['history'].values()])
     
-    sys_msg = "Summarize what you have learned about this user's psychological journey since day 1. Be compassionate and witty. No emojis."
+    sys_msg = "Summarize what you have learned about this user's psychological journey and themes since day 1. Be compassionate and witty. No emojis."
     try:
         res = requests.post("https://api.groq.com/openai/v1/chat/completions",
             headers={"Authorization": f"Bearer {os.environ.get('GROQ_API_KEY')}"},
