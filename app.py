@@ -8,14 +8,14 @@ app.permanent_session_lifetime = timedelta(days=30)
 
 VAULT_PATH = 'vault.json'
 
-RANK_DEFS = {
-    "Observer": "Psychological State: Static/Observer. User is a spectator of their life, noticing patterns.",
-    "Moonwalker": "Psychological State: Detached. User has taken the first step toward objectivity.",
-    "Stellar": "Psychological State: Ignited. Self-reflection is now a self-sustaining energy source.",
-    "Celestial": "Psychological State: Navigational. User understands their emotional mechanics.",
-    "Interstellar": "Psychological State: Voyaging. User is navigating the deep void with discipline.",
-    "Galactic": "Psychological State: Systemic. User sees their history as a unified structure.",
-    "Ethereal": "Psychological State: Transcendent. The boundary between user and universe is dissolved."
+RANK_DATA = {
+    "Observer": {"desc": "You are a spectator of your life, beginning to notice the patterns of the inner sky.", "state": "Static", "color": "#1E3A8A"},
+    "Moonwalker": {"desc": "You have detached from old habits and are looking back at your world from a distance.", "state": "Detached", "color": "#94A3B8"},
+    "Stellar": {"desc": "Internal fusion achieved. Your self-reflection is now a self-sustaining source of energy.", "state": "Ignited", "color": "#F59E0B"},
+    "Celestial": {"desc": "You understand the complex mechanics of your emotions and how they govern your trajectory.", "state": "Navigational", "color": "#06B6D4"},
+    "Interstellar": {"desc": "You are navigating the deep gaps of the void with discipline and momentum.", "state": "Voyaging", "color": "#8B5CF6"},
+    "Galactic": {"desc": "You possess immense psychological gravity, managing your history as a unified structure.", "state": "Systemic", "color": "#D946EF"},
+    "Ethereal": {"desc": "The boundary between traveler and universe has dissolved. You are the work.", "state": "Transcendent", "color": "#FFFFFF"}
 }
 
 def get_vault():
@@ -59,15 +59,10 @@ def auth():
     data = request.json
     uid = data.get('user_id', '').strip().lower()
     if not uid: return jsonify({"error": "Identity required"}), 400
-    
     vault = get_vault()
     if uid not in vault['users']:
-        vault['users'][uid] = {
-            "points": 0, "stars": [], "history": {}, 
-            "last_seen": str(date.today()), "rank": "Observer"
-        }
+        vault['users'][uid] = {"points": 0, "stars": [], "history": {}, "last_seen": str(date.today()), "rank": "Observer"}
         save_vault(vault)
-    
     session['user'] = uid
     session.permanent = True
     return jsonify({"success": True})
@@ -77,25 +72,21 @@ def process():
     if 'user' not in session: return jsonify({"error": "Unauthorized"}), 401
     vault = get_vault()
     user_data = vault['users'][session['user']]
+    rn, rs, pts, pen = calculate_prestige(user_data['points'], user_data['last_seen'])
     
-    rank_name, rank_sub, pts, penalty = calculate_prestige(user_data['points'], user_data['last_seen'])
-    p_state = RANK_DEFS.get(rank_name, "")
-
     msg = request.json.get('message', '')
-    sys_msg = f"Act as Celi. User is Rank: {rank_name} {rank_sub}. {p_state} Be witty/empathetic. Return JSON {{'reply':'...', 'color':'#hex'}}"
+    p_state = RANK_DATA[rn]['state']
+    sys_msg = f"Act as Celi. Rank: {rn} {rs} ({p_state}). Be witty/empathetic. Return JSON {{'reply':'...', 'color':'#hex'}}"
     
     try:
-        # Note: Replace with your actual API key env variable
         res = requests.post("https://api.groq.com/openai/v1/chat/completions",
             headers={"Authorization": f"Bearer {os.environ.get('GROQ_API_KEY')}"},
             json={"model": "llama-3.3-70b-versatile", "messages": [{"role": "system", "content": sys_msg}, {"role": "user", "content": msg}], "response_format": {"type": "json_object"}})
         ai_resp = json.loads(res.json()['choices'][0]['message']['content'])
-        
         user_data['points'] = pts + 1
         user_data['last_seen'] = str(date.today())
         user_data['stars'].append({"color": ai_resp['color'], "x": 10+(time.time()%80), "y": 20+(time.time()%60)})
         user_data['history'][str(time.time())] = {"user_msg": msg, "reply": ai_resp['reply'], "color": ai_resp['color'], "ts": time.time()}
-        
         save_vault(vault)
         return jsonify(ai_resp)
     except: return jsonify({"reply": "The void is silent.", "color": "#ff4444"})
@@ -106,7 +97,10 @@ def get_data():
     vault = get_vault()
     user_data = vault['users'][session['user']]
     rn, rs, pts, pen = calculate_prestige(user_data['points'], user_data['last_seen'])
-    return jsonify({"rank": rn, "level": rs, "points": pts, "penalty": pen, "history": user_data['history'], "stars": user_data['stars']})
+    user_data['points'] = pts
+    user_data['last_seen'] = str(date.today())
+    save_vault(vault)
+    return jsonify({"rank": rn, "level": rs, "points": pts, "penalty": pen, "history": user_data['history'], "stars": user_data['stars'], "theme": RANK_DATA[rn]})
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
