@@ -1,21 +1,29 @@
-import os, requests, json, time
+import os, requests, json, time, random
 from flask import Flask, render_template, request, jsonify, session
 from datetime import datetime, date, timedelta
 
 app = Flask(__name__)
-app.secret_key = "celi_ai_journal_fchq_2026_v4.9"
+app.secret_key = "celi_fchq_production_2026_v6"
 app.permanent_session_lifetime = timedelta(days=30)
 
 VAULT_PATH = 'vault.json'
 
+CONSTELLATIONS = [
+    {"name": "Lyra", "stars": 5, "trivia": "Lyra represents the lyre of Orpheus.", "star_names": ["Vega", "Zeta", "Sheliak", "Sulafat", "Delta"]},
+    {"name": "Cygnus", "stars": 9, "trivia": "The Northern Cross swan.", "star_names": ["Deneb", "Albireo", "Sadr", "Gienah", "Azelfafage", "Rukh", "Fawaris", "Al Fawaris", "Theta"]},
+    {"name": "Orion", "stars": 12, "trivia": "The Hunter's belt.", "star_names": ["Betelgeuse", "Rigel", "Bellatrix", "Mintaka", "Alnilam", "Alnitak", "Saiph", "Meissa", "Hatysa", "Nair al Saif", "Thabit", "Tabit"]}
+]
+
+MOOD_COLORS = {
+    "Joyful": "#FFD700", "Anxious": "#A855F7", "Melancholy": "#4facfe",
+    "Grateful": "#00f2fe", "Angry": "#ff4b2b", "Peaceful": "#89f7fe", "Determined": "#667eea"
+}
+
 RANK_DATA = {
-    "Observer": {"state": "Static", "color": "#3B82F6", "desc": "You are currently static, noticing patterns without interference."},
-    "Moonwalker": {"state": "Detached", "color": "#94A3B8", "desc": "You are gaining distance, observing your life from a cold, stable orbit."},
-    "Stellar": {"state": "Ignited", "color": "#F59E0B", "desc": "The fusion has begun. You are now self-sustaining and radiating intent."},
-    "Celestial": {"state": "Navigational", "color": "#06B6D4", "desc": "Mechanics are understood. You are steering through your own gravity."},
-    "Interstellar": {"state": "Voyaging", "color": "#8B5CF6", "desc": "You have left the familiar. Discipline is your only oxygen now."},
-    "Galactic": {"state": "Systemic", "color": "#D946EF", "desc": "Your thoughts have become a unified structure. You are a system now."},
-    "Ethereal": {"state": "Transcendent", "color": "#FFFFFF", "desc": "The boundary between observer and observed has vanished. Complete clarity."}
+    "Observer": {"color": "#3B82F6"}, "Moonwalker": {"color": "#94A3B8"},
+    "Stellar": {"color": "#F59E0B"}, "Celestial": {"color": "#06B6D4"},
+    "Interstellar": {"color": "#8B5CF6"}, "Galactic": {"color": "#D946EF"},
+    "Ethereal": {"color": "#FFFFFF"}
 }
 
 def get_vault():
@@ -28,126 +36,87 @@ def save_vault(data):
 
 def calculate_prestige(points, last_seen_str):
     today = date.today()
-    try: last_seen = datetime.strptime(last_seen_str, '%Y-%m-%d').date()
-    except: last_seen = today
+    last_seen = datetime.strptime(last_seen_str, '%Y-%m-%d').date()
     penalty = max(0, (today - last_seen).days - 1)
     adj_pts = max(0, points - penalty)
+    
     config = [("Observer", 3, 2), ("Moonwalker", 3, 2), ("Stellar", 4, 3), 
               ("Celestial", 4, 3), ("Interstellar", 5, 4), ("Galactic", 5, 4), ("Ethereal", 5, 8)]
+    
     temp_pts = adj_pts
-    unlocked = []
-    current_rn, current_rs, sn, nr = "Observer", "V", 2, "Observer"
-    current_rank_progress = 0
     for i, (name, level_count, req) in enumerate(config):
         rank_total = level_count * req
-        unlocked.append(name)
         if temp_pts >= rank_total:
-            if name == "Ethereal": 
-                current_rn, current_rs, sn, nr = name, "I", 0, "Max"
-                current_rank_progress = 100
-                break
+            if name == "Ethereal": return name, "I", adj_pts, 100
             temp_pts -= rank_total
         else:
-            sn = req - (temp_pts % req)
-            current_rank_progress = (temp_pts / rank_total) * 100
+            prog = (temp_pts / rank_total) * 100
             sub = level_count - (temp_pts // req)
             rom = {5:"V", 4:"IV", 3:"III", 2:"II", 1:"I"}
-            current_rn, current_rs = name, rom.get(sub, "V")
-            nr = config[i+1][0] if (sub == 1 and i < len(config)-1) else name
-            break
-    return current_rn, current_rs, adj_pts, sn, nr, unlocked, current_rank_progress
+            return name, rom.get(sub, "V"), adj_pts, prog
+    return "Observer", "V", 0, 0
 
 @app.route('/')
 def index(): return render_template('index.html' if 'user' in session else 'auth.html')
 
-@app.route('/api/login', methods=['POST'])
-def login():
-    data = request.json
-    uid = data.get('user_id', '').strip().lower()
-    vault = get_vault()
-    if uid in vault['users'] and vault['users'][uid]['password'] == data.get('password'):
-        session['user'] = uid
-        session.permanent = data.get('remember', False)
-        return jsonify({"success": True})
-    return jsonify({"success": False}), 401
-
-@app.route('/api/register', methods=['POST'])
-def register():
-    data = request.json
-    uid = data.get('user_id', '').strip().lower()
-    vault = get_vault()
-    if uid in vault['users']: return jsonify({"success": False}), 400
-    vault['users'][uid] = {
-        "name": data.get('name'), "password": data.get('password'),
-        "birthday": data.get('birthday'), "fav_color": data.get('fav_color').strip().lower(),
-        "points": 0, "stars": [], "history": {}, "last_seen": str(date.today())
-    }
-    save_vault(vault)
-    return jsonify({"success": True})
-
-@app.route('/api/recover-check', methods=['POST'])
-def recover_check():
-    data = request.json
-    uid = data.get('user_id', '').strip().lower()
-    color = data.get('fav_color', '').strip().lower()
-    vault = get_vault()
-    user = vault['users'].get(uid)
-    if user and user.get('fav_color') == color:
-        return jsonify({"success": True})
-    return jsonify({"success": False})
-
-@app.route('/api/reset-password', methods=['POST'])
-def reset_password():
-    data = request.json
-    uid = data.get('user_id', '').strip().lower()
-    color = data.get('fav_color', '').strip().lower()
-    vault = get_vault()
-    user = vault['users'].get(uid)
-    if user and user.get('fav_color') == color:
-        user['password'] = data.get('new_password')
-        save_vault(vault)
-        return jsonify({"success": True})
-    return jsonify({"success": False}), 400
-
 @app.route('/api/data')
 def get_data():
     if 'user' not in session: return jsonify({})
-    vault = get_vault()
-    u = vault['users'][session['user']]
-    rn, rs, pts, sn, nr, unlocked, progress = calculate_prestige(u['points'], u['last_seen'])
-    mood = "neutral"
-    if u['history']:
-        last = list(u['history'].values())[-1]
-        if last.get('sig', 5) >= 8: mood = "happy"
-        elif last.get('sig', 5) <= 3: mood = "blue"
-    active_days = [datetime.fromtimestamp(float(ts)).strftime('%Y-%m-%d') for ts in u['history'].keys()]
+    v = get_vault(); u = v['users'][session['user']]
+    rn, rs, pts, prog = calculate_prestige(u['points'], u['last_seen'])
     return jsonify({
-        "name": u.get('name'), "rank": rn, "level": rs, "points": pts,
-        "history": u['history'], "stars": u['stars'], "mood": mood,
-        "rank_info": RANK_DATA[rn], "next_rank": nr, "stars_needed": sn,
-        "all_ranks": RANK_DATA, "unlocked": unlocked, "active_days": list(set(active_days)),
-        "progress": progress
+        "name": u.get('name'), "void_count": u.get('void_count', 0),
+        "history": u['history'], "const_stars": u.get('const_stars', 0),
+        "const_idx": u.get('const_idx', 0),
+        "constellation": CONSTELLATIONS[min(u.get('const_idx', 0), len(CONSTELLATIONS)-1)],
+        "completed": CONSTELLATIONS[:u.get('const_idx', 0)],
+        "rank": rn, "level": rs, "progress": prog, "rank_color": RANK_DATA[rn]['color'],
+        "needs_pulse": (date.today() - datetime.strptime(u['last_seen'], '%Y-%m-%d').date()).days >= 1
     })
 
 @app.route('/api/process', methods=['POST'])
 def process():
     if 'user' not in session: return jsonify({"error": "Auth"}), 401
-    vault = get_vault()
-    u = vault['users'][session['user']]
+    v = get_vault(); u = v['users'][session['user']]
     msg = request.json.get('message', '')
-    sys = f"Celi. User: {u.get('name')}. You are heart-spoken, friendly, caring, empathetic, and compassionate. Use a smart-casual and witty approach. Act as a supportive but brutally honest advisor and mirror. JSON: {{'reply':'...', 'color':'#hex', 'sig':1-10}}"
+    c_idx = u.get('const_idx', 0)
+    c_data = CONSTELLATIONS[min(c_idx, len(CONSTELLATIONS)-1)]
+    star_name = c_data['star_names'][u['const_stars'] % len(c_data['star_names'])]
+
+    sys = f"Celi. User: {u.get('name')}. Witty, heart-spoken advisor. JSON: {{'reply':'...', 'color':'#hex', 'mood':'OneWord', 'summary':'Short Essence'}}"
     res = requests.post("https://api.groq.com/openai/v1/chat/completions",
         headers={"Authorization": f"Bearer {os.environ.get('GROQ_API_KEY')}"},
         json={"model": "llama-3.3-70b-versatile", "messages": [{"role": "system", "content": sys}, {"role": "user", "content": msg}], "response_format": {"type": "json_object"}})
     ai = json.loads(res.json()['choices'][0]['message']['content'])
+    
+    mood_color = MOOD_COLORS.get(ai['mood'], ai['color'])
     u['points'] += 1
+    u['const_stars'] += 1
     u['last_seen'] = str(date.today())
-    u['history'][str(time.time())] = {"user_msg": msg, "reply": ai['reply'], "color": ai['color'], "ts": time.time(), "sig": ai.get('sig', 5)}
-    save_vault(vault)
-    return jsonify(ai)
+    
+    bonus = False
+    if u['const_stars'] >= c_data['stars']:
+        u['points'] += 2; u['const_idx'] += 1; u['const_stars'] = 0; bonus = True
 
-@app.route('/api/logout')
-def logout(): session.clear(); return jsonify({"success": True})
+    u['history'][str(time.time())] = {
+        "user_msg": msg, "reply": ai['reply'], "color": mood_color, "ts": time.time(),
+        "star": star_name, "mood": ai['mood'], "summary": ai['summary'], "date": str(date.today())
+    }
+    save_vault(v)
+    return jsonify({**ai, "star_name": star_name, "star_color": mood_color, "bonus": bonus, "trivia": c_data['trivia'] if bonus else ""})
+
+@app.route('/api/process_vent', methods=['POST'])
+def process_vent():
+    if 'user' not in session: return jsonify({"error": "Auth"}), 401
+    v = get_vault(); u = v['users'][session['user']]
+    u['void_count'] = u.get('void_count', 0) + 1
+    save_vault(v)
+    msg = request.json.get('message', '')
+    sys = "Celi. Friend/Advisor. User is venting. Provide witty, heart-spoken comfort. JSON: {'reply':'...'}"
+    res = requests.post("https://api.groq.com/openai/v1/chat/completions",
+        headers={"Authorization": f"Bearer {os.environ.get('GROQ_API_KEY')}"},
+        json={"model": "llama-3.3-70b-versatile", "messages": [{"role": "system", "content": sys}, {"role": "user", "content": msg}], "response_format": {"type": "json_object"}})
+    return res.json()['choices'][0]['message']['content']
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
