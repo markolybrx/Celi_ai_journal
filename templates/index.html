@@ -7,97 +7,147 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         :root { --rank-color: #A855F7; }
-        html, body { 
-            background: #050505; color: #fff; margin: 0; padding: 0;
-            overflow: hidden; height: 100%; width: 100%; -webkit-font-smoothing: antialiased;
-        }
-        #galaxy { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
+        html, body { background: #050505; color: #fff; margin: 0; padding: 0; overflow: hidden; height: 100%; width: 100%; -webkit-font-smoothing: antialiased; }
+        #galaxy { position: fixed; inset: 0; z-index: 0; pointer-events: none; }
         .star { position: absolute; border-radius: 50%; box-shadow: 0 0 8px currentColor; will-change: transform; transition: transform 0.2s; }
         #constellation-svg { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; transition: opacity 1s; pointer-events: none; }
         #constellation-svg.active { opacity: 0.3; }
         
         header { 
-            position: fixed; top: 0; left: 0; right: 0; height: 85px; 
-            background: rgba(20, 20, 25, 0.7); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+            position: fixed; top: 0; left: 0; right: 0; height: 100px; 
+            background: rgba(15, 15, 20, 0.8); backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px);
             z-index: 100; display: flex; align-items: center; justify-content: space-between; 
             padding: 0 24px; padding-top: env(safe-area-inset-top); 
-            border-bottom: 1px solid rgba(255,255,255,0.08); transform: translateZ(0);
+            border-bottom: 1px solid rgba(255,255,255,0.08);
         }
-        .profile-btn { width: 42px; height: 42px; border-radius: 50%; border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.05); display: flex; align-items: center; justify-content: center; }
 
-        .scroll-area { 
-            position: absolute; inset: 0; overflow-y: scroll; padding: 105px 20px 120px; 
-            z-index: 10; scrollbar-width: none; -webkit-overflow-scrolling: touch;
-        }
+        .scroll-area { position: absolute; inset: 0; overflow-y: scroll; padding: 120px 20px 120px; z-index: 10; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
         .scroll-area::-webkit-scrollbar { display: none; }
 
-        .entry-card { 
-            background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05); 
-            border-radius: 28px; padding: 26px; margin-bottom: 20px; transition: all 0.4s;
-        }
-        .entry-card.significant { border-color: rgba(168, 85, 247, 0.3); box-shadow: 0 0 20px rgba(168, 85, 247, 0.1); }
+        .entry-card { background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05); border-radius: 28px; padding: 26px; margin-bottom: 20px; transition: 0.3s; }
+        .entry-card.significant { border-color: rgba(168, 85, 247, 0.3); box-shadow: 0 0 20px rgba(168, 85, 247, 0.05); }
 
         nav {
-            position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%) translateZ(0);
+            position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
             width: 85%; max-width: 380px; height: 60px; border-radius: 100px;
             background: rgba(255, 255, 255, 0.08); backdrop-filter: blur(30px); -webkit-backdrop-filter: blur(30px);
             border: 1px solid rgba(255, 255, 255, 0.1); display: flex; align-items: center; justify-content: space-around; z-index: 100;
         }
 
-        .full-modal { position: fixed; inset: 0; background: #000; z-index: 500; display: none; flex-direction: column; align-items: center; justify-content: center; padding: 40px; }
+        .full-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.96); backdrop-filter: blur(25px); z-index: 500; display: none; flex-direction: column; align-items: center; justify-content: center; padding: 40px; }
+        .stat-box { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); border-radius: 24px; width: 100%; padding: 24px; margin-top: 20px; }
+        .dna-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 4px; }
     </style>
 </head>
 <body onmousemove="parallax(event)">
     <div id="galaxy"><svg id="constellation-svg"></svg></div>
+    
     <header>
         <div class="flex flex-col">
-            <div id="greeting" class="text-base font-light text-white/80 leading-tight">Voyager</div>
-            <div class="flex items-center gap-2">
+            <div id="greeting" class="text-xl font-bold text-white tracking-tight leading-tight">Good Void</div>
+            <div class="flex items-center gap-2 cursor-pointer active:opacity-50" onclick="openPrestige()">
                 <div id="badge-svg" class="w-3 h-3"></div>
                 <div id="header-rank" class="text-[9px] font-black uppercase tracking-widest" style="color: var(--rank-color)">Observer V</div>
             </div>
         </div>
-        <button class="profile-btn" onclick="openMemory()"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></button>
+        <button class="w-10 h-10 rounded-full border border-white/10 flex items-center justify-center bg-white/5" onclick="openMemory()"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></button>
     </header>
+
     <main class="scroll-area" id="feed"></main>
+
     <nav>
         <div class="text-[8px] uppercase tracking-widest opacity-40 font-bold" onclick="toggleConstellations()">Map</div>
-        <button onclick="openWriter()" class="w-11 h-11 bg-white text-black rounded-full text-xl font-light">+</button>
+        <button onclick="openWriter()" class="w-11 h-11 bg-white text-black rounded-full text-xl font-light shadow-xl">+</button>
         <div class="text-[8px] uppercase tracking-widest opacity-40 font-bold" onclick="location.reload()">Sync</div>
     </nav>
+
+    <div id="prestige-modal" class="full-modal" onclick="this.style.display='none'">
+        <div id="p-badge" class="w-16 h-16 mb-4"></div>
+        <div id="p-state" class="text-[9px] font-black uppercase tracking-[0.4em] mb-2"></div>
+        <div id="p-name" class="text-4xl font-extralight mb-1"></div>
+        <div id="p-level" class="text-sm opacity-40 font-bold mb-6 uppercase tracking-widest">Level V</div>
+        
+        <div class="stat-box">
+            <div class="text-[8px] uppercase tracking-widest opacity-30 font-bold mb-4">Next Evolution</div>
+            <div class="text-lg font-light"><span id="p-needed" class="font-bold"></span> Stars to <span id="p-next"></span></div>
+            <div class="w-full bg-white/5 h-1 rounded-full overflow-hidden mt-4">
+                <div id="p-progress" class="h-full transition-all duration-1000" style="width: 0%"></div>
+            </div>
+        </div>
+
+        <div class="stat-box">
+            <div class="text-[8px] uppercase tracking-widest opacity-30 font-bold mb-4">Star DNA (Dominant Themes)</div>
+            <div id="p-dna" class="flex flex-wrap gap-3"></div>
+        </div>
+        <div class="mt-8 text-[8px] opacity-20 uppercase tracking-[0.3em]">Tap to exit</div>
+    </div>
+
     <div id="memory-modal" class="full-modal" onclick="this.style.display='none'">
         <div class="text-purple-500 text-[10px] font-black uppercase tracking-widest mb-6">Deep Sync</div>
-        <div id="memory-text" class="text-lg font-light leading-relaxed text-center"></div>
+        <div id="memory-text" class="text-lg font-light leading-relaxed text-center px-4"></div>
     </div>
+
     <div id="writer" class="full-modal">
         <textarea id="input" class="bg-transparent border-none outline-none w-full h-1/2 text-white text-center text-2xl font-light" placeholder="Transmit..."></textarea>
         <div class="flex gap-4 w-full max-w-xs"><button onclick="closeWriter()" class="flex-1 border border-white/10 py-4 rounded-full text-[9px] uppercase font-bold">Close</button><button id="commit-btn" onclick="submit()" class="flex-1 bg-white text-black py-4 rounded-full text-[9px] uppercase font-bold">Send</button></div>
     </div>
+
     <script>
         const ICONS = {"Observer": `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>`, "Moonwalker": `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M16 8c-2 0-4 2-4 4s2 4 4 4"/></svg>`, "Stellar": `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3 6 7 1-5 5 1 7-6-3-6 3 1-7-5-5 7-1 3-6z"/></svg>`, "Celestial": `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15 15 0 000 20"/></svg>`, "Interstellar": `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9z"/></svg>`, "Galactic": `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2"/></svg>`, "Ethereal": `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10" stroke-dasharray="4 4"/></svg>`};
-        let starsData = [], constellationsActive = false;
-        function parallax(e) { const stars = document.querySelectorAll('.star'); const x = (window.innerWidth / 2 - e.pageX) / 70, y = (window.innerHeight / 2 - e.pageY) / 70; stars.forEach(s => { const spd = s.getAttribute('data-speed'); s.style.transform = `translateX(${x*spd}px) translateY(${y*spd}px)`; }); }
+        let cachedData = {}, starsData = [], constellationsActive = false;
+
+        function updateGreeting() {
+            const hour = new Date().getHours();
+            let g = "Evening";
+            if (hour < 12) g = "Morning";
+            else if (hour < 18) g = "Afternoon";
+            document.getElementById('greeting').innerText = `Good ${g}, ${cachedData.user_id}!`;
+        }
+
+        function parallax(e) { const stars = document.querySelectorAll('.star'); const x = (window.innerWidth / 2 - e.pageX) / 75, y = (window.innerHeight / 2 - e.pageY) / 75; stars.forEach(s => { const spd = s.getAttribute('data-speed'); s.style.transform = `translateX(${x*spd}px) translateY(${y*spd}px)`; }); }
+
+        function openPrestige() {
+            const m = document.getElementById('prestige-modal');
+            m.style.display = 'flex';
+            document.getElementById('p-badge').innerHTML = ICONS[cachedData.rank];
+            document.getElementById('p-badge').style.color = cachedData.theme.color;
+            document.getElementById('p-name').innerText = cachedData.rank;
+            document.getElementById('p-level').innerText = `Level ${cachedData.level}`;
+            document.getElementById('p-state').innerText = cachedData.theme.state;
+            document.getElementById('p-state').style.color = cachedData.theme.color;
+            document.getElementById('p-needed').innerText = cachedData.stars_needed;
+            document.getElementById('p-next').innerText = cachedData.next_rank;
+            
+            // Render DNA
+            const dnaBox = document.getElementById('p-dna'); dnaBox.innerHTML = '';
+            Object.entries(cachedData.dna).sort((a,b) => b[1] - a[1]).forEach(([color, count]) => {
+                dnaBox.innerHTML += `<div class="flex items-center text-[10px] font-bold opacity-70"><span class="dna-dot" style="background:${color}"></span>${count}</div>`;
+            });
+
+            setTimeout(() => {
+                document.getElementById('p-progress').style.width = `${((5 - cachedData.stars_needed) / 5) * 100}%`;
+                document.getElementById('p-progress').style.backgroundColor = cachedData.theme.color;
+            }, 100);
+        }
+
         async function openMemory() { const m = document.getElementById('memory-modal'); m.style.display = 'flex'; document.getElementById('memory-text').innerText = "Recalling fragments..."; const res = await fetch('/api/memory_summary'); const data = await res.json(); document.getElementById('memory-text').innerText = data.summary; }
         function toggleConstellations() { constellationsActive = !constellationsActive; document.getElementById('constellation-svg').classList.toggle('active', constellationsActive); }
         function openWriter() { document.getElementById('writer').style.display = 'flex'; document.getElementById('input').focus(); }
         function closeWriter() { document.getElementById('writer').style.display = 'none'; }
+
         async function load() {
-            const res = await fetch('/api/data'); const data = await res.json();
-            starsData = data.stars || []; document.documentElement.style.setProperty('--rank-color', data.theme.color);
-            document.getElementById('greeting').innerText = `Voyager ${data.user_id}`;
-            document.getElementById('header-rank').innerText = `${data.rank} ${data.level}`;
-            document.getElementById('badge-svg').innerHTML = ICONS[data.rank];
-            const history = Object.values(data.history).sort((a,b) => b.ts - a.ts);
-            document.getElementById('feed').innerHTML = history.map(e => `
-                <div class="entry-card ${e.sig > 7 ? 'significant' : ''}">
-                    <div class="text-[8px] font-bold text-white/20 uppercase tracking-widest mb-3">${new Date(e.ts*1000).toLocaleDateString()}</div>
-                    <div class="text-xl font-light mb-4 leading-tight">${e.user_msg}</div>
-                    <div style="color:${e.color}" class="text-[13px] font-medium opacity-80">CELI: ${e.reply}</div>
-                </div>`).join('');
+            const res = await fetch('/api/data'); cachedData = await res.json();
+            starsData = cachedData.stars || []; document.documentElement.style.setProperty('--rank-color', cachedData.theme.color);
+            updateGreeting();
+            document.getElementById('header-rank').innerText = `${cachedData.rank} ${cachedData.level}`;
+            document.getElementById('badge-svg').innerHTML = ICONS[cachedData.rank];
+            const history = Object.values(cachedData.history).sort((a,b) => b.ts - a.ts);
+            document.getElementById('feed').innerHTML = history.map(e => `<div class="entry-card ${e.sig > 7 ? 'significant' : ''}"><div class="text-[8px] font-bold text-white/20 uppercase tracking-widest mb-3">${new Date(e.ts*1000).toLocaleDateString()}</div><div class="text-xl font-light mb-4 leading-tight">${e.user_msg}</div><div style="color:${e.color}" class="text-[13px] font-medium opacity-80">CELI: ${e.reply}</div></div>`).join('');
             const gal = document.getElementById('galaxy'); Array.from(gal.getElementsByClassName('star')).forEach(el => el.remove());
             starsData.forEach(s => { const el = document.createElement('div'); el.className = 'star'; const sz = Math.random() * 2 + 1; el.style.cssText = `left:${s.x}%; top:${s.y}%; width:${sz}px; height:${sz}px; color:${s.color}; opacity:0.6;`; el.setAttribute('data-speed', Math.random() * 5 + 2); gal.appendChild(el); });
             drawConstellations();
         }
+
         function drawConstellations() {
             const svg = document.getElementById('constellation-svg'); svg.innerHTML = '';
             const grouped = starsData.reduce((acc, s) => { (acc[s.color] = acc[s.color] || []).push(s); return acc; }, {});
@@ -108,6 +158,7 @@
                 const path = document.createElementNS("http://www.w3.org/2000/svg", "path"); path.setAttribute("d", pathD); path.setAttribute("stroke", color); path.setAttribute("fill", "none"); path.setAttribute("stroke-width", "0.5"); svg.appendChild(path);
             });
         }
+
         async function submit() {
             const val = document.getElementById('input').value; if(!val) return;
             document.getElementById('commit-btn').innerText = "...";
