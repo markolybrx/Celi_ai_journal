@@ -6,165 +6,192 @@
     <title>Celi: Voyager FCHQ</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        :root { --rank-color: #A855F7; }
-        html, body { background: #050505; color: #fff; margin: 0; padding: 0; overflow: hidden; height: 100%; width: 100%; -webkit-font-smoothing: antialiased; }
-        #galaxy { position: fixed; inset: 0; z-index: 0; pointer-events: none; }
-        .star { position: absolute; border-radius: 50%; box-shadow: 0 0 8px currentColor; will-change: transform; transition: transform 0.2s; }
-        #constellation-svg { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; transition: opacity 1s; pointer-events: none; }
-        #constellation-svg.active { opacity: 0.3; }
+        :root { --rank-color: #3B82F6; }
+        html, body { background: #050505; color: #fff; margin: 0; padding: 0; overflow: hidden; height: 100%; font-family: sans-serif; }
+        header { position: fixed; top: 0; left: 0; right: 0; height: 110px; background: rgba(10, 10, 15, 0.85); backdrop-filter: blur(30px); z-index: 100; display: flex; align-items: center; justify-content: space-between; padding: 0 24px; padding-top: env(safe-area-inset-top); border-bottom: 1px solid rgba(255,255,255,0.05); }
+        .scroll-area { position: absolute; inset: 0; display: flex; flex-direction: column-reverse; overflow-y: scroll; padding: 130px 24px 140px; z-index: 10; scrollbar-width: none; }
+        nav { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); width: 90%; max-width: 400px; height: 65px; border-radius: 100px; background: rgba(255,255,255,0.08); backdrop-filter: blur(40px); border: 1px solid rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: space-around; z-index: 100; }
+        .full-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.98); backdrop-filter: blur(40px); z-index: 500; display: none; flex-direction: column; align-items: center; justify-content: center; padding: 40px; }
         
-        header { 
-            position: fixed; top: 0; left: 0; right: 0; height: 100px; 
-            background: rgba(15, 15, 20, 0.8); backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px);
-            z-index: 100; display: flex; align-items: center; justify-content: space-between; 
-            padding: 0 24px; padding-top: env(safe-area-inset-top); 
-            border-bottom: 1px solid rgba(255,255,255,0.08);
-        }
+        /* Rank Up Animation */
+        #rank-up-overlay { position: fixed; inset: 0; background: #000; z-index: 999; display: none; align-items: center; justify-content: center; flex-direction: column; }
+        .orbit-pulse { position: absolute; border: 2px solid var(--rank-color); border-radius: 50%; animation: pulse 2s infinite; }
+        @keyframes pulse { 0% { width: 0; height: 0; opacity: 1; } 100% { width: 500px; height: 500px; opacity: 0; } }
+        
+        /* Floating Celi Message */
+        .celi-toast { position: absolute; top: 40px; left: 24px; right: 24px; background: rgba(255,255,255,0.1); backdrop-filter: blur(20px); border-radius: 20px; padding: 20px; border: 1px solid rgba(255,255,255,0.1); transform: translateY(-100px); transition: 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); opacity: 0; z-index: 600; }
+        .celi-toast.show { transform: translateY(0); opacity: 1; }
 
-        .scroll-area { position: absolute; inset: 0; overflow-y: scroll; padding: 120px 20px 120px; z-index: 10; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
-        .scroll-area::-webkit-scrollbar { display: none; }
-
-        .entry-card { background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05); border-radius: 28px; padding: 26px; margin-bottom: 20px; transition: 0.3s; }
-        .entry-card.significant { border-color: rgba(168, 85, 247, 0.3); box-shadow: 0 0 20px rgba(168, 85, 247, 0.05); }
-
-        nav {
-            position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
-            width: 85%; max-width: 380px; height: 60px; border-radius: 100px;
-            background: rgba(255, 255, 255, 0.08); backdrop-filter: blur(30px); -webkit-backdrop-filter: blur(30px);
-            border: 1px solid rgba(255, 255, 255, 0.1); display: flex; align-items: center; justify-content: space-around; z-index: 100;
-        }
-
-        .full-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.96); backdrop-filter: blur(25px); z-index: 500; display: none; flex-direction: column; align-items: center; justify-content: center; padding: 40px; }
-        .stat-box { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); border-radius: 24px; width: 100%; padding: 24px; margin-top: 20px; }
-        .dna-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 4px; }
+        /* Timeline */
+        .timeline-container { width: 100%; overflow-x: auto; display: flex; gap: 12px; padding: 20px 0; scrollbar-width: none; }
+        .timeline-node { flex-shrink: 0; display: flex; flex-direction: column; align-items: center; }
+        .node-dot { width: 12px; height: 12px; border-radius: 50%; margin-bottom: 8px; box-shadow: 0 0 10px currentColor; }
+        .node-bar { width: 2px; background: currentColor; opacity: 0.3; }
+        .profile-input { width: 100%; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 12px; color: #fff; font-size: 14px; margin-bottom: 10px; }
     </style>
 </head>
-<body onmousemove="parallax(event)">
-    <div id="galaxy"><svg id="constellation-svg"></svg></div>
-    
+<body>
+    <div id="rank-up-overlay">
+        <div class="orbit-pulse"></div>
+        <div class="text-[10px] font-black tracking-[1em] uppercase mb-4">Ascending</div>
+        <div id="new-rank-display" class="text-4xl font-black"></div>
+    </div>
+
+    <div id="celi-toast" class="celi-toast">
+        <div class="text-[8px] font-black text-purple-400 uppercase tracking-widest mb-1">Celi Mirror</div>
+        <div id="toast-text" class="text-sm font-light leading-relaxed"></div>
+    </div>
+
     <header>
         <div class="flex flex-col">
-            <div id="greeting" class="text-xl font-bold text-white tracking-tight leading-tight">Good Void</div>
-            <div class="flex items-center gap-2 cursor-pointer active:opacity-50" onclick="openPrestige()">
-                <div id="badge-svg" class="w-3 h-3"></div>
-                <div id="header-rank" class="text-[9px] font-black uppercase tracking-widest" style="color: var(--rank-color)">Observer V</div>
+            <div id="greeting" class="text-2xl font-black text-white leading-tight">...</div>
+            <div class="flex items-center gap-2 cursor-pointer mt-1" onclick="openPrestige()">
+                <div id="header-badge" class="w-3 h-3"></div>
+                <div id="header-rank" class="text-[10px] font-black uppercase tracking-widest" style="color: var(--rank-color)">...</div>
             </div>
         </div>
-        <button class="w-10 h-10 rounded-full border border-white/10 flex items-center justify-center bg-white/5" onclick="openMemory()"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></button>
+        <button class="w-11 h-11 rounded-full border border-white/10 flex items-center justify-center bg-white/5" onclick="openProfile()">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        </button>
     </header>
 
     <main class="scroll-area" id="feed"></main>
 
     <nav>
-        <div class="text-[8px] uppercase tracking-widest opacity-40 font-bold" onclick="toggleConstellations()">Map</div>
-        <button onclick="openWriter()" class="w-11 h-11 bg-white text-black rounded-full text-xl font-light shadow-xl">+</button>
-        <div class="text-[8px] uppercase tracking-widest opacity-40 font-bold" onclick="location.reload()">Sync</div>
+        <div class="text-[9px] font-bold uppercase opacity-40" onclick="openSync()">Deep Sync</div>
+        <button onclick="openWriter()" class="w-12 h-12 bg-white text-black rounded-full text-2xl font-light">+</button>
+        <div class="text-[9px] font-bold uppercase opacity-40" onclick="location.reload()">Refresh</div>
     </nav>
 
-    <div id="prestige-modal" class="full-modal" onclick="this.style.display='none'">
-        <div id="p-badge" class="w-16 h-16 mb-4"></div>
-        <div id="p-state" class="text-[9px] font-black uppercase tracking-[0.4em] mb-2"></div>
-        <div id="p-name" class="text-4xl font-extralight mb-1"></div>
-        <div id="p-level" class="text-sm opacity-40 font-bold mb-6 uppercase tracking-widest">Level V</div>
-        
-        <div class="stat-box">
-            <div class="text-[8px] uppercase tracking-widest opacity-30 font-bold mb-4">Next Evolution</div>
-            <div class="text-lg font-light"><span id="p-needed" class="font-bold"></span> Stars to <span id="p-next"></span></div>
-            <div class="w-full bg-white/5 h-1 rounded-full overflow-hidden mt-4">
-                <div id="p-progress" class="h-full transition-all duration-1000" style="width: 0%"></div>
-            </div>
+    <div id="prestige-modal" class="full-modal">
+        <div id="p-icon" class="w-20 h-20 mb-4"></div>
+        <div id="p-name" class="text-4xl font-black mb-1"></div>
+        <div id="p-level" class="text-sm opacity-40 font-bold uppercase tracking-widest mb-6"></div>
+        <div class="w-full text-center px-4 mb-8">
+            <div class="text-[10px] font-black uppercase tracking-[0.2em] opacity-40 mb-4">Spectrum of Self</div>
+            <div id="timeline" class="timeline-container"></div>
         </div>
-
-        <div class="stat-box">
-            <div class="text-[8px] uppercase tracking-widest opacity-30 font-bold mb-4">Star DNA (Dominant Themes)</div>
-            <div id="p-dna" class="flex flex-wrap gap-3"></div>
-        </div>
-        <div class="mt-8 text-[8px] opacity-20 uppercase tracking-[0.3em]">Tap to exit</div>
-    </div>
-
-    <div id="memory-modal" class="full-modal" onclick="this.style.display='none'">
-        <div class="text-purple-500 text-[10px] font-black uppercase tracking-widest mb-6">Deep Sync</div>
-        <div id="memory-text" class="text-lg font-light leading-relaxed text-center px-4"></div>
+        <div id="p-needed" class="text-lg font-light mb-8"></div>
+        <button onclick="closeModal('prestige-modal')" class="bg-white/10 px-8 py-3 rounded-full text-[10px] font-bold uppercase">Close</button>
     </div>
 
     <div id="writer" class="full-modal">
-        <textarea id="input" class="bg-transparent border-none outline-none w-full h-1/2 text-white text-center text-2xl font-light" placeholder="Transmit..."></textarea>
-        <div class="flex gap-4 w-full max-w-xs"><button onclick="closeWriter()" class="flex-1 border border-white/10 py-4 rounded-full text-[9px] uppercase font-bold">Close</button><button id="commit-btn" onclick="submit()" class="flex-1 bg-white text-black py-4 rounded-full text-[9px] uppercase font-bold">Send</button></div>
+        <textarea id="input" class="bg-transparent w-full h-1/2 text-center text-2xl font-light outline-none" placeholder="Transmit..."></textarea>
+        <button onclick="submit()" class="bg-white text-black px-12 py-4 rounded-full font-bold">Commit</button>
+    </div>
+
+    <div id="confirm-modal" class="full-modal">
+        <div id="confirm-text" class="text-xl text-center mb-8"></div>
+        <div class="flex gap-4 w-full max-w-xs">
+            <button id="confirm-btn" class="flex-1 bg-white text-black py-4 rounded-full font-bold">Confirm</button>
+            <button onclick="closeModal('confirm-modal')" class="flex-1 bg-white/10 py-4 rounded-full font-bold">Cancel</button>
+        </div>
+    </div>
+
+    <div id="profile-modal" class="full-modal">
+        <input id="edit-name" class="profile-input" placeholder="Name">
+        <input id="edit-bday" class="profile-input" type="date">
+        <input id="edit-color" class="profile-input" placeholder="Favorite Color">
+        <div class="flex gap-3 w-full mt-4">
+            <button onclick="saveProfile()" class="flex-1 bg-white text-black py-3 rounded-xl font-bold">Update</button>
+            <button onclick="closeModal('profile-modal')" class="flex-1 bg-white/10 py-3 rounded-xl font-bold">Close</button>
+        </div>
+        <div class="flex gap-3 w-full mt-10">
+            <button onclick="confirmAction('delete')" class="flex-1 bg-red-500/10 text-red-500 py-3 rounded-xl text-xs font-bold uppercase">Delete Data</button>
+            <button onclick="confirmAction('logout')" class="flex-1 bg-white/5 py-3 rounded-xl text-xs font-bold uppercase">Log Out</button>
+        </div>
     </div>
 
     <script>
-        const ICONS = {"Observer": `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>`, "Moonwalker": `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M16 8c-2 0-4 2-4 4s2 4 4 4"/></svg>`, "Stellar": `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3 6 7 1-5 5 1 7-6-3-6 3 1-7-5-5 7-1 3-6z"/></svg>`, "Celestial": `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15 15 0 000 20"/></svg>`, "Interstellar": `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9z"/></svg>`, "Galactic": `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2"/></svg>`, "Ethereal": `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10" stroke-dasharray="4 4"/></svg>`};
-        let cachedData = {}, starsData = [], constellationsActive = false;
-
-        function updateGreeting() {
-            const hour = new Date().getHours();
-            let g = "Evening";
-            if (hour < 12) g = "Morning";
-            else if (hour < 18) g = "Afternoon";
-            document.getElementById('greeting').innerText = `Good ${g}, ${cachedData.user_id}!`;
-        }
-
-        function parallax(e) { const stars = document.querySelectorAll('.star'); const x = (window.innerWidth / 2 - e.pageX) / 75, y = (window.innerHeight / 2 - e.pageY) / 75; stars.forEach(s => { const spd = s.getAttribute('data-speed'); s.style.transform = `translateX(${x*spd}px) translateY(${y*spd}px)`; }); }
-
-        function openPrestige() {
-            const m = document.getElementById('prestige-modal');
-            m.style.display = 'flex';
-            document.getElementById('p-badge').innerHTML = ICONS[cachedData.rank];
-            document.getElementById('p-badge').style.color = cachedData.theme.color;
-            document.getElementById('p-name').innerText = cachedData.rank;
-            document.getElementById('p-level').innerText = `Level ${cachedData.level}`;
-            document.getElementById('p-state').innerText = cachedData.theme.state;
-            document.getElementById('p-state').style.color = cachedData.theme.color;
-            document.getElementById('p-needed').innerText = cachedData.stars_needed;
-            document.getElementById('p-next').innerText = cachedData.next_rank;
-            
-            // Render DNA
-            const dnaBox = document.getElementById('p-dna'); dnaBox.innerHTML = '';
-            Object.entries(cachedData.dna).sort((a,b) => b[1] - a[1]).forEach(([color, count]) => {
-                dnaBox.innerHTML += `<div class="flex items-center text-[10px] font-bold opacity-70"><span class="dna-dot" style="background:${color}"></span>${count}</div>`;
-            });
-
-            setTimeout(() => {
-                document.getElementById('p-progress').style.width = `${((5 - cachedData.stars_needed) / 5) * 100}%`;
-                document.getElementById('p-progress').style.backgroundColor = cachedData.theme.color;
-            }, 100);
-        }
-
-        async function openMemory() { const m = document.getElementById('memory-modal'); m.style.display = 'flex'; document.getElementById('memory-text').innerText = "Recalling fragments..."; const res = await fetch('/api/memory_summary'); const data = await res.json(); document.getElementById('memory-text').innerText = data.summary; }
-        function toggleConstellations() { constellationsActive = !constellationsActive; document.getElementById('constellation-svg').classList.toggle('active', constellationsActive); }
-        function openWriter() { document.getElementById('writer').style.display = 'flex'; document.getElementById('input').focus(); }
-        function closeWriter() { document.getElementById('writer').style.display = 'none'; }
+        const ICONS = {
+            "Observer": `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 5v14M5 12h14"/></svg>`,
+            "Moonwalker": `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="8"/><path d="M12 2v20M2 12h20"/></svg>`,
+            "Stellar": `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3 7h7l-5 5 2 7-7-4-7 4 2-7-5-5h7z"/></svg>`,
+            "Celestial": `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>`,
+            "Interstellar": `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M13 2L3 14h9l-1 8 10-12h-9z"/></svg>`,
+            "Galactic": `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2m-3-7l1.5-1.5M4.5 19.5L6 18m12 0l1.5 1.5M4.5 4.5L6 6"/></svg>`,
+            "Ethereal": `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><circle cx="12" cy="12" r="10" stroke-dasharray="4 4"/><circle cx="12" cy="12" r="5" stroke-dasharray="2 2"/></svg>`
+        };
+        let data = {};
 
         async function load() {
-            const res = await fetch('/api/data'); cachedData = await res.json();
-            starsData = cachedData.stars || []; document.documentElement.style.setProperty('--rank-color', cachedData.theme.color);
-            updateGreeting();
-            document.getElementById('header-rank').innerText = `${cachedData.rank} ${cachedData.level}`;
-            document.getElementById('badge-svg').innerHTML = ICONS[cachedData.rank];
-            const history = Object.values(cachedData.history).sort((a,b) => b.ts - a.ts);
-            document.getElementById('feed').innerHTML = history.map(e => `<div class="entry-card ${e.sig > 7 ? 'significant' : ''}"><div class="text-[8px] font-bold text-white/20 uppercase tracking-widest mb-3">${new Date(e.ts*1000).toLocaleDateString()}</div><div class="text-xl font-light mb-4 leading-tight">${e.user_msg}</div><div style="color:${e.color}" class="text-[13px] font-medium opacity-80">CELI: ${e.reply}</div></div>`).join('');
-            const gal = document.getElementById('galaxy'); Array.from(gal.getElementsByClassName('star')).forEach(el => el.remove());
-            starsData.forEach(s => { const el = document.createElement('div'); el.className = 'star'; const sz = Math.random() * 2 + 1; el.style.cssText = `left:${s.x}%; top:${s.y}%; width:${sz}px; height:${sz}px; color:${s.color}; opacity:0.6;`; el.setAttribute('data-speed', Math.random() * 5 + 2); gal.appendChild(el); });
-            drawConstellations();
+            const r = await fetch('/api/data'); data = await r.json();
+            const h = new Date().getHours();
+            const g = h < 12 ? "morning" : h < 18 ? "afternoon" : "evening";
+            document.getElementById('greeting').innerText = `Good ${g}, ${data.name}!`;
+            document.getElementById('header-rank').innerText = `${data.rank} ${data.level}`;
+            document.getElementById('header-badge').innerHTML = ICONS[data.rank] || ICONS.Observer;
+            document.documentElement.style.setProperty('--rank-color', data.theme.color);
+            
+            const feed = Object.values(data.history).sort((a,b) => a.ts - b.ts);
+            document.getElementById('feed').innerHTML = feed.map(e => `<div class="entry-card"><div class="text-[8px] font-black opacity-20 uppercase mb-3">${new Date(e.ts*1000).toLocaleDateString()}</div><div class="text-lg font-light mb-4">${e.user_msg}</div><div style="color:${e.color}" class="text-sm">CELI: ${e.reply}</div></div>`).join('');
         }
 
-        function drawConstellations() {
-            const svg = document.getElementById('constellation-svg'); svg.innerHTML = '';
-            const grouped = starsData.reduce((acc, s) => { (acc[s.color] = acc[s.color] || []).push(s); return acc; }, {});
-            Object.entries(grouped).forEach(([color, stars]) => {
-                if (stars.length < 2) return;
-                let pathD = `M ${stars[0].x}% ${stars[0].y}%`;
-                for(let i=1; i<stars.length; i++) pathD += ` L ${stars[i].x}% ${stars[i].y}%`;
-                const path = document.createElementNS("http://www.w3.org/2000/svg", "path"); path.setAttribute("d", pathD); path.setAttribute("stroke", color); path.setAttribute("fill", "none"); path.setAttribute("stroke-width", "0.5"); svg.appendChild(path);
-            });
+        function openPrestige() {
+            document.getElementById('prestige-modal').style.display = 'flex';
+            document.getElementById('p-icon').innerHTML = ICONS[data.rank] || ICONS.Observer;
+            document.getElementById('p-icon').style.color = data.theme.color;
+            document.getElementById('p-name').innerText = data.rank;
+            document.getElementById('p-level').innerText = `Level ${data.level}`;
+            document.getElementById('p-needed').innerText = `${data.stars_needed} stars to ${data.next_rank}`;
+            
+            // Floating State Toast
+            const toast = document.getElementById('celi-toast');
+            document.getElementById('toast-text').innerText = data.theme.desc;
+            toast.classList.add('show');
+            
+            const timeline = document.getElementById('timeline');
+            const history = Object.values(data.history).sort((a,b) => a.ts - b.ts);
+            timeline.innerHTML = history.map(e => `<div class="timeline-node"><div class="node-dot" style="color: ${e.color}"></div><div class="node-bar" style="height: ${e.sig * 6}px; color: ${e.color}"></div></div>`).join('');
+        }
+
+        function closeModal(id) { 
+            document.getElementById(id).style.display = 'none'; 
+            if(id === 'prestige-modal') document.getElementById('celi-toast').classList.remove('show');
         }
 
         async function submit() {
-            const val = document.getElementById('input').value; if(!val) return;
-            document.getElementById('commit-btn').innerText = "...";
-            await fetch('/api/process', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({message: val}) });
-            document.getElementById('input').value = ''; closeWriter(); load();
+            const v = document.getElementById('input').value; if(!v) return;
+            const oldRank = data.rank; const oldLevel = data.level;
+            
+            await fetch('/api/process', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({message:v}) });
+            
+            // Check for Rank/Level up
+            const r = await fetch('/api/data'); const newData = await r.json();
+            if(newData.rank !== oldRank || newData.level !== oldLevel) {
+                const overlay = document.getElementById('rank-up-overlay');
+                document.getElementById('new-rank-display').innerText = `${newData.rank} ${newData.level}`;
+                overlay.style.display = 'flex';
+                setTimeout(() => location.reload(), 2500);
+            } else { location.reload(); }
         }
+
+        function openProfile() {
+            document.getElementById('profile-modal').style.display = 'flex';
+            document.getElementById('edit-name').value = data.name;
+            document.getElementById('edit-bday').value = data.birthday;
+            document.getElementById('edit-color').value = data.fav_color;
+        }
+
+        async function saveProfile() {
+            const up = { name: document.getElementById('edit-name').value, birthday: document.getElementById('edit-bday').value, fav_color: document.getElementById('edit-color').value };
+            await fetch('/api/update_profile', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(up) });
+            location.reload();
+        }
+
+        function confirmAction(type) {
+            const m = document.getElementById('confirm-modal'); m.style.display = 'flex';
+            const btn = document.getElementById('confirm-btn');
+            if(type === 'logout') {
+                document.getElementById('confirm-text').innerText = "Log out?";
+                btn.onclick = async () => { await fetch('/api/logout'); location.reload(); };
+            } else {
+                document.getElementById('confirm-text').innerText = "Delete everything?";
+                btn.onclick = async () => { await fetch('/api/delete_account'); location.reload(); };
+            }
+        }
+
+        function openWriter() { document.getElementById('writer').style.display = 'flex'; document.getElementById('input').focus(); }
         window.onload = load;
     </script>
 </body>
