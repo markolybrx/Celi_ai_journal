@@ -11,15 +11,22 @@
     <style>
         :root { --mood: #00f2fe; }
         html, body { background: #000; color: #fff; overflow: hidden; height: 100%; width: 100%; font-family: sans-serif; touch-action: none; }
-        .star-four-point { width: 12px; height: 12px; background: currentColor; clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%); }
+        
+        /* GEOMETRIC ASSETS */
+        .star-four-point { width: 12px; height: 12px; background: currentColor; clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%); box-shadow: 0 0 10px currentColor; display: inline-block; }
+        .pulse-glow { animation: pulseEffect 3s infinite ease-in-out; }
+        @keyframes pulseEffect { 0%, 100% { opacity: 0.5; transform: scale(1); box-shadow: 0 0 20px var(--mood); } 50% { opacity: 1; transform: scale(1.1); box-shadow: 0 0 40px var(--mood); } }
+        
         .overlay { position: fixed; inset: 0; background: #000; z-index: 5000; display: none; flex-direction: column; padding: 0; }
         .portal-content { padding: 80px 25px 120px; overflow-y: auto; height: 100%; display: flex; flex-direction: column; align-items: center; }
         .card-glass { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1); border-radius: 24px; padding: 20px; margin-bottom: 12px; }
+        
         .click-safe { pointer-events: auto !important; cursor: pointer; }
         .nav-btn { font-size: 8px; font-weight: 900; text-transform: uppercase; opacity: 0.3; transition: 0.3s; pointer-events: auto; }
         .active-btn { opacity: 1; color: var(--mood); }
         .close-btn-red { width: 48px; height: 48px; border-radius: 50%; background: rgba(220, 38, 38, 0.2); border: 1px solid rgba(220, 38, 38, 0.5); display: flex; align-items: center; justify-content: center; color: rgba(220, 38, 38, 0.8); margin-top: auto; margin-bottom: 20px; pointer-events: auto; }
-        #debug-status { opacity: 0.8; font-size: 10px; position: fixed; bottom: 30px; width: 100%; text-align: center; pointer-events: none; color: #00f2fe; z-index: 6000; }
+        
+        #debug-status { opacity: 0.5; font-size: 10px; position: fixed; bottom: 30px; width: 100%; text-align: center; pointer-events: none; color: #00f2fe; z-index: 6000; }
         .profile-img { width: 100%; height: 100%; object-fit: cover; }
     </style>
 </head>
@@ -37,7 +44,7 @@
                     <div id="mini-rank-logo" class="w-8 h-8 rounded-full flex items-center justify-center bg-black/40 border border-cyan-400"></div>
                     <div class="flex flex-col justify-center w-24">
                         <p id="rank-display" class="text-[10px] font-black text-cyan-400 tracking-widest uppercase leading-none mb-1 truncate">---</p>
-                        <div class="w-full h-1 bg-white/10 rounded-full overflow-hidden"><div id="rank-bar" class="h-full bg-cyan-400" style="width: 0%"></div></div>
+                        <div class="w-full h-1 bg-white/10 rounded-full overflow-hidden"><div id="rank-bar" class="h-full bg-cyan-400 transition-all duration-1000" style="width: 0%"></div></div>
                     </div>
                 </div>
             </div>
@@ -50,38 +57,49 @@
     <main id="galaxy-container" class="fixed inset-0 overflow-hidden"></main>
 
     <nav class="fixed bottom-10 left-1/2 -translate-x-1/2 w-[92%] h-[75px] rounded-[38px] bg-white/5 backdrop-blur-3xl flex items-center justify-around z-[4000] border border-white/10 pointer-events-auto">
-        <div onclick="app.openTab('vault')" class="nav-btn click-safe">Vault</div><div onclick="app.openTab('archive')" class="nav-btn click-safe">Archive</div>
+        <div onclick="app.openTab('vault')" class="nav-btn click-safe">Vault</div>
+        <div onclick="app.openTab('archive')" class="nav-btn click-safe">Archive</div>
         <div onclick="app.showIntent()" class="w-12 h-12 bg-white rounded-full flex items-center justify-center cursor-pointer click-safe"><div class="w-4 h-0.5 bg-black"></div></div>
-        <div onclick="app.closeUI()" class="nav-btn active-btn click-safe">Galaxy</div><div onclick="app.openTab('profile')" class="nav-btn click-safe">Profile</div>
+        <div onclick="app.closeUI()" class="nav-btn active-btn click-safe">Galaxy</div>
+        <div onclick="app.openTab('profile')" class="nav-btn click-safe">Profile</div>
     </nav>
-    <div class="fixed bottom-2 w-full text-center z-[5000] pointer-events-none opacity-30 text-[8px] font-mono tracking-widest text-white">celi_ai v1.2.4</div>
-    <div id="debug-status">HTML Loaded. Waiting for JS...</div>
+    <div class="fixed bottom-2 w-full text-center z-[5000] pointer-events-none opacity-30 text-[8px] font-mono tracking-widest text-white">celi_ai v1.2.5</div>
+    <div id="debug-status">Initializing...</div>
 
-    <div id="rank-portal-overlay" class="overlay"><div class="portal-content w-full max-w-md mx-auto"><h2 class="text-2xl font-black text-white mb-10 uppercase">Portal</h2><div id="portal-rank-icon" class="w-32 h-32 rounded-full mb-6 border-2 border-cyan-400 flex items-center justify-center"></div><div id="portal-level-stars" class="flex gap-2 mb-6"></div><p id="portal-rank-name" class="text-3xl font-black text-cyan-400 mb-8">---</p><div id="portal-future-list" class="w-full"></div><button onclick="app.closeUI()" class="close-btn-red click-safe">X</button></div></div>
-    
-    <div id="profile-overlay" class="overlay">
+    <div id="rank-portal-overlay" class="overlay">
         <div class="portal-content w-full max-w-md mx-auto">
-            <div id="portal-profile-container" class="w-24 h-24 rounded-full bg-white/10 mb-6 border border-white/20 overflow-hidden flex items-center justify-center"></div>
-            <div class="text-center mb-6">
-                <h2 id="profile-name" class="text-2xl font-black uppercase">User</h2>
-                <div class="flex justify-center gap-3 text-xs mt-2"><span id="profile-bday">--</span><div id="profile-color-dot" class="w-3 h-3 rounded-full bg-cyan-400"></div></div>
-                <button onclick="app.openEditProfile()" class="text-[9px] text-cyan-400 uppercase mt-4 border-b border-cyan-400/30 click-safe">Edit Identity</button>
+            <h2 class="text-2xl font-black text-white mb-10 uppercase tracking-widest">Cosmic Portal</h2>
+            
+            <div id="portal-rank-icon" class="w-32 h-32 rounded-full mb-6 border-2 border-cyan-400 flex items-center justify-center bg-black/40 backdrop-blur-xl shadow-[0_0_30px_rgba(0,242,254,0.3)]"></div>
+            
+            <div id="portal-level-stars" class="flex gap-2 mb-6 text-cyan-400"></div>
+            
+            <div class="w-full flex items-center gap-4 mb-2">
+                <div class="flex-grow h-2 bg-white/10 rounded-full overflow-hidden">
+                    <div id="portal-progress-bar" class="h-full bg-cyan-400 transition-all duration-1000" style="width: 0%"></div>
+                </div>
+                <p id="portal-points" class="text-xs font-bold text-white whitespace-nowrap">0 Stars</p>
             </div>
-            <div class="w-full card-glass"><p id="celi-analysis-text" class="text-xs italic p-4">Analyzing...</p></div>
-            <div class="w-full card-glass border-red-500/20 mb-8"><p class="text-[11px]">Void Entropy: <span id="entropy-val" class="text-red-500">0%</span></p></div>
-            <div class="w-full flex gap-4 mb-8"><button onclick="app.confirmDelete()" class="flex-1 py-4 bg-red-900/20 text-red-400 text-[9px] font-bold uppercase rounded-xl click-safe">Delete</button><button onclick="window.location.href='/logout'" class="flex-1 py-4 bg-white/5 text-white text-[9px] font-bold uppercase rounded-xl click-safe">Logout</button></div>
-            <div class="mt-auto text-center opacity-30 px-4"><h4 class="text-[9px] font-bold uppercase">Data Privacy</h4><p class="text-[8px]">Data stored locally. AI usage ephemeral.</p></div>
-            <button onclick="app.closeUI()" class="close-btn-red mt-6 click-safe">X</button>
+            
+            <h2 id="portal-rank-name" class="text-3xl font-black uppercase tracking-tighter text-cyan-400 mb-8">---</h2>
+            
+            <div class="w-full card-glass border-l-4 border-cyan-400 mb-8 bg-white/5">
+                <p id="portal-synthesis-text" class="text-sm italic leading-relaxed text-white/90"></p>
+            </div>
+            
+            <div id="portal-future-list" class="w-full space-y-2 pb-4"></div>
+            
+            <button onclick="app.closeUI()" class="close-btn-red click-safe">X</button>
         </div>
     </div>
-
+    
+    <div id="profile-overlay" class="overlay"><div class="portal-content w-full max-w-md mx-auto"><div id="portal-profile-container" class="w-24 h-24 rounded-full bg-white/10 mb-6 border border-white/20 overflow-hidden flex items-center justify-center"></div><div class="text-center mb-6"><h2 id="profile-name" class="text-2xl font-black uppercase">User</h2><div class="flex justify-center gap-3 text-xs mt-2"><span id="profile-bday">--</span><div id="profile-color-dot" class="w-3 h-3 rounded-full bg-cyan-400"></div></div><button onclick="app.openEditProfile()" class="text-[9px] text-cyan-400 uppercase mt-4 border-b border-cyan-400/30 click-safe">Update Identity</button></div><div class="w-full card-glass"><p id="celi-analysis-text" class="text-xs italic p-4">Analyzing...</p></div><div class="w-full card-glass border-red-500/20 mb-8"><p class="text-[11px]">Void Entropy: <span id="entropy-val" class="text-red-500">0%</span></p></div><div class="w-full flex gap-4 mb-8"><button onclick="app.confirmDelete()" class="flex-1 py-4 bg-red-900/20 text-red-400 text-[9px] font-bold uppercase rounded-xl click-safe">Delete Data</button><button onclick="window.location.href='/logout'" class="flex-1 py-4 bg-white/5 text-white text-[9px] font-bold uppercase rounded-xl click-safe">Logout</button></div><div class="mt-auto text-center opacity-30 px-4"><h4 class="text-[9px] font-bold uppercase mb-2">Data Sovereignty</h4><p class="text-[8px]">Data stored locally.</p></div><button onclick="app.closeUI()" class="close-btn-red mt-6 click-safe">X</button></div></div>
     <div id="chat-overlay" class="overlay" style="padding: 130px 25px 100px;"><div id="chat-scroller" class="flex flex-col-reverse overflow-y-auto flex-grow pb-4"><div id="msg-container" class="flex flex-col"></div></div><div class="pb-10 pt-4"><textarea id="msg-input" class="w-full bg-white/5 rounded-3xl p-6 text-white outline-none border border-white/10" placeholder="Speak..."></textarea><button onclick="app.sendAction()" class="mt-4 w-full py-5 bg-white text-black font-black uppercase rounded-2xl click-safe">Transmit</button><button onclick="app.closeUI()" class="mt-4 w-full text-[10px] opacity-20 uppercase text-center click-safe">Minimize</button></div></div>
     <div id="archive-overlay" class="overlay"><div class="portal-content"><h2 class="text-3xl font-black mb-8 uppercase">Archive</h2><div id="archive-list" class="space-y-4 w-full"></div><button onclick="app.closeUI()" class="close-btn-red click-safe">X</button></div></div>
     <div id="vault-overlay" class="overlay"><div class="portal-content"><h2 class="text-3xl font-black mb-8 uppercase">Vault</h2><div id="vault-content" class="space-y-4 w-full"></div><button onclick="app.closeUI()" class="close-btn-red click-safe">X</button></div></div>
     <div id="intent-modal" class="fixed inset-0 bg-black/95 z-[6000] hidden items-center justify-center"><div class="text-center p-10 space-y-4 w-full"><button onclick="app.startChat('journal')" class="w-full py-6 bg-white text-black font-black uppercase rounded-xl click-safe">Grow Star</button><button onclick="app.startChat('rant')" class="w-full py-6 bg-white/10 text-white font-black border border-white/20 uppercase rounded-xl click-safe">Cast Void</button><button onclick="app.closeUI()" class="opacity-20 uppercase text-[10px] mt-4 click-safe">Close</button></div></div>
-
     <div id="edit-modal" class="fixed inset-0 bg-black/95 z-[6000] hidden items-center justify-center p-8"><div class="glass w-full max-w-sm p-8 rounded-3xl border border-white/10 bg-gray-900"><h3 class="text-xl font-black uppercase mb-6 text-center">Update Signal</h3><div class="mb-4"><label class="text-[9px] uppercase opacity-50 block mb-2">Profile Picture</label><input type="file" id="edit-pic" accept="image/*" class="w-full text-xs text-white"></div><div class="mb-4"><label class="text-[9px] uppercase opacity-50 block mb-2">Date of Birth</label><input type="date" id="edit-bday" class="w-full bg-white/5 border border-white/10 rounded-xl p-4 text-white text-xs"></div><div class="mb-6"><label class="text-[9px] uppercase opacity-50 block mb-2">Resonance Color</label><input type="color" id="edit-color" class="bg-transparent w-full h-10 rounded-xl overflow-hidden border-none" value="#00f2fe"></div><div class="flex gap-2"><button onclick="app.saveProfile()" class="flex-1 py-3 bg-white text-black font-bold uppercase rounded-xl text-xs click-safe">Confirm</button><button onclick="document.getElementById('edit-modal').style.display='none'" class="flex-1 py-3 bg-white/10 text-white font-bold uppercase rounded-xl text-xs click-safe">Cancel</button></div></div></div>
 
-    <script src="/static/script.js?v=1.2.4"></script>
+    <script src="/static/script.js?v=1.2.5"></script>
 </body>
 </html>
