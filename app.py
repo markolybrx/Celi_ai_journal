@@ -3,7 +3,7 @@ from flask import Flask, render_template, request, jsonify, session, redirect, u
 from datetime import date, datetime
 
 app = Flask(__name__)
-app.secret_key = "celi_sovereign_v10.31_unfrozen"
+app.secret_key = "celi_sovereign_v10.32_nuclear"
 VAULT_PATH = 'vault.json'
 TRIVIA_PATH = 'trivia.json'
 
