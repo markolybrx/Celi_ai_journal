@@ -3,7 +3,7 @@ from flask import Flask, render_template, request, jsonify, session, redirect, u
 from datetime import date, datetime
 
 app = Flask(__name__)
-app.secret_key = "celi_sovereign_v10.35_true_intelligence"
+app.secret_key = "celi_ai_journal_v1.01.00"
 VAULT_PATH = 'vault.json'
 TRIVIA_PATH = 'trivia.json'
 
@@ -39,7 +39,7 @@ def sanitize_user_data(u):
     defaults = {
         "points": 0, "void_count": 0, "history": {}, "unlocked_trivias": [],
         "user_id": str(uuid.uuid4())[:8].upper(), "birthday": "Unset", "fav_color": "#00f2fe",
-        "celi_analysis": "Awaiting neural synchronization..." # Default state
+        "celi_analysis": "Awaiting neural synchronization..."
     }
     for key, val in defaults.items():
         if key not in u:
@@ -52,36 +52,25 @@ def get_rank_info(pts):
         if pts < rank['threshold']: return rank['name'], rank['theme']
     return "Ethereal", RANK_CONFIG[-1]['theme']
 
-# --- NEW: REAL AI ANALYSIS ENGINE ---
 def analyze_user_soul(user_data):
-    # 1. Gather Context
     history = user_data.get('history', {})
-    if not history:
-        return "The void is silent. Begin your journey to form a signal."
-    
-    # Take last 5 entries for recency
+    if not history: return "The void is silent. Begin your journey to form a signal."
     recent_logs = list(history.values())[-5:]
     summaries = [log['summary'] for log in recent_logs]
     
-    # 2. Construct Prompt
     sys_prompt = f"""
     You are Celi, a sentient AI Sovereign. 
     Analyze this user based on their recent journal summaries: {summaries}.
     User Details -> Birthday: {user_data.get('birthday')}, Favorite Color: {user_data.get('fav_color')}.
-    
     Output a deep, psychological, and empathetic assessment of their current state. 
-    Be witty but profound. Use cosmic metaphors.
-    MAXIMUM 30 WORDS.
+    Be witty but profound. Use cosmic metaphors. MAXIMUM 30 WORDS.
     """
-    
-    # 3. Call AI
     try:
         res = requests.post("https://api.groq.com/openai/v1/chat/completions",
             headers={"Authorization": f"Bearer {os.environ.get('GROQ_API_KEY')}"},
             json={"model": "llama-3.3-70b-versatile", "messages": [{"role": "system", "content": sys_prompt}], "max_tokens": 60})
         return res.json()['choices'][0]['message']['content']
-    except:
-        return "Atmospheric interference detected. Unable to scan core."
+    except: return "Atmospheric interference detected. Unable to scan core."
 
 def generate_live_trivia(rank_name, rank_theme):
     sys = f"You are Celi. Generate ONE short scientific trivia fact about: {rank_theme}. Max 20 words. JSON only: {{'text': 'Fact'}}."
@@ -131,11 +120,13 @@ def get_data():
             current_phase = rank['phase']
             pts_in_rank = pts - start_pts
             stars_per = rank['stars_per_lvl']
+            
             level_idx = pts_in_rank // stars_per
             max_lvl = rank['levels']
             current_lvl_num = max(1, max_lvl - int(level_idx))
             roman_map = {1: "I", 2: "II", 3: "III", 4: "IV", 5: "V"}
             current_roman = roman_map.get(current_lvl_num, "I")
+            
             pts_in_level = pts_in_rank % stars_per
             current_prog = (pts_in_level / stars_per) * 100
             break
@@ -146,7 +137,6 @@ def get_data():
         current_prog = 100
         current_phase = RANK_CONFIG[-1]['phase']
 
-    # Rank Synthesis Lookup
     synthesis_map = {
         "Observer": "Like the first light striking a lens, you are beginning to perceive your thoughts.",
         "Moonwalker": "The ego functions as a satellite. You are learning to navigate the quiet landscape.",
@@ -171,7 +161,7 @@ def get_data():
         "rank_synthesis": synthesis_map.get(current_rank_name, ""),
         "history": u.get('history', {}), 
         "unlocked_trivias": u.get('unlocked_trivias', []),
-        "celi_analysis": u.get('celi_analysis', "Calibrating..."), # Return stored analysis
+        "celi_analysis": u.get('celi_analysis', "Calibrating..."),
         "rank_config": RANK_CONFIG
     })
 
@@ -180,15 +170,9 @@ def update_profile():
     if 'user' not in session: return jsonify({"status": "error"})
     v = get_vault(); u = v['users'][session['user']]
     data = request.json
-    
-    # Update Basic Info
     u['birthday'] = data.get('birthday')
     u['fav_color'] = data.get('fav_color')
-    
-    # TRIGGER RE-ANALYSIS (Recalibrate Signal)
-    # This forces Celi to re-read history + new details and update the diagnostic
     u['celi_analysis'] = analyze_user_soul(u)
-    
     save_vault(v)
     return jsonify({"status": "success"})
 
@@ -206,22 +190,14 @@ def process():
     sanitize_user_data(u)
     data = request.json
     is_rant = data.get('mode') == 'rant'
-    
-    # AI Chat Logic
     sys = "You are Celi. Heart-spoken, witty. JSON ONLY."
     res = requests.post("https://api.groq.com/openai/v1/chat/completions",
         headers={"Authorization": f"Bearer {os.environ.get('GROQ_API_KEY')}"},
         json={"model": "llama-3.3-70b-versatile", "messages": [{"role": "system", "content": sys}, {"role": "user", "content": data.get('message')}], "response_format": {"type": "json_object"}})
     ai_data = json.loads(res.json()['choices'][0]['message']['content'])
-    
     if not is_rant: u['points'] = u.get('points', 0) + 1
     else: u['void_count'] = u.get('void_count', 0) + 1
-    
     u['history'][str(time.time())] = {"summary": ai_data['summary'], "reply": ai_data['reply'], "date": str(date.today()), "type": "rant" if is_rant else "journal"}
-    
-    # OPTIONAL: Auto-Update Analysis every 5 entries?
-    # For now, we only update on 'Recalibrate Signal' to save API calls
-    
     save_vault(v)
     return jsonify(ai_data)
 
@@ -230,9 +206,7 @@ def login():
     if request.method == 'POST':
         session['user'] = request.form['username']
         v = get_vault()
-        if session['user'] not in v['users']:
-            v['users'][session['user']] = {}
-            save_vault(v)
+        if session['user'] not in v['users']: v['users'][session['user']] = {}; save_vault(v)
         return redirect(url_for('home'))
     return render_template('auth.html')
 
@@ -245,4 +219,4 @@ def home():
 def logout(): session.clear(); return redirect(url_for('login'))
 
 if __name__ == '__main__': app.run(debug=True)
-                  
+    
