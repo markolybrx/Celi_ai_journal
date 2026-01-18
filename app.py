@@ -1,24 +1,23 @@
 import os, json, time, random, uuid
 from flask import Flask, render_template, request, jsonify, session, redirect, url_for
 from datetime import date
+import google.generativeai as genai
 
 app = Flask(__name__)
-app.secret_key = "celi_ai_v1.2.1_safety_core"
+app.secret_key = "celi_ai_v1.3.0_anchor_build"
 VAULT_PATH = 'vault.json'
 TRIVIA_PATH = 'trivia.json'
 
-# --- SAFE IMPORT: PREVENTS CRASH IF LIBRARY MISSING ---
+# --- GEMINI CONFIGURATION ---
 model = None
 try:
-    import google.generativeai as genai
     GEMINI_KEY = os.environ.get("GEMINI_API_KEY")
     if GEMINI_KEY:
         genai.configure(api_key=GEMINI_KEY)
-        model = genai.GenerativeModel('gemini-1.5-flash', generation_config={"response_mime_type": "application/json"})
+        model = genai.GenerativeModel('gemini-1.5-flash', 
+            generation_config={"response_mime_type": "application/json"})
     else:
-        print("NOTICE: GEMINI_API_KEY missing. AI Disabled.")
-except ImportError:
-    print("CRITICAL: google-generativeai not installed. AI Disabled.")
+        print("WARNING: GEMINI_API_KEY missing. AI in Simulation Mode.")
 except Exception as e:
     print(f"AI INIT ERROR: {e}")
 
@@ -51,26 +50,30 @@ def save_trivia_db(data):
 
 # --- AI ENGINE ---
 def analyze_user_soul(user_data):
-    if not model: return "Simulation Mode: Trajectory aligning with projected constants."
+    if not model: return "Simulation Mode: Trajectory stable."
     
     history = user_data.get('history', {})
-    if len(history) < 3: return "Data insufficient. Continue journaling."
+    if len(history) < 3: return "Data insufficient. Continue journaling to form a behavioral model."
     
     recent_logs = list(history.values())[-10:]
     summaries = [log.get('summary', '') for log in recent_logs]
     
     prompt = f"""
-    You are Celi. Analyze user based on details (Birthday: {user_data.get('birthday')}, Color: {user_data.get('fav_color')}) and journals: {summaries}.
-    Output a JSON object with key 'analysis'. Insightful, witty, compassionate. MAX 40 WORDS.
+    You are Celi, an AI Sovereign. Analyze this user.
+    User Context: Birthday {user_data.get('birthday')}, Color {user_data.get('fav_color')}.
+    Journal History: {summaries}
+    
+    Output a JSON object with a single key 'analysis'.
+    The value should be a deep, witty, compassionate psychological summary (max 40 words).
     """
     try:
         response = model.generate_content(prompt)
         return json.loads(response.text)['analysis']
-    except: return "Neural uplink unstable."
+    except: return "Neural synchronization interrupted."
 
 def generate_live_trivia(rank_name, rank_theme):
-    if not model: return "The stars are silent (No API)."
-    prompt = f"Generate ONE short scientific trivia about: {rank_theme}. Output JSON key 'text'. Max 20 words."
+    if not model: return "The stars are silent (No API Key)."
+    prompt = f"Generate ONE short scientific trivia fact about: {rank_theme}. Output JSON with key 'text'. Max 20 words."
     try:
         response = model.generate_content(prompt)
         return json.loads(response.text)['text']
@@ -93,6 +96,27 @@ def get_rank_info(pts):
     for rank in RANK_CONFIG:
         if pts < rank['threshold']: return rank['name'], rank['theme']
     return "Ethereal", RANK_CONFIG[-1]['theme']
+
+# --- ROUTES ---
+@app.route('/api/trivia')
+def get_trivia():
+    try:
+        if 'user' not in session: return jsonify({"trivia": "Connecting..."})
+        v = get_vault(); u = v['users'][session['user']]
+        if sanitize_user_data(u): save_vault(v)
+        
+        rank_name, rank_theme = get_rank_info(u.get('points', 0))
+        full_db = get_trivia_db()
+        available = [t for t in full_db if t['rank'] == rank_name and t['text'] not in u['unlocked_trivias']]
+        
+        if available: fact = random.choice(available)['text']
+        else: fact = generate_live_trivia(rank_name, rank_theme)
+
+        if fact not in u['unlocked_trivias']:
+            u['unlocked_trivias'].append(fact)
+            save_vault(v)
+        return jsonify({"trivia": fact})
+    except: return jsonify({"trivia": "Stellar silence."})
 
 @app.route('/api/data')
 def get_data():
@@ -162,7 +186,7 @@ def get_data():
         })
     except Exception as e:
         print(f"DATA ERROR: {e}")
-        return jsonify({"status": "error", "message": str(e)})
+        return jsonify({"status": "error"})
 
 @app.route('/api/update_profile', methods=['POST'])
 def update_profile():
@@ -193,9 +217,14 @@ def process():
         data = request.json
         
         if not model:
-            ai_data = {"summary": "Simulated Log", "reply": "I hear you. (AI Disabled)"}
+            ai_data = {"summary": "Simulated Log", "reply": "I hear you. (Gemini Key Missing)"}
         else:
-            prompt = f"System: You are Celi. User: {data.get('message')}. Output JSON: {{'reply': '...', 'summary': '...'}}"
+            prompt = f"""
+            System: You are Celi. Heart-spoken, witty, empathetic. A shoulder to cry on.
+            User Input: {data.get('message')}
+            Task: Reply to the user and summarize their input.
+            Output JSON: {{ "reply": "...", "summary": "..." }}
+            """
             response = model.generate_content(prompt)
             ai_data = json.loads(response.text)
 
@@ -205,11 +234,9 @@ def process():
         u['history'][str(time.time())] = {"summary": ai_data['summary'], "reply": ai_data['reply'], "date": str(date.today()), "type": "rant" if data.get('mode') == 'rant' else "journal"}
         save_vault(v)
         return jsonify(ai_data)
-    except: return jsonify({"reply": "Static noise...", "summary": "Error"})
-
-# Keep trivial routes for compatibility
-@app.route('/api/trivia')
-def api_trivia_dummy(): return jsonify({"trivia": "Stardust."})
+    except Exception as e: 
+        print(f"CHAT ERROR: {e}")
+        return jsonify({"reply": "Static noise... (Error)", "summary": "Error"})
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
