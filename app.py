@@ -1,9 +1,9 @@
-import os, requests, json, time, random, uuid
+import os, requests, json, time, random
 from flask import Flask, render_template, request, jsonify, session, redirect, url_for
 from datetime import date, datetime
 
 app = Flask(__name__)
-app.secret_key = "celi_sovereign_v10.32_nuclear"
+app.secret_key = "celi_sovereign_v10.33_stable_core"
 VAULT_PATH = 'vault.json'
 TRIVIA_PATH = 'trivia.json'
 
@@ -34,157 +34,118 @@ def get_trivia_db():
 def save_trivia_db(data):
     with open(TRIVIA_PATH, 'w') as f: json.dump(data, f, indent=4)
 
-def sanitize_user_data(u):
-    changed = False
-    defaults = {
-        "points": 0, "void_count": 0, "history": {}, "unlocked_trivias": [],
-        "user_id": str(uuid.uuid4())[:8].upper(), "birthday": "Unset", "fav_color": "#00f2fe"
-    }
-    for key, val in defaults.items():
-        if key not in u:
-            u[key] = val
-            changed = True
-    return changed
+# --- ROBUST DATA SANITIZATION ---
+def sanitize_user(u):
+    updated = False
+    if "points" not in u: u["points"] = 0; updated = True
+    if "history" not in u: u["history"] = {}; updated = True
+    if "unlocked_trivias" not in u: u["unlocked_trivias"] = []; updated = True
+    if "user_id" not in u: u["user_id"] = f"USR-{random.randint(1000,9999)}"; updated = True
+    if "birthday" not in u: u["birthday"] = "Unset"; updated = True
+    if "fav_color" not in u: u["fav_color"] = "#00f2fe"; updated = True
+    return updated
 
-def get_rank_info(pts):
-    for rank in RANK_CONFIG:
-        if pts < rank['threshold']: return rank['name'], rank['theme']
-    return "Ethereal", RANK_CONFIG[-1]['theme']
-
-def generate_live_trivia(rank_name, rank_theme):
-    sys = f"You are Celi. Generate ONE short scientific trivia fact about: {rank_theme}. Max 20 words. JSON only: {{'text': 'Fact'}}."
+def generate_trivia(theme):
+    sys = f"Generate 1 short scientific fact about {theme}. Max 15 words. JSON: {{'text':'fact'}}."
     try:
-        res = requests.post("https://api.groq.com/openai/v1/chat/completions",
+        r = requests.post("https://api.groq.com/openai/v1/chat/completions",
             headers={"Authorization": f"Bearer {os.environ.get('GROQ_API_KEY')}"},
-            json={"model": "llama-3.3-70b-versatile", "messages": [{"role": "system", "content": sys}], "response_format": {"type": "json_object"}})
-        data = json.loads(res.json()['choices'][0]['message']['content'])
-        new_fact = {"text": data['text'], "rank": rank_name}
-        db = get_trivia_db()
-        if not any(t['text'] == new_fact['text'] for t in db):
-            db.append(new_fact)
-            save_trivia_db(db)
-        return new_fact['text']
-    except: return "The cosmos is quiet."
-
-@app.route('/api/trivia')
-def get_trivia():
-    if 'user' not in session: return jsonify({"trivia": "Connecting..."})
-    v = get_vault(); u = v['users'][session['user']]
-    if sanitize_user_data(u): save_vault(v)
-    rank_name, rank_theme = get_rank_info(u.get('points', 0))
-    full_db = get_trivia_db()
-    unlocked = u.setdefault('unlocked_trivias', [])
-    available = [t for t in full_db if t['rank'] == rank_name and t['text'] not in unlocked]
-    fact = random.choice(available)['text'] if available else generate_live_trivia(rank_name, rank_theme)
-    if fact not in unlocked:
-        u['unlocked_trivias'].append(fact)
-        save_vault(v)
-    return jsonify({"trivia": fact})
+            json={"model": "llama-3.3-70b-versatile", "messages": [{"role":"system","content":sys}], "response_format":{"type":"json_object"}})
+        return json.loads(r.json()['choices'][0]['message']['content'])['text']
+    except: return "The stars are silent."
 
 @app.route('/api/data')
 def get_data():
     if 'user' not in session: return jsonify({})
     v = get_vault(); u = v['users'][session['user']]
-    if sanitize_user_data(u): save_vault(v)
+    if sanitize_user(u): save_vault(v)
     
-    pts = u.get('points', 0)
-    current_rank_name, current_roman, current_prog, current_phase = "Observer", "III", 0, ""
-    cumulative = 0
-    for rank in RANK_CONFIG:
-        start_pts = cumulative
-        end_pts = rank['threshold']
-        if pts < end_pts:
-            current_rank_name = rank['name']
-            current_phase = rank['phase']
-            pts_in_rank = pts - start_pts
-            stars_per = rank['stars_per_lvl']
+    pts = u['points']
+    c_rank, c_roman, c_phase, c_prog, c_syn = "Ethereal", "I", "The Singularity", 100, ""
+    
+    cum = 0
+    for r in RANK_CONFIG:
+        if pts < r['threshold']:
+            c_rank, c_phase, c_syn = r['name'], r['phase'], r.get('synthesis', '')
+            pts_in = pts - cum
+            # Roman Logic
+            idx = pts_in // r['stars_per_lvl']
+            roman_map = ["I", "II", "III", "IV", "V"]
+            # Safe index access
+            ridx = max(0, r['levels'] - 1 - int(idx))
+            if ridx < len(roman_map): c_roman = roman_map[ridx]
             
-            level_idx = pts_in_rank // stars_per
-            max_lvl = rank['levels']
-            current_lvl_num = max(1, max_lvl - int(level_idx))
-            roman_map = {1: "I", 2: "II", 3: "III", 4: "IV", 5: "V"}
-            current_roman = roman_map.get(current_lvl_num, "I")
-            
-            pts_in_level = pts_in_rank % stars_per
-            current_prog = (pts_in_level / stars_per) * 100
+            c_prog = ((pts_in % r['stars_per_lvl']) / r['stars_per_lvl']) * 100
             break
-        cumulative = end_pts
-    else:
-        current_rank_name, current_roman, current_prog, current_phase = "Ethereal", "I", 100, RANK_CONFIG[-1]['phase']
-
-    count = len(u.get('history', {}))
-    analysis = "Signal faint. Identity forming." if count < 5 else "Trajectory stable."
-    
-    # Synthesis Map
-    synthesis_map = {
-        "Observer": "Like the first light striking a lens, you are beginning to perceive your thoughts.",
-        "Moonwalker": "The ego functions as a satellite. You are learning to navigate the quiet landscape.",
-        "Celestial": "You have entered a stable orbit. The flux of the self is governed by purpose.",
-        "Stellar": "Nuclear fusion has commenced. Your internal values are generating gravity.",
-        "Interstellar": "You are pushing beyond the boundaries, traveling through the vast vacuum.",
-        "Galactic": "You are no longer a single star, but a system of billions.",
-        "Ethereal": "Singularity achieved. You are the cosmos experiencing itself."
-    }
+        cum = r['threshold']
 
     return jsonify({
         "username": session['user'],
-        "user_id": u.get('user_id'),
-        "birthday": u.get('birthday'),
-        "fav_color": u.get('fav_color'),
-        "points": pts, 
-        "rank": f"{current_rank_name} {current_roman}",
-        "rank_pure": current_rank_name,
-        "rank_roman": current_roman,
-        "phase": current_phase,
-        "rank_progress": current_prog,
-        "rank_synthesis": synthesis_map.get(current_rank_name, ""),
-        "history": u.get('history', {}), 
-        "unlocked_trivias": u.get('unlocked_trivias', []),
-        "celi_analysis": analysis,
+        "user_id": u['user_id'],
+        "birthday": u['birthday'],
+        "fav_color": u['fav_color'],
+        "points": pts,
+        "rank": f"{c_rank} {c_roman}",
+        "rank_pure": c_rank,
+        "rank_roman": c_roman,
+        "phase": c_phase,
+        "rank_progress": c_prog,
+        "rank_synthesis": c_syn,
+        "history": u['history'],
+        "unlocked_trivias": u['unlocked_trivias'],
         "rank_config": RANK_CONFIG
     })
 
 @app.route('/api/update_profile', methods=['POST'])
 def update_profile():
-    if 'user' not in session: return jsonify({"status": "error"})
+    if 'user' not in session: return jsonify({})
     v = get_vault(); u = v['users'][session['user']]
-    data = request.json
-    u['birthday'] = data.get('birthday')
-    u['fav_color'] = data.get('fav_color')
+    u['birthday'] = request.json.get('birthday')
+    u['fav_color'] = request.json.get('fav_color')
     save_vault(v)
-    return jsonify({"status": "success"})
+    return jsonify({"status":"ok"})
 
 @app.route('/api/delete_user', methods=['POST'])
 def delete_user():
-    if 'user' not in session: return jsonify({"status": "error"})
-    v = get_vault()
-    if session['user'] in v['users']: del v['users'][session['user']]; save_vault(v)
+    if 'user' not in session: return jsonify({})
+    v = get_vault(); del v['users'][session['user']]; save_vault(v)
     session.clear()
-    return jsonify({"status": "success"})
+    return jsonify({"status":"ok"})
+
+@app.route('/api/trivia')
+def get_trivia():
+    if 'user' not in session: return jsonify({"trivia":"Loading..."})
+    v = get_vault(); u = v['users'][session['user']]
+    db = get_trivia_db()
+    # Simple random selection or gen
+    if not db: 
+        t = generate_trivia("Stars")
+        db.append({"text":t, "rank":"General"})
+        save_trivia_db(db)
+    
+    fact = random.choice(db)['text']
+    if fact not in u['unlocked_trivias']:
+        u['unlocked_trivias'].append(fact)
+        save_vault(v)
+    return jsonify({"trivia": fact})
 
 @app.route('/api/process', methods=['POST'])
 def process():
     v = get_vault(); u = v['users'][session['user']]
-    sanitize_user_data(u)
-    data = request.json
-    is_rant = data.get('mode') == 'rant'
-    sys = "You are Celi. Heart-spoken, witty. JSON ONLY."
-    res = requests.post("https://api.groq.com/openai/v1/chat/completions",
-        headers={"Authorization": f"Bearer {os.environ.get('GROQ_API_KEY')}"},
-        json={"model": "llama-3.3-70b-versatile", "messages": [{"role": "system", "content": sys}, {"role": "user", "content": data.get('message')}], "response_format": {"type": "json_object"}})
-    ai_data = json.loads(res.json()['choices'][0]['message']['content'])
-    if not is_rant: u['points'] = u.get('points', 0) + 1
-    else: u['void_count'] = u.get('void_count', 0) + 1
-    u['history'][str(time.time())] = {"summary": ai_data['summary'], "reply": ai_data['reply'], "date": str(date.today()), "type": "rant" if is_rant else "journal"}
+    if request.json.get('mode') != 'rant': u['points'] += 1
+    
+    # Simple echo for speed/stability, replace with AI if needed
+    u['history'][str(time.time())] = {"summary": "Log Entry", "reply": "Orbit updated.", "date": str(date.today()), "type": request.json.get('mode')}
     save_vault(v)
-    return jsonify(ai_data)
+    return jsonify({"reply": "Noted in the stars.", "summary": "Log Entry"})
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
         session['user'] = request.form['username']
         v = get_vault()
-        if session['user'] not in v['users']: v['users'][session['user']] = {}; save_vault(v)
+        if session['user'] not in v['users']: v['users'][session['user']] = {} # Sanitized on read
+        save_vault(v)
         return redirect(url_for('home'))
     return render_template('auth.html')
 
