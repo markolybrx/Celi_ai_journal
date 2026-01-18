@@ -3,10 +3,10 @@ from flask import Flask, render_template, request, jsonify, session, redirect, u
 from datetime import date
 import google.generativeai as genai
 from pymongo import MongoClient
-import certifi  # <--- NEW IMPORT FOR SSL FIX
+import certifi
 
 app = Flask(__name__)
-app.secret_key = "celi_ai_v1.5.4_ssl_patch"
+app.secret_key = "celi_ai_v1.6.0_security_core"
 
 # --- MONGODB CONNECTION ---
 MONGO_URI = os.environ.get("MONGO_URI")
@@ -15,7 +15,6 @@ users_col = None
 
 if MONGO_URI:
     try:
-        # FIXED: Added tlsCAFile=certifi.where() to fix SSL Handshake Error
         client = MongoClient(MONGO_URI, tlsCAFile=certifi.where())
         db = client.get_database("celi_db")
         users_col = db.users
@@ -23,7 +22,7 @@ if MONGO_URI:
     except Exception as e:
         print(f"MONGO CONNECTION FAILED: {e}")
 else:
-    print("WARNING: MONGO_URI not found. Data will not persist.")
+    print("WARNING: MONGO_URI not found.")
 
 # --- GEMINI CONFIGURATION ---
 model = None
@@ -92,6 +91,8 @@ def register():
             "first_name": data.get('fname'),
             "last_name": data.get('lname'),
             "birthday": data.get('dob'),
+            "secret_question": data.get('secret_question'),
+            "secret_answer": data.get('secret_answer').lower().strip(), # Normalize answer
             "fav_color": data.get('fav_color', '#00f2fe'),
             "user_id": str(uuid.uuid4())[:8].upper(),
             "points": 0,
@@ -109,7 +110,55 @@ def register():
             return jsonify({"error": "Database unavailable"}), 500
             
     except Exception as e:
-        print(f"REGISTER ERROR: {e}") # Print error to logs for debugging
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/recover', methods=['POST'])
+def recover():
+    try:
+        data = request.json
+        # Query matching ALL verification fields
+        query = {
+            "first_name": data.get('fname'),
+            "last_name": data.get('lname'),
+            "birthday": data.get('dob'),
+            "secret_question": data.get('secret_question'),
+            "secret_answer": data.get('secret_answer').lower().strip()
+        }
+        
+        if users_col is not None:
+            user = users_col.find_one(query)
+            if user:
+                return jsonify({"status": "success", "username": user['username']})
+            else:
+                return jsonify({"error": "Identity verification failed."}), 404
+        return jsonify({"error": "Database unavailable"}), 500
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/reset_password', methods=['POST'])
+def reset_password():
+    try:
+        data = request.json
+        username = data.get('username')
+        new_pass = data.get('new_password')
+        
+        # Security Re-check (Prevent IDOR)
+        query = {
+            "username": username,
+            "first_name": data.get('fname'),
+            "last_name": data.get('lname'),
+            "secret_answer": data.get('secret_answer').lower().strip()
+        }
+        
+        if users_col is not None:
+            user = users_col.find_one(query)
+            if user:
+                users_col.update_one({"username": username}, {"$set": {"password": new_pass}})
+                return jsonify({"status": "success"})
+            else:
+                return jsonify({"error": "Security check failed."}), 403
+        return jsonify({"error": "Database unavailable"}), 500
+    except Exception as e:
         return jsonify({"error": str(e)}), 500
 
 @app.route('/api/data')
@@ -117,9 +166,7 @@ def get_data():
     try:
         if 'user' not in session: return jsonify({"status": "guest"})
         u = get_user_data(session['user'])
-        if not u: 
-            session.clear()
-            return jsonify({"status": "guest"})
+        if not u: session.clear(); return jsonify({"status": "guest"})
         
         pts = u.get('points', 0)
         current_rank_name, current_roman, current_prog, current_phase = "Observer", "III", 0, ""
@@ -175,16 +222,10 @@ def process():
     try:
         u = get_user_data(session['user'])
         data = request.json
-        
         reply_text = "I'm listening..."
         summary_text = "User entry."
-        
         if model:
-            prompt = f"""
-            You are Celi. Empathetic, friendly, witty.
-            User: {data.get('message')}
-            Output JSON: {{ "reply": "Your response", "summary": "Short summary" }}
-            """
+            prompt = f"""You are Celi. Empathetic, friendly, witty. User: {data.get('message')} Output JSON: {{ "reply": "Your response", "summary": "Short summary" }}"""
             res = model.generate_content(prompt)
             ai_data = json.loads(res.text)
             reply_text = ai_data['reply']
@@ -193,19 +234,11 @@ def process():
         updates = {}
         if data.get('mode') != 'rant': updates['points'] = u.get('points', 0) + 1
         else: updates['void_count'] = u.get('void_count', 0) + 1
-        
         new_history = u.get('history', {})
-        new_history[str(time.time())] = {
-            "summary": summary_text, 
-            "reply": reply_text, 
-            "date": str(date.today()), 
-            "type": data.get('mode', 'journal')
-        }
+        new_history[str(time.time())] = { "summary": summary_text, "reply": reply_text, "date": str(date.today()), "type": data.get('mode', 'journal') }
         updates['history'] = new_history
-        
         update_user_data(session['user'], updates)
         return jsonify({"reply": reply_text})
-        
     except Exception as e:
         print(f"CHAT ERROR: {e}")
         return jsonify({"reply": "Static noise..."})
@@ -226,28 +259,23 @@ def update_profile():
 
 @app.route('/api/delete_user', methods=['POST'])
 def delete_user():
-    if users_col is not None:
-        users_col.delete_one({"username": session['user']})
+    if users_col is not None: users_col.delete_one({"username": session['user']})
     session.clear()
     return jsonify({"status": "success"})
 
-# --- PAGES ---
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
         username = request.form.get('username')
         password = request.form.get('password')
-        
         if users_col is not None:
             user = users_col.find_one({"username": username})
             if user and user.get('password') == password:
                 session['user'] = username
                 return redirect(url_for('home'))
             return jsonify({"error": "Invalid credentials"}), 401
-        
         session['user'] = username
         return redirect(url_for('home'))
-
     return render_template('auth.html')
 
 @app.route('/')
@@ -262,4 +290,4 @@ def api_trivia(): return jsonify({"trivia": "Stardust."})
 def logout(): session.clear(); return redirect(url_for('login'))
 
 if __name__ == '__main__': app.run(debug=True)
-    
+        
