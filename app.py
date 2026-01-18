@@ -3,7 +3,7 @@ from flask import Flask, render_template, request, jsonify, session, redirect, u
 from datetime import date, datetime
 
 app = Flask(__name__)
-app.secret_key = "celi_sovereign_v10.27_strict_fix"
+app.secret_key = "celi_sovereign_v10.28_version_footer"
 VAULT_PATH = 'vault.json'
 TRIVIA_PATH = 'trivia.json'
 
@@ -35,16 +35,11 @@ def save_trivia_db(data):
     with open(TRIVIA_PATH, 'w') as f: json.dump(data, f, indent=4)
 
 def sanitize_user_data(u):
-    # SELF-HEALING: Add missing fields if user is from an old version
+    # CRITICAL FIX: Ensure no fields are missing to prevent JS crashes
     changed = False
     defaults = {
-        "points": 0,
-        "void_count": 0,
-        "history": {},
-        "unlocked_trivias": [],
-        "user_id": str(uuid.uuid4())[:8].upper(),
-        "birthday": "Unset",
-        "fav_color": "#00f2fe"
+        "points": 0, "void_count": 0, "history": {}, "unlocked_trivias": [],
+        "user_id": str(uuid.uuid4())[:8].upper(), "birthday": "Unset", "fav_color": "#00f2fe"
     }
     for key, val in defaults.items():
         if key not in u:
@@ -54,16 +49,15 @@ def sanitize_user_data(u):
 
 def get_rank_info(pts):
     for rank in RANK_CONFIG:
-        if pts < rank['threshold']:
-            return rank['name'], rank['theme']
+        if pts < rank['threshold']: return rank['name'], rank['theme']
     return "Ethereal", RANK_CONFIG[-1]['theme']
 
 def generate_live_trivia(rank_name, rank_theme):
-    sys_prompt = f"You are Celi. Generate ONE short, fascinating scientific trivia fact about: {rank_theme}. Max 20 words. JSON only: {{'text': 'Fact'}}."
+    sys = f"You are Celi. Generate ONE short scientific trivia fact about: {rank_theme}. Max 20 words. JSON only: {{'text': 'Fact'}}."
     try:
         res = requests.post("https://api.groq.com/openai/v1/chat/completions",
             headers={"Authorization": f"Bearer {os.environ.get('GROQ_API_KEY')}"},
-            json={"model": "llama-3.3-70b-versatile", "messages": [{"role": "system", "content": sys_prompt}], "response_format": {"type": "json_object"}})
+            json={"model": "llama-3.3-70b-versatile", "messages": [{"role": "system", "content": sys}], "response_format": {"type": "json_object"}})
         data = json.loads(res.json()['choices'][0]['message']['content'])
         new_fact = {"text": data['text'], "rank": rank_name}
         db = get_trivia_db()
@@ -71,23 +65,20 @@ def generate_live_trivia(rank_name, rank_theme):
             db.append(new_fact)
             save_trivia_db(db)
         return new_fact['text']
-    except:
-        return "The cosmos is quiet."
+    except: return "The cosmos is quiet."
 
 @app.route('/api/trivia')
 def get_trivia():
     if 'user' not in session: return jsonify({"trivia": "Connecting..."})
     v = get_vault(); u = v['users'][session['user']]
     if sanitize_user_data(u): save_vault(v)
-
+    
     rank_name, rank_theme = get_rank_info(u.get('points', 0))
     full_db = get_trivia_db()
     unlocked = u.setdefault('unlocked_trivias', [])
     available = [t for t in full_db if t['rank'] == rank_name and t['text'] not in unlocked]
     
-    if available: fact = random.choice(available)['text']
-    else: fact = generate_live_trivia(rank_name, rank_theme)
-
+    fact = random.choice(available)['text'] if available else generate_live_trivia(rank_name, rank_theme)
     if fact not in unlocked:
         u['unlocked_trivias'].append(fact)
         save_vault(v)
@@ -97,8 +88,6 @@ def get_trivia():
 def get_data():
     if 'user' not in session: return jsonify({})
     v = get_vault(); u = v['users'][session['user']]
-    
-    # HEAL DATA BEFORE PROCESSING
     if sanitize_user_data(u): save_vault(v)
     
     pts = u.get('points', 0)
@@ -117,14 +106,12 @@ def get_data():
             pts_in_rank = pts - start_pts
             stars_per = rank['stars_per_lvl']
             
-            # Roman Calculation
             level_idx = pts_in_rank // stars_per
             max_lvl = rank['levels']
             current_lvl_num = max(1, max_lvl - int(level_idx))
             roman_map = {1: "I", 2: "II", 3: "III", 4: "IV", 5: "V"}
             current_roman = roman_map.get(current_lvl_num, "I")
             
-            # Progress Calculation
             pts_in_level = pts_in_rank % stars_per
             current_prog = (pts_in_level / stars_per) * 100
             break
@@ -135,11 +122,10 @@ def get_data():
         current_prog = 100
         current_phase = RANK_CONFIG[-1]['phase']
 
-    # AI ANALYSIS MOCKUP
     count = len(u.get('history', {}))
     analysis = "Signal faint. Identity forming." if count < 5 else "Trajectory stable. Core gravity increasing." if count < 20 else "Singularity approaching. Alignment optimal."
-
-    # Rank Synthesis Lookup
+    
+    # Synthesis Map
     synthesis_map = {
         "Observer": "Like the first light striking a lens, you are beginning to perceive your thoughts.",
         "Moonwalker": "The ego functions as a satellite. You are learning to navigate the quiet landscape.",
@@ -194,7 +180,7 @@ def process():
     sanitize_user_data(u)
     data = request.json
     is_rant = data.get('mode') == 'rant'
-    sys = "You are Celi. Heart-spoken, witty, and empathetic. Mode-dependent persona. JSON ONLY."
+    sys = "You are Celi. Heart-spoken, witty. JSON ONLY."
     res = requests.post("https://api.groq.com/openai/v1/chat/completions",
         headers={"Authorization": f"Bearer {os.environ.get('GROQ_API_KEY')}"},
         json={"model": "llama-3.3-70b-versatile", "messages": [{"role": "system", "content": sys}, {"role": "user", "content": data.get('message')}], "response_format": {"type": "json_object"}})
@@ -211,7 +197,7 @@ def login():
         session['user'] = request.form['username']
         v = get_vault()
         if session['user'] not in v['users']:
-            v['users'][session['user']] = {} # Empty initially, sanitized later
+            v['users'][session['user']] = {}
             save_vault(v)
         return redirect(url_for('home'))
     return render_template('auth.html')
