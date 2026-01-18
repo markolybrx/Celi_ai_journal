@@ -5,7 +5,7 @@ import google.generativeai as genai
 from pymongo import MongoClient
 
 app = Flask(__name__)
-app.secret_key = "celi_ai_v1.5.1_anchor_final"
+app.secret_key = "celi_ai_v1.5.3_no_emoji"
 
 # --- MONGODB CONNECTION ---
 MONGO_URI = os.environ.get("MONGO_URI")
@@ -17,11 +17,11 @@ if MONGO_URI:
         client = MongoClient(MONGO_URI)
         db = client.get_database("celi_db")
         users_col = db.users
-        print("✅ MONGODB CONNECTED")
+        print("MONGODB CONNECTED")
     except Exception as e:
-        print(f"❌ MONGO CONNECTION FAILED: {e}")
+        print(f"MONGO CONNECTION FAILED: {e}")
 else:
-    print("⚠️ WARNING: MONGO_URI not found. Data will not persist.")
+    print("WARNING: MONGO_URI not found. Data will not persist.")
 
 # --- GEMINI CONFIGURATION ---
 model = None
@@ -32,7 +32,7 @@ try:
         model = genai.GenerativeModel('gemini-1.5-flash', 
             generation_config={"response_mime_type": "application/json"})
     else:
-        print("⚠️ GEMINI_API_KEY missing. AI Disabled.")
+        print("GEMINI_API_KEY missing. AI Disabled.")
 except Exception as e:
     print(f"AI INIT ERROR: {e}")
 
@@ -50,7 +50,6 @@ RANK_CONFIG = [
 def get_user_data(username):
     if users_col is None: return None
     user = users_col.find_one({"username": username})
-    # If using Mongo, we don't auto-create users on GET anymore; they must Register first.
     return user
 
 def update_user_data(username, update_dict):
@@ -82,12 +81,12 @@ def register():
         data = request.json
         username = data.get('reg_username')
         
-        if users_col and users_col.find_one({"username": username}):
+        if users_col is not None and users_col.find_one({"username": username}):
             return jsonify({"error": "Username already exists"}), 400
             
         new_user = {
             "username": username,
-            "password": data.get('reg_password'), # Plain text for prototype
+            "password": data.get('reg_password'),
             "first_name": data.get('fname'),
             "last_name": data.get('lname'),
             "birthday": data.get('dob'),
@@ -101,7 +100,7 @@ def register():
             "celi_analysis": "New Signal Detected."
         }
         
-        if users_col:
+        if users_col is not None:
             users_col.insert_one(new_user)
             return jsonify({"status": "success"})
         else:
@@ -119,7 +118,6 @@ def get_data():
             session.clear()
             return jsonify({"status": "guest"})
         
-        # Rank Logic
         pts = u.get('points', 0)
         current_rank_name, current_roman, current_prog, current_phase = "Observer", "III", 0, ""
         cumulative = 0
@@ -225,7 +223,7 @@ def update_profile():
 
 @app.route('/api/delete_user', methods=['POST'])
 def delete_user():
-    if users_col:
+    if users_col is not None:
         users_col.delete_one({"username": session['user']})
     session.clear()
     return jsonify({"status": "success"})
@@ -237,14 +235,13 @@ def login():
         username = request.form.get('username')
         password = request.form.get('password')
         
-        if users_col:
+        if users_col is not None:
             user = users_col.find_one({"username": username})
             if user and user.get('password') == password:
                 session['user'] = username
                 return redirect(url_for('home'))
             return jsonify({"error": "Invalid credentials"}), 401
         
-        # Fallback for dev mode without DB
         session['user'] = username
         return redirect(url_for('home'))
 
@@ -262,4 +259,3 @@ def api_trivia(): return jsonify({"trivia": "Stardust."})
 def logout(): session.clear(); return redirect(url_for('login'))
 
 if __name__ == '__main__': app.run(debug=True)
-        
