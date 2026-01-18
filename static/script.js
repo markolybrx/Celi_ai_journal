@@ -1,37 +1,51 @@
-// celi_ai v1.2.6 External Script
-console.log("Script File Loaded v1.2.6");
+// celi_ai v1.3.0 External Script
+console.log("Script File Loaded v1.3.0");
 document.getElementById('debug-status').innerText = "Core Active";
 
-const PHASE_COLORS = { 
-    "The Awakening Phase": "#00f2fe",
-    "The Ignition Phase": "#fbbf24",
-    "The Expansion Phase": "#8b5cf6",
-    "The Singularity": "#ffffff"
-};
+const PHASE_COLORS = { "The Awakening Phase": "#00f2fe", "The Ignition Phase": "#fbbf24", "The Expansion Phase": "#8b5cf6", "The Singularity": "#ffffff" };
 
 const app = {
     data: { username: "Traveler", rank: "Observer", profile_pic: null, rank_config: [] },
-    
+    bubbleTimer: null,
+
     log: function(msg) {
         const el = document.getElementById('debug-status');
         if(el) el.innerText = msg;
         console.log(msg);
     },
 
-    // --- WHISPER LOGIC ---
-    whisper: function(msg) {
-        const w = document.getElementById('trivia-whisper');
-        const t = document.getElementById('whisper-text');
+    // --- CELI VOICE ---
+    speak: function(msg, type) {
+        const b = document.getElementById('celi-bubble');
+        const t = document.getElementById('bubble-text');
+        const a = document.getElementById('bubble-actions');
+        b.className = ''; 
+        b.classList.add(type === 'menu' ? 'bubble-menu' : (type === 'warn' ? 'bubble-warn' : 'bubble-trivia'));
         t.innerText = msg;
-        w.style.display = 'block';
-        setTimeout(() => { w.style.display = 'none'; }, 8000);
+        a.classList.toggle('hidden', type !== 'menu');
+        b.style.display = 'block';
+        if (this.bubbleTimer) clearTimeout(this.bubbleTimer);
+        if (type !== 'menu') this.bubbleTimer = setTimeout(() => { b.style.display = 'none'; }, 6000);
+    },
+
+    toggleAiMenu: function() {
+        const b = document.getElementById('celi-bubble');
+        if (b.style.display === 'block' && b.classList.contains('bubble-menu')) {
+            b.style.display = 'none';
+        } else {
+            this.speak("How shall we proceed?", 'menu');
+        }
+    },
+
+    flashWarning: function(needed) {
+        this.speak(`Access Denied. You need ${needed} more stars to align with this frequency.`, 'warn');
     },
 
     triggerTrivia: async function() {
         try {
             const res = await fetch('/api/trivia');
             const d = await res.json();
-            if(d.trivia) this.whisper(d.trivia);
+            if(d.trivia) this.speak(d.trivia, 'trivia');
         } catch(e) {}
     },
 
@@ -40,17 +54,22 @@ const app = {
         const d = this.data;
         const phaseColor = PHASE_COLORS[d.phase] || "#00f2fe";
         
-        // THEME & COLOR
         document.documentElement.style.setProperty('--mood', phaseColor);
         document.getElementById('greeting').innerText = `Hello, ${d.username || 'Traveler'}!`;
         document.getElementById('rank-display').innerText = d.rank || 'Observer';
         document.getElementById('rank-display').style.color = phaseColor;
         document.getElementById('rank-bar').style.backgroundColor = phaseColor;
         document.getElementById('rank-bar').style.width = (d.rank_progress || 0) + '%';
-        document.getElementById('mini-rank-logo').style.borderColor = phaseColor;
-        document.getElementById('mini-rank-logo').style.boxShadow = `0 0 10px ${phaseColor}66`;
+        
+        const mini = document.getElementById('mini-rank-logo');
+        mini.style.borderColor = phaseColor;
+        mini.style.boxShadow = `0 0 10px ${phaseColor}66`;
+        if (d.rank && d.rank.includes("Observer")) {
+            mini.innerHTML = `<div class="w-3 h-3 bg-white rounded-full pulse-glow" style="color:${phaseColor}"></div>`;
+        } else {
+            mini.innerHTML = `<div class="w-3 h-3 border-2 border-current rotate-45 shadow-[0_0_5px_currentColor]" style="color:${phaseColor}"></div>`;
+        }
 
-        // PORTAL
         const largeIcon = document.getElementById('portal-rank-icon');
         largeIcon.style.borderColor = phaseColor;
         largeIcon.style.boxShadow = `0 0 30px ${phaseColor}44`;
@@ -71,7 +90,6 @@ const app = {
         document.getElementById('portal-points').innerText = `${d.points || 0} Stars`;
         document.getElementById('portal-synthesis-text').innerText = d.rank_synthesis || "Connecting...";
 
-        // LIST
         const listContainer = document.getElementById('portal-future-list');
         if (d.rank_config && d.rank_config.length > 0) {
             let currentPhaseName = "";
@@ -84,12 +102,13 @@ const app = {
                 }
                 const isUnlocked = (d.points || 0) >= r.threshold;
                 const itemColor = isUnlocked ? pColor : "rgba(255,255,255,0.3)";
-                html += `<div class="flex justify-between items-center py-2 px-2 border-b border-white/5"><span class="text-[10px] font-bold uppercase" style="color:${itemColor}">${r.name}</span><span class="text-[8px] uppercase opacity-40">${isUnlocked ? 'ALIGNED' : `${r.threshold - (d.points || 0)} to go`}</span></div>`;
+                const clickAction = isUnlocked ? "" : `onclick="app.flashWarning(${r.threshold - (d.points || 0)})"`;
+                const cursor = isUnlocked ? "default" : "pointer";
+                html += `<div class="flex justify-between items-center py-2 px-2 border-b border-white/5" ${clickAction} style="cursor:${cursor}"><span class="text-[10px] font-bold uppercase" style="color:${itemColor}">${r.name}</span><span class="text-[8px] uppercase opacity-40">${isUnlocked ? 'ALIGNED' : 'LOCKED'}</span></div>`;
             });
             listContainer.innerHTML = html;
         }
 
-        // PROFILE IMAGES
         const defaultIcon = document.getElementById('icon-user').outerHTML;
         let imgHTML = defaultIcon;
         if (d.profile_pic && d.profile_pic.length > 50) {
@@ -105,7 +124,6 @@ const app = {
         document.getElementById('profile-bday').innerText = d.birthday || '--';
         if(d.fav_color) document.getElementById('profile-color-dot').style.backgroundColor = d.fav_color;
         document.getElementById('celi-analysis-text').innerText = d.celi_analysis || "Connecting...";
-        
         document.getElementById('edit-bday').value = (d.birthday && d.birthday !== 'Unset') ? d.birthday : '';
         document.getElementById('edit-color').value = d.fav_color || '#00f2fe';
     },
@@ -126,13 +144,23 @@ const app = {
         }
     },
 
-    // UI
-    openTab: function(id) { document.querySelectorAll('.overlay').forEach(el => el.style.display = 'none'); document.getElementById(id + '-overlay').style.display = 'flex'; this.sync(); },
-    closeUI: function() { document.querySelectorAll('.overlay, #intent-modal').forEach(el => el.style.display = 'none'); },
-    showIntent: function() { document.getElementById('intent-modal').style.display = 'flex'; },
+    // --- ACTIONS ---
+    openTab: function(id) { document.querySelectorAll('.overlay, #chat-modal').forEach(el => el.style.display = 'none'); document.getElementById(id + '-overlay').style.display = 'flex'; this.sync(); },
+    closeUI: function() { 
+        document.querySelectorAll('.overlay, #chat-modal').forEach(el => el.style.display = 'none'); 
+        document.getElementById('celi-bubble').style.display = 'none'; 
+    },
+    closeChat: function() { document.getElementById('chat-modal').style.display = 'none'; },
+    showIntent: function() { this.toggleAiMenu(); },
     openEditProfile: function() { document.getElementById('edit-modal').style.display = 'flex'; },
     
-    startChat: function(mode) { this.currentMode = mode; this.closeUI(); document.getElementById('chat-overlay').style.display = 'flex'; },
+    startChat: function(mode) { 
+        this.currentMode = mode; 
+        document.getElementById('celi-bubble').style.display = 'none';
+        document.getElementById('chat-modal').style.display = 'flex'; 
+        // Auto-focus input
+        setTimeout(() => document.getElementById('msg-input').focus(), 100);
+    },
     
     saveProfile: async function() {
         const bday = document.getElementById('edit-bday').value;
@@ -145,26 +173,53 @@ const app = {
 
     confirmDelete: async function() { if (confirm("Delete data?")) { await fetch('/api/delete_user', { method: 'POST' }); window.location.reload(); } },
 
+    getTime: function() {
+        const now = new Date();
+        return now.getHours().toString().padStart(2,'0') + ":" + now.getMinutes().toString().padStart(2,'0');
+    },
+
     sendAction: async function() {
         const input = document.getElementById('msg-input');
         const text = input.value;
         if (!text) return;
-        const con = document.getElementById('msg-container');
-        con.innerHTML += `<div class="p-2 bg-white/10 rounded mb-2 text-right">${text}</div>`;
+        
+        const con = document.getElementById('chat-scroller');
+        const time = this.getTime();
+        
+        // 1. User Bubble
+        con.innerHTML += `<div class="msg msg-user">${text}<span class="timestamp">${time}</span></div>`;
         input.value = '';
+        con.scrollTop = con.scrollHeight;
+
+        // 2. Typing Indicator
+        const typing = document.getElementById('typing-indicator');
+        typing.style.display = 'flex';
+        con.scrollTop = con.scrollHeight;
+
         try {
+            // 3. API Call
             const res = await fetch('/api/process', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: text, mode: this.currentMode || 'journal' }) });
             const d = await res.json();
-            con.innerHTML += `<div class="p-2 text-cyan-400 mb-2 text-left">${d.reply}</div>`;
-            this.sync();
-        } catch (e) { this.log("Msg Error"); }
+            
+            // 4. Delay for "Thinking"
+            setTimeout(() => {
+                typing.style.display = 'none';
+                con.innerHTML += `<div class="msg msg-celi">${d.reply}<span class="timestamp">${time}</span></div>`;
+                con.scrollTop = con.scrollHeight;
+                this.sync();
+            }, 1500); // 1.5s delay
+            
+        } catch (e) { 
+            this.log("Msg Error");
+            typing.style.display = 'none';
+        }
     }
 };
 
 document.addEventListener('DOMContentLoaded', () => { 
     app.sync(); 
     setInterval(() => app.sync(), 30000); 
-    // Trigger Trivia randomly
     setTimeout(() => app.triggerTrivia(), 5000);
     setInterval(() => app.triggerTrivia(), 60000);
 });
+    
