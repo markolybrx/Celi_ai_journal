@@ -3,9 +3,10 @@ from flask import Flask, render_template, request, jsonify, session, redirect, u
 from datetime import date
 import google.generativeai as genai
 from pymongo import MongoClient
+import certifi  # <--- NEW IMPORT FOR SSL FIX
 
 app = Flask(__name__)
-app.secret_key = "celi_ai_v1.5.3_no_emoji"
+app.secret_key = "celi_ai_v1.5.4_ssl_patch"
 
 # --- MONGODB CONNECTION ---
 MONGO_URI = os.environ.get("MONGO_URI")
@@ -14,7 +15,8 @@ users_col = None
 
 if MONGO_URI:
     try:
-        client = MongoClient(MONGO_URI)
+        # FIXED: Added tlsCAFile=certifi.where() to fix SSL Handshake Error
+        client = MongoClient(MONGO_URI, tlsCAFile=certifi.where())
         db = client.get_database("celi_db")
         users_col = db.users
         print("MONGODB CONNECTED")
@@ -107,6 +109,7 @@ def register():
             return jsonify({"error": "Database unavailable"}), 500
             
     except Exception as e:
+        print(f"REGISTER ERROR: {e}") # Print error to logs for debugging
         return jsonify({"error": str(e)}), 500
 
 @app.route('/api/data')
@@ -259,3 +262,4 @@ def api_trivia(): return jsonify({"trivia": "Stardust."})
 def logout(): session.clear(); return redirect(url_for('login'))
 
 if __name__ == '__main__': app.run(debug=True)
+    
