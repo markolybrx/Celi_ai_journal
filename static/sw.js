@@ -1,4 +1,4 @@
-const CACHE_NAME = 'cali-ai-v1.1.0';
+const CACHE_NAME = 'celi-ai-v1.1.2';
 const ASSETS_TO_CACHE = [
     '/',
     '/static/manifest.json',
