@@ -3,7 +3,7 @@ from flask import Flask, render_template, request, jsonify, session, redirect, u
 from datetime import date, datetime
 
 app = Flask(__name__)
-app.secret_key = "celi_ai_v1.1.2"
+app.secret_key = "celi_ai_v1.1.3"
 VAULT_PATH = 'vault.json'
 TRIVIA_PATH = 'trivia.json'
 
@@ -34,7 +34,6 @@ def get_trivia_db():
 def save_trivia_db(data):
     with open(TRIVIA_PATH, 'w') as f: json.dump(data, f, indent=4)
 
-# --- AI ANALYSIS ENGINE ---
 def analyze_user_soul(user_data):
     history = user_data.get('history', {})
     if len(history) < 3: return "Data insufficient. Continue journaling to form a behavioral model."
@@ -60,7 +59,7 @@ def sanitize_user_data(u):
         "profile_pic": "", "celi_analysis": "Awaiting data..."
     }
     for key, val in defaults.items():
-        if key not in u:
+        if key not in u or u[key] is None:
             u[key] = val
             changed = True
     return changed
