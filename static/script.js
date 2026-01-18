@@ -19,13 +19,18 @@ const app = {
         const b = document.getElementById('celi-bubble');
         const t = document.getElementById('bubble-text');
         const a = document.getElementById('bubble-actions');
+        
         b.className = ''; 
         b.classList.add(type === 'menu' ? 'bubble-menu' : (type === 'warn' ? 'bubble-warn' : 'bubble-trivia'));
+        
         t.innerText = msg;
         a.classList.toggle('hidden', type !== 'menu');
         b.style.display = 'block';
+
         if (this.bubbleTimer) clearTimeout(this.bubbleTimer);
-        if (type !== 'menu') this.bubbleTimer = setTimeout(() => { b.style.display = 'none'; }, 6000);
+        if (type !== 'menu') {
+            this.bubbleTimer = setTimeout(() => { b.style.display = 'none'; }, 6000);
+        }
     },
 
     toggleAiMenu: function() {
@@ -158,7 +163,6 @@ const app = {
         this.currentMode = mode; 
         document.getElementById('celi-bubble').style.display = 'none';
         document.getElementById('chat-modal').style.display = 'flex'; 
-        // Auto-focus input
         setTimeout(() => document.getElementById('msg-input').focus(), 100);
     },
     
@@ -207,7 +211,7 @@ const app = {
                 con.innerHTML += `<div class="msg msg-celi">${d.reply}<span class="timestamp">${time}</span></div>`;
                 con.scrollTop = con.scrollHeight;
                 this.sync();
-            }, 1500); // 1.5s delay
+            }, 1500); 
             
         } catch (e) { 
             this.log("Msg Error");
@@ -222,4 +226,3 @@ document.addEventListener('DOMContentLoaded', () => {
     setTimeout(() => app.triggerTrivia(), 5000);
     setInterval(() => app.triggerTrivia(), 60000);
 });
-    
