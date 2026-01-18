@@ -3,7 +3,6 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    
     <title>Celi Sovereign</title>
     <link rel="manifest" href="/static/manifest.json">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -13,11 +12,8 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         :root { --mood: #00f2fe; --core: #ffd700; --warn: #6b7280; }
-        
-        /* SCROLL LOCK & TOUCH FIXES */
         html, body { background: #000; color: #fff; overflow: hidden; height: 100%; width: 100%; font-family: sans-serif; margin: 0; touch-action: none; }
         
-        /* WHISPER MODAL */
         #trivia-whisper {
             position: fixed; bottom: 140px; right: 105px; width: 240px;
             background: rgba(10, 10, 10, 0.95); border-radius: 24px 24px 0 24px;
@@ -26,45 +22,48 @@
         .whisper-blue { border: 1px solid var(--mood); color: var(--mood); box-shadow: 0 0 15px rgba(0, 242, 254, 0.2); }
         .whisper-gray { border: 1px solid var(--warn); color: var(--warn); opacity: 0.9; }
 
-        /* OVERLAYS */
-        .overlay { position: fixed; inset: 0; background: #000; z-index: 5000; display: none; flex-direction: column; padding: 130px 25px 100px; }
+        .overlay { position: fixed; inset: 0; background: #000; z-index: 5000; display: none; flex-direction: column; padding: 110px 25px 100px; }
         .card-glass { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1); border-radius: 24px; padding: 20px; margin-bottom: 12px; }
         
-        /* CHAT UI */
         .chat-bubble { max-width: 85%; padding: 16px 20px; border-radius: 24px; margin-bottom: 12px; font-size: 15px; animation: slideUp 0.3s ease-out; }
         .celi-bubble { align-self: flex-start; background: rgba(0,242,254,0.1); color: var(--mood); border-bottom-left-radius: 4px; border: 1px solid rgba(0,242,254,0.2); }
         .user-bubble { align-self: flex-end; background: rgba(255,255,255,0.1); border-bottom-right-radius: 4px; }
         @keyframes slideUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-        /* NAV */
         .nav-btn { font-size: 8px; font-weight: 900; text-transform: uppercase; opacity: 0.3; transition: 0.3s; }
         .active-btn { opacity: 1; color: var(--mood); }
         
-        /* RIPPLE */
         .ripple { position: absolute; border: 1px solid var(--mood); border-radius: 50%; pointer-events: none; animation: rippleEffect 1.5s ease-out forwards; }
         @keyframes rippleEffect { 0% { width: 0; height: 0; opacity: 1; } 100% { width: 100px; height: 100px; opacity: 0; } }
+
+        /* RANK LOGO STYLES */
+        .rank-logo-observer { border-radius: 50%; border: 1px solid #00f2fe; display: flex; align-items: center; justify-content: center; }
+        .rank-logo-inner-observer { width: 6px; height: 6px; background: #fff; border-radius: 50%; box-shadow: 0 0 10px #00f2fe; }
     </style>
 </head>
 <body>
 
-    <header class="fixed top-0 w-full z-[3000] p-6 bg-white/10 backdrop-blur-md border-b border-white/5 shadow-lg pointer-events-none">
-        <div class="flex justify-between items-start pointer-events-auto">
-            <div class="flex flex-col gap-1 cursor-pointer active:scale-95 transition-transform" onclick="triggerRankStatus()">
-                <h1 id="greeting" class="text-xl font-black uppercase tracking-tighter mb-1">Hello!</h1>
-                <div class="flex items-center gap-3">
-                    <div class="w-6 h-6 relative flex items-center justify-center">
-                        <div class="absolute inset-0 border border-cyan-400 rotate-45"></div>
-                        <div class="absolute inset-1.5 border border-white rotate-12 opacity-50"></div>
+    <header class="fixed top-0 w-full z-[3000] px-6 py-4 bg-white/10 backdrop-blur-md border-b border-white/5 shadow-lg pointer-events-none">
+        <div class="flex justify-between items-center pointer-events-auto">
+            
+            <div class="flex flex-col gap-0.5">
+                <h1 id="greeting" class="text-lg font-bold tracking-tight mb-1 text-white">Hello</h1>
+                
+                <div class="flex items-center gap-3 cursor-pointer active:opacity-60" onclick="showTab('rank-portal')">
+                    <div id="rank-logo-container" class="w-8 h-8 relative flex items-center justify-center bg-black/20 rounded-lg">
+                        </div>
+
+                    <div class="flex flex-col justify-center h-8">
+                        <p id="rank-display" class="text-[10px] font-black text-cyan-400 tracking-widest uppercase leading-none mb-1.5">---</p>
+                        <div class="w-24 h-1 bg-white/10 rounded-full overflow-hidden">
+                            <div id="rank-bar" class="h-full bg-cyan-400 transition-all duration-1000 ease-out" style="width: 0%"></div>
+                        </div>
                     </div>
-                    <p id="rank-display" class="text-xs font-bold text-cyan-400 tracking-widest uppercase">Observer</p>
-                </div>
-                <div class="w-32 h-1 bg-white/10 rounded-full mt-2 overflow-hidden">
-                    <div id="rank-bar" class="h-full bg-cyan-400 transition-all duration-1000 ease-out" style="width: 0%"></div>
                 </div>
             </div>
 
-            <div onclick="showTab('profile')" class="w-10 h-10 bg-white/5 border border-white/10 rounded-xl flex items-center justify-center cursor-pointer hover:bg-white/10 transition">
-                <div class="w-4 h-4 border-2 border-white rounded-full"></div>
+            <div onclick="showTab('profile')" class="w-12 h-12 bg-white/5 border border-white/10 rounded-2xl flex items-center justify-center cursor-pointer hover:bg-white/10 transition">
+                <div class="w-5 h-5 border-2 border-white rounded-full opacity-80"></div>
             </div>
         </div>
     </header>
@@ -80,6 +79,13 @@
         <div onclick="closeUI()" class="nav-btn active-btn">Galaxy</div>
         <div onclick="showTab('profile')" class="nav-btn">Profile</div>
     </nav>
+
+    <div id="rank-portal-overlay" class="overlay">
+        <h2 class="text-3xl font-black mb-2 uppercase tracking-tighter">Cosmic Path</h2>
+        <p class="text-xs opacity-50 mb-8 uppercase tracking-widest">Your ascension journey</p>
+        <div id="rank-list" class="space-y-3 pb-10"></div>
+        <button onclick="closeUI()" class="mt-auto py-5 opacity-40 text-[10px] uppercase w-full border-t border-white/10">Close Portal</button>
+    </div>
 
     <div id="archive-overlay" class="overlay"><h2 class="text-3xl font-black mb-8 uppercase">Archive</h2><div id="archive-list" class="space-y-4"></div><button onclick="closeUI()" class="mt-auto py-10 opacity-20 text-[10px] uppercase">Back</button></div>
     <div id="vault-overlay" class="overlay"><h2 class="text-3xl font-black mb-8 uppercase">Vault</h2><div id="vault-content" class="space-y-4"></div><button onclick="closeUI()" class="mt-auto py-10 opacity-20 text-[10px] uppercase">Back</button></div>
@@ -116,41 +122,83 @@
     <script>
         let cachedData = {}, currentMode = 'journal';
 
-        // --- SERVICE WORKER START ---
+        // SERVICE WORKER
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('/static/sw.js')
-                    .then(reg => console.log('SW Registered:', reg.scope))
-                    .catch(err => console.log('SW Fail:', err));
+                navigator.serviceWorker.register('/static/sw.js').catch(err => console.log('SW Fail:', err));
             });
         }
-        // ----------------------------
+
+        function toTitleCase(str) {
+            return str.replace(/\w\S*/g, function(txt){return txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase();});
+        }
 
         function updateGreeting() {
             const h = new Date().getHours();
             const g = h < 12 ? "Good Morning" : h < 18 ? "Good Afternoon" : "Good Evening";
-            document.getElementById('greeting').innerText = `${g}, ${cachedData.username || 'Traveler'}!`;
+            const user = cachedData.username || 'Traveler';
+            // Title Case Formatting
+            document.getElementById('greeting').innerText = `${g}, ${toTitleCase(user)}!`;
         }
 
-        // TRIGGER RANK STATUS: Whispers Synthesis + Star Requirement
-        function triggerRankStatus() {
-            const pts = cachedData.points || 0;
-            const next = cachedData.rank_config.find(r => r.threshold > pts);
-            const syn = cachedData.rank_synthesis;
-            
-            if (next) {
-                const diff = next.threshold - pts;
-                whisper(`${syn} (${diff} stars until ${next.name})`, 'trivia'); 
+        function renderRankLogo(rankName) {
+            const container = document.getElementById('rank-logo-container');
+            if(rankName.includes("Observer")) {
+                // Eye Logo
+                container.innerHTML = `<div class="w-6 h-6 border border-cyan-400 rounded-full flex items-center justify-center"><div class="w-2 h-2 bg-white rounded-full shadow-[0_0_10px_#00f2fe]"></div></div>`;
             } else {
-                whisper(`${syn} (Maximum alignment achieved.)`, 'trivia');
+                // Generic Geometric for other ranks (for now)
+                container.innerHTML = `<div class="w-5 h-5 border border-cyan-400 rotate-45"></div>`;
             }
         }
 
+        function renderRankPortal() {
+            const list = document.getElementById('rank-list');
+            const currentPts = cachedData.points || 0;
+            
+            list.innerHTML = cachedData.rank_config.map(r => {
+                const isUnlocked = currentPts >= r.threshold;
+                const isNext = !isUnlocked && (r.threshold - currentPts) <= 20; // Rough logic for 'next'
+                const color = isUnlocked ? 'text-cyan-400' : 'text-white/30';
+                const border = isUnlocked ? 'border-cyan-400/50' : 'border-white/5';
+                
+                return `
+                <div class="card-glass flex justify-between items-center ${border}">
+                    <div>
+                        <p class="text-[10px] font-black uppercase ${color}">${r.name}</p>
+                        <p class="text-[8px] opacity-50">${r.threshold} Stars Required</p>
+                    </div>
+                    ${isUnlocked ? '<div class="text-[8px] uppercase text-cyan-400">Aligned</div>' : 
+                      `<div class="text-[8px] uppercase opacity-30">Locked</div>`}
+                </div>`;
+            }).join('');
+        }
+
+        async function sync() {
+            const r = await fetch('/api/data'); const d = await r.json(); cachedData = d;
+            
+            document.getElementById('rank-display').innerText = d.rank;
+            document.getElementById('rank-bar').style.width = d.rank_progress + '%';
+            document.getElementById('entropy-val').innerText = (d.entropy || 0) + '%';
+            document.getElementById('user-display').innerText = d.username;
+            document.getElementById('profile-synthesis').innerText = d.rank_synthesis;
+            
+            updateGreeting();
+            renderRankLogo(d.rank);
+            renderRankPortal(); // Pre-render portal data
+
+            document.getElementById('archive-list').innerHTML = d.unlocked_trivias.map(t => `<div class="card-glass text-[11px] opacity-80">${t}</div>`).join('');
+            document.getElementById('vault-content').innerHTML = Object.entries(d.history).reverse().map(([k, v]) => 
+                `<div class="card-glass border-l-2 ${v.type==='journal'?'border-cyan-400':'border-red-500'}">
+                    <p class="text-[8px] uppercase opacity-40">${v.date}</p><p class="text-sm mt-1">${v.summary}</p>
+                </div>`).join('');
+        }
+
+        // ... (Keep triggerRipple, whisper, sendAction, showTab logic exactly as before) ...
         function triggerRipple(e) {
             const r = document.createElement('div'); r.className = 'ripple';
             r.style.left = e.clientX + 'px'; r.style.top = e.clientY + 'px';
             document.body.appendChild(r); setTimeout(() => r.remove(), 1500);
-            
             const pts = cachedData.points || 0;
             const next = cachedData.rank_config.find(r => r.threshold > pts);
             if(next && Math.random() > 0.7) whisper(`Restricted. Need ${next.threshold - pts} stars for ${next.name}.`, 'rank');
@@ -161,23 +209,6 @@
             w.className = type === 'trivia' ? 'whisper-blue' : 'whisper-gray';
             document.getElementById('whisper-text').innerText = msg;
             w.style.display = 'block'; setTimeout(() => w.style.display = 'none', 8000);
-        }
-
-        async function sync() {
-            const r = await fetch('/api/data'); const d = await r.json(); cachedData = d;
-            document.getElementById('rank-display').innerText = d.rank;
-            document.getElementById('rank-bar').style.width = d.rank_progress + '%';
-            document.getElementById('entropy-val').innerText = (d.entropy || 0) + '%';
-            document.getElementById('user-display').innerText = d.username;
-            document.getElementById('profile-synthesis').innerText = d.rank_synthesis;
-            updateGreeting();
-
-            document.getElementById('archive-list').innerHTML = d.unlocked_trivias.map(t => 
-                `<div class="card-glass text-[11px] opacity-80">${t}</div>`).join('');
-            document.getElementById('vault-content').innerHTML = Object.entries(d.history).reverse().map(([k, v]) => 
-                `<div class="card-glass border-l-2 ${v.type==='journal'?'border-cyan-400':'border-red-500'}">
-                    <p class="text-[8px] uppercase opacity-40">${v.date}</p><p class="text-sm mt-1">${v.summary}</p>
-                </div>`).join('');
         }
 
         async function sendAction() {
