@@ -14,9 +14,9 @@
         :root { --mood: #00f2fe; --core: #ffd700; --warn: #6b7280; }
         html, body { background: #000; color: #fff; overflow: hidden; height: 100%; width: 100%; font-family: sans-serif; margin: 0; touch-action: none; }
         
-        /* 4-POINTED STAR SHAPE */
+        /* 4-POINTED STAR */
         .star-four-point {
-            width: 14px; height: 14px; background: var(--mood);
+            width: 12px; height: 12px; background: var(--mood);
             clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
             box-shadow: 0 0 10px var(--mood);
         }
@@ -30,35 +30,32 @@
         .whisper-gray { border: 1px solid var(--warn); color: var(--warn); opacity: 0.9; }
 
         .overlay { position: fixed; inset: 0; background: #000; z-index: 5000; display: none; flex-direction: column; padding: 0; }
-        .portal-content { padding: 120px 25px 120px; overflow-y: auto; height: 100%; display: flex; flex-direction: column; align-items: center; }
+        .portal-content { padding: 100px 25px 120px; overflow-y: auto; height: 100%; display: flex; flex-direction: column; align-items: center; }
         
         .card-glass { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1); border-radius: 24px; padding: 20px; margin-bottom: 12px; }
-        
-        .chat-bubble { max-width: 85%; padding: 16px 20px; border-radius: 24px; margin-bottom: 12px; font-size: 15px; animation: slideUp 0.3s ease-out; }
-        .celi-bubble { align-self: flex-start; background: rgba(0,242,254,0.1); color: var(--mood); border-bottom-left-radius: 4px; border: 1px solid rgba(0,242,254,0.2); }
-        .user-bubble { align-self: flex-end; background: rgba(255,255,255,0.1); border-bottom-right-radius: 4px; }
-        @keyframes slideUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-
         .nav-btn { font-size: 8px; font-weight: 900; text-transform: uppercase; opacity: 0.3; transition: 0.3s; }
         .active-btn { opacity: 1; color: var(--mood); }
-        
         .ripple { position: absolute; border: 1px solid var(--mood); border-radius: 50%; pointer-events: none; animation: rippleEffect 1.5s ease-out forwards; }
         @keyframes rippleEffect { 0% { width: 0; height: 0; opacity: 1; } 100% { width: 100px; height: 100px; opacity: 0; } }
+        
+        /* HEADER RANK RING GLOW */
+        .rank-ring-glow { box-shadow: 0 0 15px var(--mood); border: 1px solid var(--mood); }
+        .portal-glow { box-shadow: 0 0 40px rgba(0,242,254,0.4); border: 2px solid var(--mood); }
     </style>
 </head>
 <body>
 
-    <header class="fixed top-0 w-full z-[3000] px-6 py-3 bg-white/5 backdrop-blur-md border-b border-white/5 shadow-lg pointer-events-none">
+    <header class="fixed top-0 w-full z-[3000] px-6 py-4 bg-white/5 backdrop-blur-md border-b border-white/5 shadow-lg pointer-events-none">
         <div class="flex justify-between items-center pointer-events-auto h-full">
-            
-            <div class="flex flex-col justify-center">
-                <h1 id="greeting" class="text-2xl font-black tracking-tighter text-white leading-none mb-1">Hello</h1>
+            <div class="flex flex-col justify-center gap-1.5">
+                <h1 id="greeting" class="text-xl font-bold tracking-tight text-white/90 leading-none">Hello</h1>
                 
-                <div class="flex items-center gap-2 cursor-pointer active:opacity-60" onclick="showTab('rank-portal')">
-                    <div id="mini-rank-logo" class="w-5 h-5 flex items-center justify-center"></div>
+                <div class="flex items-center gap-3 cursor-pointer active:opacity-60" onclick="showTab('rank-portal')">
+                    <div id="mini-rank-logo" class="w-8 h-8 rounded-full flex items-center justify-center bg-black/40 rank-ring-glow"></div>
+                    
                     <div class="flex flex-col justify-center">
-                        <p id="rank-display" class="text-[9px] font-black text-cyan-400 tracking-widest uppercase leading-none mb-0.5">---</p>
-                        <div class="w-16 h-0.5 bg-white/10 rounded-full overflow-hidden">
+                        <p id="rank-display" class="text-[11px] font-black text-cyan-400 tracking-widest uppercase leading-none mb-1">---</p>
+                        <div class="w-28 h-1 bg-white/10 rounded-full overflow-hidden">
                             <div id="rank-bar" class="h-full bg-cyan-400 transition-all duration-1000 ease-out" style="width: 0%"></div>
                         </div>
                     </div>
@@ -66,7 +63,7 @@
             </div>
 
             <div onclick="showTab('profile')" class="w-12 h-12 bg-white/5 border border-white/10 rounded-2xl flex items-center justify-center cursor-pointer hover:bg-white/10 transition">
-                <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 text-white opacity-80" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 text-white opacity-80" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                 </svg>
             </div>
@@ -74,7 +71,6 @@
     </header>
 
     <main id="galaxy-container" class="fixed inset-0 overflow-hidden" onclick="triggerRipple(event)"></main>
-
     <div id="trivia-whisper"><p id="whisper-text">---</p></div>
 
     <nav class="fixed bottom-10 left-1/2 -translate-x-1/2 w-[92%] h-[75px] rounded-[38px] bg-white/5 backdrop-blur-3xl flex items-center justify-around z-[4000] border border-white/10">
@@ -88,11 +84,12 @@
     <div id="rank-portal-overlay" class="overlay">
         <div class="portal-content w-full max-w-md mx-auto">
             
-            <div id="portal-rank-icon" class="w-32 h-32 border-2 border-cyan-400 rounded-full flex items-center justify-center mb-6 shadow-[0_0_30px_rgba(0,242,254,0.3)] bg-black/40 backdrop-blur-xl">
+            <h2 class="text-2xl font-black text-white mb-10 uppercase tracking-widest">Cosmic Portal</h2>
+
+            <div id="portal-rank-icon" class="w-32 h-32 rounded-full flex items-center justify-center mb-6 portal-glow bg-black/40 backdrop-blur-xl">
                 </div>
 
-            <div id="portal-level-stars" class="flex gap-3 mb-6">
-                </div>
+            <div id="portal-level-stars" class="flex gap-2 mb-6"></div>
 
             <div class="w-full flex items-center gap-4 mb-2">
                 <div class="flex-grow h-2 bg-white/10 rounded-full overflow-hidden">
@@ -108,9 +105,9 @@
                 <p id="portal-synthesis-text" class="text-sm italic leading-relaxed text-white/90"></p>
             </div>
 
-            <div class="w-full space-y-3 pb-10">
-                <h3 class="text-[9px] font-black uppercase tracking-widest opacity-30 mb-4 text-center">Trajectory</h3>
-                <div id="portal-future-list" class="space-y-3"></div>
+            <div class="w-full space-y-6 pb-10">
+                <h3 class="text-[9px] font-black uppercase tracking-widest opacity-30 text-center">Trajectory</h3>
+                <div id="portal-future-list" class="space-y-2"></div>
             </div>
 
             <button onclick="closeUI()" class="mt-auto py-5 opacity-40 text-[10px] uppercase w-full border-t border-white/10">Close Portal</button>
@@ -163,40 +160,29 @@
             document.getElementById('greeting').innerText = `${g}, ${toTitleCase(user)}!`;
         }
 
-        function getRomanLevel(rankStr) {
-            const parts = rankStr.split(' ');
-            if(parts.length < 2) return 1;
-            const roman = parts[1];
-            if(roman === 'I') return 1;
-            if(roman === 'II') return 2;
-            if(roman === 'III') return 3;
-            if(roman === 'IV') return 4;
-            if(roman === 'V') return 5;
+        function romanToInt(roman) {
+            if(roman === "I") return 1;
+            if(roman === "II") return 2;
+            if(roman === "III") return 3;
+            if(roman === "IV") return 4;
+            if(roman === "V") return 5;
             return 1;
         }
 
-        function renderRankVisuals(rankName) {
-            // Mini Logo in Header
+        function renderRankVisuals(rankName, rankRoman) {
+            // Header Mini Logo
             const mini = document.getElementById('mini-rank-logo');
-            if(rankName.includes("Observer")) {
-                mini.innerHTML = `<div class="w-3 h-3 bg-white rounded-full shadow-[0_0_5px_#00f2fe]"></div>`;
-            } else {
-                mini.innerHTML = `<div class="w-3 h-3 border border-cyan-400 rotate-45"></div>`;
-            }
+            mini.innerHTML = `<div class="w-3 h-3 bg-white rounded-full shadow-[0_0_8px_#00f2fe]"></div>`;
 
             // Portal Large Icon
             const large = document.getElementById('portal-rank-icon');
-            if(rankName.includes("Observer")) {
-                large.innerHTML = `<div class="w-16 h-16 bg-white rounded-full shadow-[0_0_40px_#00f2fe] animate-pulse"></div>`;
-            } else {
-                large.innerHTML = `<div class="w-16 h-16 border-4 border-cyan-400 rotate-45 shadow-[0_0_20px_#00f2fe]"></div>`;
-            }
+            large.innerHTML = `<div class="w-16 h-16 bg-white rounded-full shadow-[0_0_50px_#00f2fe] animate-pulse"></div>`;
 
-            // Portal Level Stars (4-Pointed)
-            const level = getRomanLevel(rankName);
+            // Portal Stars (Count matches Roman Numeral)
+            const count = romanToInt(rankRoman);
             const starsContainer = document.getElementById('portal-level-stars');
             let starsHtml = '';
-            for(let i=0; i<level; i++) {
+            for(let i=0; i<count; i++) {
                 starsHtml += `<div class="star-four-point"></div>`;
             }
             starsContainer.innerHTML = starsHtml;
@@ -204,43 +190,53 @@
 
         function renderPortalData() {
             const pts = cachedData.points || 0;
+            const fullRankName = cachedData.rank; // "Observer III"
+            const rankPure = cachedData.rank_pure; // "Observer"
+            const rankRoman = cachedData.rank_roman; // "III"
             
-            // 1. Progress Bar & Text
+            // Calc Progress
             let nextThreshold = 100;
             let prevThreshold = 0;
             const nextRankObj = cachedData.rank_config.find(r => r.threshold > pts);
-            
             if(nextRankObj) {
                 nextThreshold = nextRankObj.threshold;
-                // Find previous to calculate relative progress
                 const idx = cachedData.rank_config.indexOf(nextRankObj);
                 if(idx > 0) prevThreshold = cachedData.rank_config[idx-1].threshold;
             }
-            
             const relativePoints = pts - prevThreshold;
             const range = nextThreshold - prevThreshold;
             const percent = Math.min(100, (relativePoints / range) * 100);
 
             document.getElementById('portal-progress-bar').style.width = percent + '%';
             document.getElementById('portal-points').innerText = `${pts} / ${nextThreshold} Stars`;
-            document.getElementById('portal-rank-name').innerText = cachedData.rank;
-            
-            // 2. Synthesis (In Box, NOT Whisper)
+            document.getElementById('portal-rank-name').innerText = fullRankName; // "Observer III"
             document.getElementById('portal-synthesis-text').innerText = cachedData.rank_synthesis;
 
-            // 3. Future Trajectory
+            // Render Trajectory with Phases
             const list = document.getElementById('portal-future-list');
-            list.innerHTML = cachedData.rank_config.map(r => {
+            let currentPhase = "";
+            let html = "";
+            
+            cachedData.rank_config.forEach(r => {
+                // Header for new phase
+                if(r.phase !== currentPhase) {
+                    currentPhase = r.phase;
+                    html += `<div class="text-[8px] font-bold text-white/40 uppercase tracking-widest mt-4 mb-2 pl-2 border-l-2 border-white/20">${currentPhase}</div>`;
+                }
+                
                 const isUnlocked = pts >= r.threshold;
                 const color = isUnlocked ? 'text-cyan-400' : 'text-white/30';
                 const status = isUnlocked ? 'ALIGNED' : `${r.threshold - pts} Stars Remaining`;
                 
-                return `
-                <div class="flex justify-between items-center py-3 border-b border-white/5">
+                html += `
+                <div class="flex justify-between items-center py-2 px-2 border-b border-white/5">
                     <span class="text-[10px] font-black uppercase ${color}">${r.name}</span>
                     <span class="text-[8px] uppercase opacity-40">${status}</span>
                 </div>`;
-            }).join('');
+            });
+            list.innerHTML = html;
+            
+            renderRankVisuals(rankPure, rankRoman);
         }
 
         function triggerRipple(e) {
@@ -262,16 +258,12 @@
             document.getElementById('rank-display').innerText = d.rank;
             document.getElementById('rank-bar').style.width = d.rank_progress + '%';
             updateGreeting();
-            
-            // Render Visuals
-            renderRankVisuals(d.rank);
             renderPortalData();
 
             document.getElementById('archive-list').innerHTML = d.unlocked_trivias.map(t => `<div class="card-glass text-[11px] opacity-80">${t}</div>`).join('');
             document.getElementById('vault-content').innerHTML = Object.entries(d.history).reverse().map(([k, v]) => `<div class="card-glass border-l-2 ${v.type==='journal'?'border-cyan-400':'border-red-500'}"><p class="text-[8px] uppercase opacity-40">${v.date}</p><p class="text-sm mt-1">${v.summary}</p></div>`).join('');
         }
 
-        // Standard Functions (Send, Tabs, Trivia Trigger)
         async function sendAction() {
             const input = document.getElementById('msg-input'); const text = input.value; if(!text) return;
             const con = document.getElementById('msg-container');
@@ -285,19 +277,14 @@
                 const cDiv = document.createElement('div'); cDiv.className = "chat-bubble celi-bubble"; cDiv.innerText = d.reply;
                 con.appendChild(cDiv);
                 sync();
-            }, Math.random() * 1000 + 1000);
+            }, 1000);
         }
 
         function showTab(t) { document.querySelectorAll('.overlay').forEach(e => e.style.display = 'none'); document.getElementById(t+'-overlay').style.display = 'flex'; sync(); }
         function closeUI() { document.querySelectorAll('.overlay, #intent-modal').forEach(e => e.style.display = 'none'); }
         function showIntent() { document.getElementById('intent-modal').style.display = 'flex'; }
         function startChat(m) { currentMode = m; closeUI(); document.getElementById('chat-overlay').style.display = 'flex'; }
-        
-        async function triggerTrivia() {
-            const r = await fetch('/api/trivia');
-            const d = await r.json(); whisper(d.trivia, 'trivia');
-        }
-
+        async function triggerTrivia() { const r = await fetch('/api/trivia'); const d = await r.json(); whisper(d.trivia, 'trivia'); }
         window.onload = () => { sync(); setInterval(triggerTrivia, 1800000 + (Math.random() * 300000)); setTimeout(triggerTrivia, 5000); };
     </script>
 </body>
