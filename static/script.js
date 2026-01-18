@@ -1,168 +1,188 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
-    <title>Celi: AI Journal Companion</title>
-    <link rel="manifest" href="/static/manifest.json">
-    <link rel="apple-touch-icon" href="/static/image.png">
-    <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        :root { --mood: #00f2fe; }
-        html, body { background: #000; color: #fff; overflow: hidden; height: 100%; width: 100%; font-family: sans-serif; touch-action: none; }
+// celi_ai v1.5.3 External Script
+console.log("Script File Loaded v1.5.3");
+document.getElementById('debug-status').innerText = "Core Active";
+
+const PHASE_COLORS = { "The Awakening Phase": "#00f2fe", "The Ignition Phase": "#fbbf24", "The Expansion Phase": "#8b5cf6", "The Singularity": "#ffffff" };
+
+const app = {
+    data: { username: "Traveler", rank: "Observer", profile_pic: null, rank_config: [], history: {} },
+    calDate: new Date(),
+    bubbleTimer: null,
+
+    log: function(msg) {
+        const el = document.getElementById('debug-status');
+        if(el) el.innerText = msg;
+        console.log(msg);
+    },
+
+    changeMonth: function(delta) {
+        this.calDate.setMonth(this.calDate.getMonth() + delta);
+        this.renderCalendar();
+    },
+
+    renderCalendar: function() {
+        const year = this.calDate.getFullYear();
+        const month = this.calDate.getMonth();
+        const firstDay = new Date(year, month, 1).getDay();
+        const lastDate = new Date(year, month + 1, 0).getDate();
+        const today = new Date();
+        const isCurrentMonth = today.getFullYear() === year && today.getMonth() === month;
         
-        .btn-cosmic { width: 54px; height: 54px; border-radius: 50%; background: var(--mood); color: #000; border: 2px solid rgba(255, 255, 255, 0.8); display: flex; align-items: center; justify-content: center; transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1); pointer-events: auto; cursor: pointer; font-weight: bold; }
-        .btn-cosmic:active { transform: scale(0.9); }
-        .btn-glow { box-shadow: 0 0 20px var(--mood); animation: moodPulse 3s infinite; }
-        @keyframes moodPulse { 0%, 100% { transform: scale(1); box-shadow: 0 0 15px var(--mood); } 50% { transform: scale(1.05); box-shadow: 0 0 30px var(--mood); } }
+        const monthNames = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
+        document.getElementById('cal-month-year').innerText = `${monthNames[month]} ${year}`;
+        
+        const grid = document.getElementById('cal-days');
+        grid.innerHTML = "";
 
-        #calendar-container { position: fixed; top: 90px; left: 0; width: 100%; z-index: 2000; pointer-events: none; padding: 0 20px; }
-        .cal-box { background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 20px; padding: 15px; pointer-events: auto; max-width: 400px; margin: 0 auto; box-shadow: 0 4px 20px rgba(0,0,0,0.3); }
-        .cal-nav-btn { width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; border-radius: 50%; background: rgba(255,255,255,0.1); font-size: 10px; cursor: pointer; }
-        .cal-day { height: 30px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 11px; border-radius: 8px; position: relative; }
-        .cal-day-today { background: var(--mood); color: #000; font-weight: bold; box-shadow: 0 0 10px var(--mood); }
-        .has-entry-dot { width: 4px; height: 4px; background: currentColor; border-radius: 50%; position: absolute; bottom: 4px; opacity: 0.7; }
+        for (let i = 0; i < firstDay; i++) { grid.innerHTML += `<div></div>`; }
 
-        .btn-close-red { width: 48px; height: 48px; border-radius: 50%; background: rgba(220, 38, 38, 0.25); border: 1px solid rgba(239, 68, 68, 0.6); display: flex; align-items: center; justify-content: center; color: #fca5a5; box-shadow: 0 4px 10px rgba(0,0,0,0.5); transition: all 0.3s ease; pointer-events: auto; cursor: pointer; margin-top: 20px; }
-        .btn-close-red:active { transform: scale(0.9); background: rgba(220, 38, 38, 0.4); }
+        for (let i = 1; i <= lastDate; i++) {
+            let classes = "cal-day";
+            if (isCurrentMonth && i === today.getDate()) classes += " cal-day-today";
+            const checkDate = `${year}-${String(month+1).padStart(2,'0')}-${String(i).padStart(2,'0')}`;
+            let hasEntry = false;
+            if (this.data.history) {
+                hasEntry = Object.values(this.data.history).some(log => log.date === checkDate);
+            }
+            const dotHtml = hasEntry ? `<div class="has-entry-dot"></div>` : '';
+            grid.innerHTML += `<div class="${classes}">${i}${dotHtml}</div>`;
+        }
+    },
 
-        .orbit-path { opacity: 0.7; transition: all 0.5s ease; }
-        .core-star { transform-origin: center; animation: breatheStar 3s infinite ease-in-out; }
-        .satellite-dot { animation: floatDot 4s infinite ease-in-out; }
-        .group:active .orbit-path { stroke-width: 2; opacity: 1; }
-        .group:active .core-star { animation: spinStar 1s ease-out; }
-        @keyframes breatheStar { 0%, 100% { transform: scale(0.8); opacity: 0.8; } 50% { transform: scale(1.1); opacity: 1; text-shadow: 0 0 10px currentColor; } }
-        @keyframes floatDot { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-2px); } }
-        @keyframes spinStar { 0% { transform: rotate(0deg) scale(1); } 100% { transform: rotate(180deg) scale(0.8); } }
+    render: function() {
+        const d = this.data;
+        const phaseColor = PHASE_COLORS[d.phase] || "#00f2fe";
+        
+        document.documentElement.style.setProperty('--mood', phaseColor);
+        document.getElementById('greeting').innerText = `Hello, ${d.username || 'Traveler'}!`;
+        document.getElementById('rank-display').innerText = d.rank || 'Observer';
+        document.getElementById('rank-display').style.color = phaseColor;
+        document.getElementById('rank-bar').style.backgroundColor = phaseColor;
+        document.getElementById('rank-bar').style.width = (d.rank_progress || 0) + '%';
+        
+        const mini = document.getElementById('mini-rank-logo');
+        mini.style.borderColor = phaseColor;
+        mini.style.boxShadow = `0 0 10px ${phaseColor}66`;
+        if (d.rank && d.rank.includes("Observer")) {
+            mini.innerHTML = `<div class="w-3 h-3 bg-white rounded-full pulse-glow" style="color:${phaseColor}"></div>`;
+        } else {
+            mini.innerHTML = `<div class="w-3 h-3 border-2 border-current rotate-45 shadow-[0_0_5px_currentColor]" style="color:${phaseColor}"></div>`;
+        }
 
-        #chat-modal { position: fixed; inset: 0; z-index: 6000; display: none; align-items: center; justify-content: center; background: rgba(0, 0, 0, 0.8); backdrop-filter: blur(5px); }
-        .chat-box { width: 90%; max-width: 400px; height: 70vh; background: rgba(20, 20, 20, 0.95); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 24px; display: flex; flex-direction: column; box-shadow: 0 10px 40px rgba(0,0,0,0.5); overflow: hidden; }
-        .chat-header { padding: 15px; border-bottom: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.05); display: flex; justify-content: space-between; align-items: center; }
-        .chat-body { flex-grow: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 12px; }
-        .chat-footer { padding: 10px; border-top: 1px solid rgba(255,255,255,0.1); background: rgba(20, 20, 20, 0.98); display: flex; gap: 10px; align-items: center; }
-        .msg { max-width: 80%; padding: 10px 14px; font-size: 13px; line-height: 1.4; position: relative; word-wrap: break-word; }
-        .msg-user { align-self: flex-end; background: rgba(255, 255, 255, 0.1); border-radius: 18px 18px 4px 18px; color: #fff; }
-        .msg-celi { align-self: flex-start; background: var(--mood); color: #000; border-radius: 18px 18px 18px 4px; box-shadow: 0 0 15px rgba(var(--mood), 0.2); }
-        .timestamp { font-size: 9px; opacity: 0.5; margin-top: 4px; text-align: right; display: block; }
-        .msg-celi .timestamp { color: rgba(0,0,0,0.6); text-align: left; }
-        .typing { display: flex; gap: 4px; padding: 10px; align-self: flex-start; }
-        .dot { width: 6px; height: 6px; background: var(--mood); border-radius: 50%; animation: bounce 1.4s infinite ease-in-out; }
-        .dot:nth-child(1) { animation-delay: -0.32s; } .dot:nth-child(2) { animation-delay: -0.16s; }
-        @keyframes bounce { 0%, 80%, 100% { transform: scale(0); } 40% { transform: scale(1); } }
+        const largeIcon = document.getElementById('portal-rank-icon');
+        largeIcon.style.borderColor = phaseColor;
+        largeIcon.style.boxShadow = `0 0 30px ${phaseColor}44`;
+        if (d.rank && d.rank.includes("Observer")) {
+            largeIcon.innerHTML = `<div class="w-16 h-16 bg-white rounded-full pulse-glow" style="color:${phaseColor}"></div>`;
+        } else {
+            largeIcon.innerHTML = `<div class="w-16 h-16 border-4 border-current rotate-45 shadow-[0_0_20px_currentColor]" style="color:${phaseColor}"></div>`;
+        }
 
-        #celi-bubble { position: fixed; bottom: 195px; right: 25px; width: 220px; background: rgba(20, 20, 20, 0.95); border: 1px solid var(--mood); border-radius: 20px 20px 0 20px; padding: 15px; font-size: 11px; color: #fff; display: none; z-index: 5000; backdrop-filter: blur(12px); box-shadow: 0 5px 20px rgba(0,0,0,0.6); transform-origin: bottom right; animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
-        #celi-bubble::after { content: ''; position: absolute; bottom: -8px; right: 20px; width: 0; height: 0; border-left: 8px solid transparent; border-right: 0 solid transparent; border-top: 8px solid var(--mood); }
-        @keyframes popIn { from { opacity: 0; transform: scale(0.8) translateY(10px); } to { opacity: 1; transform: scale(1) translateY(0); } }
-        .bubble-menu { border-color: #fff !important; color: #fff !important; background: rgba(40,40,40,0.98) !important; }
-        .bubble-menu::after { border-top-color: #fff !important; }
-        .bubble-warn { border-color: #ef4444 !important; color: #ef4444 !important; }
-        .bubble-warn::after { border-top-color: #ef4444 !important; }
-        .bubble-trivia { border-color: #00f2fe !important; color: #00f2fe !important; }
-        .bubble-trivia::after { border-top-color: #00f2fe !important; }
+        const roman = (d.rank_roman || "I");
+        const count = {"I":1, "II":2, "III":3, "IV":4, "V":5}[roman] || 1;
+        document.getElementById('portal-level-stars').innerHTML = Array(count).fill(`<div class="star-four-point" style="color:${phaseColor}"></div>`).join('');
+        
+        document.getElementById('portal-rank-name').innerText = d.rank;
+        document.getElementById('portal-rank-name').style.color = phaseColor;
+        document.getElementById('portal-progress-bar').style.backgroundColor = phaseColor;
+        document.getElementById('portal-progress-bar').style.width = (d.rank_progress || 0) + '%';
+        document.getElementById('portal-points').innerText = `${d.points || 0} Stars`;
+        document.getElementById('portal-synthesis-text').innerText = d.rank_synthesis || "Connecting...";
 
-        #ai-fab { position: fixed; bottom: 130px; right: 25px; z-index: 4500; }
-        .star-four-point { width: 12px; height: 12px; background: currentColor; clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%); }
-        .overlay { position: fixed; inset: 0; background: #000; z-index: 4000; display: none; flex-direction: column; padding: 0; }
-        .portal-content { padding: 80px 25px 120px; overflow-y: auto; height: 100%; display: flex; flex-direction: column; align-items: center; }
-        .card-glass { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1); border-radius: 24px; padding: 20px; margin-bottom: 12px; }
-        .nav-btn { font-size: 8px; font-weight: 900; text-transform: uppercase; opacity: 0.3; transition: 0.3s; pointer-events: auto; }
-        .active-btn { opacity: 1; color: var(--mood); }
-        .profile-img { width: 100%; height: 100%; object-fit: cover; }
-        #debug-status { opacity: 0.3; font-size: 9px; position: fixed; bottom: 30px; width: 100%; text-align: center; pointer-events: none; color: #fff; z-index: 6000; }
-    </style>
-</head>
-<body>
+        const listContainer = document.getElementById('portal-future-list');
+        if (d.rank_config && d.rank_config.length > 0) {
+            let currentPhaseName = "";
+            let html = "";
+            d.rank_config.forEach(r => {
+                const pColor = PHASE_COLORS[r.phase];
+                if (r.phase !== currentPhaseName) {
+                    currentPhaseName = r.phase;
+                    html += `<div class="mt-6 mb-2 pl-2 border-l-2 text-[9px] font-black uppercase tracking-widest" style="color:${pColor}; border-color:${pColor}44; text-shadow: 0 0 10px ${pColor}44;">${currentPhaseName}</div>`;
+                }
+                const isUnlocked = (d.points || 0) >= r.threshold;
+                const itemColor = isUnlocked ? pColor : "rgba(255,255,255,0.3)";
+                const clickAction = isUnlocked ? "" : `onclick="app.flashWarning(${r.threshold - (d.points || 0)})"`;
+                const cursor = isUnlocked ? "default" : "pointer";
+                html += `<div class="flex justify-between items-center py-2 px-2 border-b border-white/5" ${clickAction} style="cursor:${cursor}"><span class="text-[10px] font-bold uppercase" style="color:${itemColor}">${r.name}</span><span class="text-[8px] uppercase opacity-40">${isUnlocked ? 'ALIGNED' : 'LOCKED'}</span></div>`;
+            });
+            listContainer.innerHTML = html;
+        }
 
-    <div id="templates" style="display:none;">
-        <svg id="icon-user" xmlns="http://www.w3.org/2000/svg" class="w-full h-full text-white opacity-80 p-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
-    </div>
+        const defaultIcon = document.getElementById('icon-user').outerHTML;
+        let imgHTML = defaultIcon;
+        if (d.profile_pic && d.profile_pic.length > 50) {
+            imgHTML = `<img src="${d.profile_pic}" class="profile-img" style="border-radius:12px;">`;
+            let roundImg = `<img src="${d.profile_pic}" class="profile-img" style="border-radius:50%;">`;
+            document.getElementById('portal-profile-container').innerHTML = roundImg;
+        } else {
+            document.getElementById('portal-profile-container').innerHTML = defaultIcon;
+        }
+        document.getElementById('header-profile-container').innerHTML = imgHTML;
 
-    <header class="fixed top-0 w-full z-[3000] px-6 py-4 bg-white/5 backdrop-blur-md border-b border-white/5 shadow-lg pointer-events-none">
-        <div class="flex justify-between items-center h-full pointer-events-auto">
-            <div class="flex flex-col justify-center gap-1.5 cursor-pointer active:opacity-60 click-safe" onclick="app.openTab('rank-portal')">
-                <h1 id="greeting" class="text-xl font-bold tracking-tight text-white/90 leading-none">Connecting...</h1>
-                <div class="flex items-center gap-3">
-                    <div id="mini-rank-logo" class="w-8 h-8 rounded-full flex items-center justify-center bg-black/40 border border-white/20"></div>
-                    <div class="flex flex-col justify-center w-24">
-                        <p id="rank-display" class="text-[10px] font-black text-cyan-400 tracking-widest uppercase leading-none mb-1 truncate">---</p>
-                        <div class="w-full h-1 bg-white/10 rounded-full overflow-hidden"><div id="rank-bar" class="h-full bg-cyan-400 transition-all duration-1000" style="width: 0%"></div></div>
-                    </div>
-                </div>
-            </div>
-            <div onclick="app.openTab('profile')" class="w-12 h-12 bg-white/5 border border-white/10 rounded-2xl flex items-center justify-center cursor-pointer hover:bg-white/10 transition click-safe overflow-hidden">
-                <div id="header-profile-container" class="w-full h-full flex items-center justify-center"></div>
-            </div>
-        </div>
-    </header>
+        document.getElementById('profile-name').innerText = d.username;
+        document.getElementById('profile-bday').innerText = d.birthday || '--';
+        if(d.fav_color) document.getElementById('profile-color-dot').style.backgroundColor = d.fav_color;
+        document.getElementById('celi-analysis-text').innerText = d.celi_analysis || "Connecting...";
+        
+        document.getElementById('edit-bday').value = (d.birthday && d.birthday !== 'Unset') ? d.birthday : '';
+        document.getElementById('edit-color').value = d.fav_color || '#00f2fe';
 
-    <div id="calendar-container">
-        <div class="cal-box">
-            <div class="flex justify-between items-center mb-4">
-                <div onclick="app.changeMonth(-1)" class="cal-nav-btn hover:bg-white/20">&lt;</div>
-                <h3 id="cal-month-year" class="text-xs font-bold uppercase tracking-widest">---</h3>
-                <div onclick="app.changeMonth(1)" class="cal-nav-btn hover:bg-white/20">&gt;</div>
-            </div>
-            <div class="grid grid-cols-7 gap-1 text-center text-[9px] opacity-50 mb-2 font-mono"><div>S</div><div>M</div><div>T</div><div>W</div><div>T</div><div>F</div><div>S</div></div>
-            <div id="cal-days" class="grid grid-cols-7 gap-1"></div>
-        </div>
-    </div>
+        this.renderCalendar();
+    },
 
-    <main id="galaxy-container" class="fixed inset-0 overflow-hidden"></main>
+    sync: async function() {
+        this.log("Syncing...");
+        try {
+            const res = await fetch('/api/data');
+            if (res.redirected) { window.location.href = '/login'; return; }
+            const json = await res.json();
+            if (json.status === 'guest') { window.location.href = '/login'; return; }
+            this.data = json;
+            this.render();
+            this.log("System Active");
+        } catch (e) {
+            this.log("Offline Mode");
+            this.render();
+        }
+    },
 
-    <button id="ai-fab" class="btn-cosmic btn-glow group" onclick="app.toggleAiMenu()">
-        <svg xmlns="http://www.w3.org/2000/svg" class="w-8 h-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-            <path class="orbit-path" d="M12 21c-4.97 0-9-4.03-9-9 0-4.97 4.03-9 9-9 2.3 0 4.4.9 6 2.4" />
-            <circle cx="18" cy="5" r="1.5" fill="currentColor" class="satellite-dot" />
-            <path class="core-star" d="M12 8L13.5 11L16.5 12L13.5 13L12 16L10.5 13L7.5 12L10.5 11Z" fill="currentColor" stroke="none"/>
-        </svg>
-    </button>
+    openTab: function(id) { document.querySelectorAll('.overlay, #chat-modal').forEach(el => el.style.display = 'none'); document.getElementById(id + '-overlay').style.display = 'flex'; this.sync(); },
+    closeUI: function() { document.querySelectorAll('.overlay, #chat-modal').forEach(el => el.style.display = 'none'); document.getElementById('celi-bubble').style.display = 'none'; },
+    closeChat: function() { document.getElementById('chat-modal').style.display = 'none'; },
+    showIntent: function() { this.toggleAiMenu(); },
+    toggleAiMenu: function() { const b = document.getElementById('celi-bubble'); if (b.style.display === 'block' && b.classList.contains('bubble-menu')) { b.style.display = 'none'; } else { this.speak("How shall we proceed?", 'menu'); } },
+    openEditProfile: function() { document.getElementById('edit-modal').style.display = 'flex'; },
     
-    <div id="celi-bubble">
-        <p id="bubble-text" class="mb-2">Hello.</p>
-        <div id="bubble-actions" class="flex gap-2 hidden">
-            <button onclick="app.startChat('journal')" class="flex-1 py-2 bg-white/10 rounded text-[9px] font-bold uppercase hover:bg-white/20">Journal</button>
-            <button onclick="app.startChat('rant')" class="flex-1 py-2 bg-white/10 rounded text-[9px] font-bold uppercase hover:bg-white/20">Void</button>
-        </div>
-    </div>
+    startChat: function(mode) { this.currentMode = mode; document.getElementById('celi-bubble').style.display = 'none'; document.getElementById('chat-modal').style.display = 'flex'; setTimeout(() => document.getElementById('msg-input').focus(), 100); },
+    
+    speak: function(msg, type) {
+        const b = document.getElementById('celi-bubble'); const t = document.getElementById('bubble-text'); const a = document.getElementById('bubble-actions');
+        b.className = ''; b.classList.add(type === 'menu' ? 'bubble-menu' : (type === 'warn' ? 'bubble-warn' : 'bubble-trivia'));
+        t.innerText = msg; a.classList.toggle('hidden', type !== 'menu'); b.style.display = 'block';
+        if (this.bubbleTimer) clearTimeout(this.bubbleTimer);
+        if (type !== 'menu') this.bubbleTimer = setTimeout(() => { b.style.display = 'none'; }, 6000);
+    },
+    
+    flashWarning: function(needed) { this.speak(`Access Denied. You need ${needed} more stars to align with this frequency.`, 'warn'); },
+    triggerTrivia: async function() { try { const res = await fetch('/api/trivia'); const d = await res.json(); if(d.trivia) this.speak(d.trivia, 'trivia'); } catch(e) {} },
 
-    <nav class="fixed bottom-10 left-1/2 -translate-x-1/2 w-[92%] h-[75px] rounded-[38px] bg-white/5 backdrop-blur-3xl flex items-center justify-around z-[4000] border border-white/10 pointer-events-auto">
-        <div onclick="app.openTab('vault')" class="nav-btn">Vault</div>
-        <div onclick="app.openTab('archive')" class="nav-btn">Archive</div>
-        <div onclick="app.toggleAiMenu()" class="w-12 h-12 bg-white rounded-full flex items-center justify-center cursor-pointer"><div class="w-4 h-0.5 bg-black"></div></div>
-        <div onclick="app.closeUI()" class="nav-btn active-btn">Galaxy</div>
-        <div onclick="app.openTab('profile')" class="nav-btn">Profile</div>
-    </nav>
-    <div class="fixed bottom-2 w-full text-center z-[5000] pointer-events-none opacity-30 text-[8px] font-mono tracking-widest text-white">Celi: AI Journal Companion v1.5.3</div>
-    <div id="debug-status">Initializing...</div>
+    saveProfile: async function() { const bday = document.getElementById('edit-bday').value; const color = document.getElementById('edit-color').value; const file = document.getElementById('edit-pic').files[0]; let payload = { birthday: bday, fav_color: color }; const send = async (p) => { this.log("Saving..."); await fetch('/api/update_profile', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(p) }); document.getElementById('edit-modal').style.display = 'none'; this.sync(); }; if (file) { const reader = new FileReader(); reader.onload = (e) => { payload.profile_pic = e.target.result; send(payload); }; reader.readAsDataURL(file); } else { send(payload); } },
+    confirmDelete: async function() { if (confirm("Delete data?")) { await fetch('/api/delete_user', { method: 'POST' }); window.location.reload(); } },
+    
+    getTime: function() { const now = new Date(); return now.getHours().toString().padStart(2,'0') + ":" + now.getMinutes().toString().padStart(2,'0'); },
+    
+    sendAction: async function() {
+        const input = document.getElementById('msg-input'); const text = input.value; if (!text) return;
+        const con = document.getElementById('chat-scroller'); const time = this.getTime();
+        con.innerHTML += `<div class="msg msg-user">${text}<span class="timestamp">${time}</span></div>`;
+        input.value = ''; con.scrollTop = con.scrollHeight;
+        const typing = document.getElementById('typing-indicator'); typing.style.display = 'flex'; con.scrollTop = con.scrollHeight;
+        try {
+            const res = await fetch('/api/process', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: text, mode: this.currentMode || 'journal' }) });
+            const d = await res.json();
+            setTimeout(() => { typing.style.display = 'none'; con.innerHTML += `<div class="msg msg-celi">${d.reply}<span class="timestamp">${time}</span></div>`; con.scrollTop = con.scrollHeight; this.sync(); }, 1500);
+        } catch (e) { this.log("Msg Error"); typing.style.display = 'none'; }
+    }
+};
 
-    <div id="chat-modal">
-        <div class="chat-box">
-            <div class="chat-header">
-                <div class="flex items-center gap-2">
-                    <div class="w-2 h-2 rounded-full bg-green-400 animate-pulse"></div>
-                    <span class="text-xs font-bold uppercase tracking-widest text-white/80">Celi Connection</span>
-                </div>
-                <button onclick="app.closeChat()" class="opacity-50 hover:opacity-100 text-xs uppercase font-bold text-red-400">Close</button>
-            </div>
-            <div id="chat-scroller" class="chat-body"></div>
-            <div id="typing-indicator" class="typing hidden"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
-            <div class="chat-footer">
-                <input id="msg-input" type="text" placeholder="Speak your mind..." class="flex-grow bg-transparent text-xs text-white placeholder-white/30 outline-none h-full py-2">
-                <button onclick="app.sendAction()" class="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-white" viewBox="0 0 20 20" fill="currentColor"><path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" /></svg>
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <div id="rank-portal-overlay" class="overlay"><div class="portal-content w-full max-w-md mx-auto"><h2 class="text-2xl font-black text-white mb-10 uppercase tracking-widest">Cosmic Portal</h2><div id="portal-rank-icon" class="w-32 h-32 rounded-full mb-6 border-2 border-cyan-400 flex items-center justify-center bg-black/40 backdrop-blur-xl"></div><div id="portal-level-stars" class="flex gap-2 mb-6 text-cyan-400"></div><div class="w-full flex items-center gap-4 mb-2"><div class="flex-grow h-2 bg-white/10 rounded-full overflow-hidden"><div id="portal-progress-bar" class="h-full bg-cyan-400 transition-all duration-1000" style="width: 0%"></div></div><p id="portal-points" class="text-xs font-bold text-white whitespace-nowrap">0 Stars</p></div><h2 id="portal-rank-name" class="text-3xl font-black uppercase tracking-tighter text-cyan-400 mb-8">---</h2><div class="w-full card-glass border-l-4 border-cyan-400 mb-8 bg-white/5"><p id="portal-synthesis-text" class="text-sm italic leading-relaxed text-white/90"></p></div><div id="portal-future-list" class="w-full space-y-2 pb-4"></div><button onclick="app.closeUI()" class="btn-close-red"><svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg></button></div></div>
-    <div id="profile-overlay" class="overlay"><div class="portal-content w-full max-w-md mx-auto"><div id="portal-profile-container" class="w-24 h-24 rounded-full bg-white/10 mb-6 border border-white/20 overflow-hidden flex items-center justify-center"></div><div class="text-center mb-6"><h2 id="profile-name" class="text-2xl font-black uppercase">User</h2><div class="flex justify-center gap-3 text-xs mt-2"><span id="profile-bday">--</span><div id="profile-color-dot" class="w-3 h-3 rounded-full bg-cyan-400"></div></div><button onclick="app.openEditProfile()" class="text-[9px] text-cyan-400 uppercase mt-4 border-b border-cyan-400/30">Update Identity</button></div><div class="w-full card-glass"><p id="celi-analysis-text" class="text-xs italic p-4">Analyzing...</p></div><div class="w-full card-glass border-red-500/20 mb-8"><p class="text-[11px]">Void Entropy: <span id="entropy-val" class="text-red-500">0%</span></p></div><div class="w-full flex gap-4 mb-8"><button onclick="app.confirmDelete()" class="flex-1 py-4 bg-red-900/20 text-red-400 text-[9px] font-bold uppercase rounded-xl">Delete Data</button><button onclick="window.location.href='/logout'" class="flex-1 py-4 bg-white/5 text-white text-[9px] font-bold uppercase rounded-xl">Logout</button></div><div class="mt-auto text-center opacity-30 px-4"><h4 class="text-[9px] font-bold uppercase mb-2">Data Sovereignty</h4><p class="text-[8px]">Data stored locally.</p></div><button onclick="app.closeUI()" class="btn-close-red"><svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg></button></div></div>
-    <div id="archive-overlay" class="overlay"><div class="portal-content"><h2 class="text-3xl font-black mb-8 uppercase">Archive</h2><div id="archive-list" class="space-y-4 w-full"></div><button onclick="app.closeUI()" class="btn-close-red"><svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg></button></div></div>
-    <div id="vault-overlay" class="overlay"><div class="portal-content"><h2 class="text-3xl font-black mb-8 uppercase">Vault</h2><div id="vault-content" class="space-y-4 w-full"></div><button onclick="app.closeUI()" class="btn-close-red"><svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg></button></div></div>
-    <div id="edit-modal" class="fixed inset-0 bg-black/95 z-[6000] hidden items-center justify-center p-8"><div class="glass w-full max-w-sm p-8 rounded-3xl border border-white/10 bg-gray-900"><h3 class="text-xl font-black uppercase mb-6 text-center">Update Signal</h3><div class="mb-4"><label class="text-[9px] uppercase opacity-50 block mb-2">Profile Picture</label><input type="file" id="edit-pic" accept="image/*" class="w-full text-xs text-white"></div><div class="mb-4"><label class="text-[9px] uppercase opacity-50 block mb-2">Date of Birth</label><input type="date" id="edit-bday" class="w-full bg-white/5 border border-white/10 rounded-xl p-4 text-white text-xs"></div><div class="mb-6"><label class="text-[9px] uppercase opacity-50 block mb-2">Resonance Color</label><input type="color" id="edit-color" class="bg-transparent w-full h-10 rounded-xl overflow-hidden border-none" value="#00f2fe"></div><div class="flex gap-2"><button onclick="app.saveProfile()" class="flex-1 py-3 bg-white text-black font-bold uppercase rounded-xl text-xs">Confirm</button><button onclick="document.getElementById('edit-modal').style.display='none'" class="flex-1 py-3 bg-white/10 text-white font-bold uppercase rounded-xl text-xs">Cancel</button></div></div></div>
-
-    <script src="/static/script.js?v=1.5.3"></script>
-</body>
-</html>
-                        
+document.addEventListener('DOMContentLoaded', () => { app.sync(); setInterval(() => app.sync(), 30000); setTimeout(() => app.triggerTrivia(), 5000); setInterval(() => app.triggerTrivia(), 60000); });
