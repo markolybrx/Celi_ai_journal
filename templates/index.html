@@ -18,23 +18,14 @@
         :root { --mood: #00f2fe; --core: #ffd700; --warn: #6b7280; --void: #8b5cf6; --singularity: #ffffff; }
         html, body { background: #000; color: #fff; overflow: hidden; height: 100%; width: 100%; font-family: sans-serif; margin: 0; touch-action: none; }
         
-        .star-four-point {
-            width: 12px; height: 12px; background: currentColor;
-            clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
-            box-shadow: 0 0 10px currentColor;
-        }
-
-        #trivia-whisper {
-            position: fixed; bottom: 140px; right: 105px; width: 240px;
-            background: rgba(10, 10, 10, 0.95); border-radius: 24px 24px 0 24px;
-            padding: 20px; font-size: 11px; display: none; z-index: 4500; backdrop-filter: blur(20px);
-        }
+        .star-four-point { width: 12px; height: 12px; background: currentColor; clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%); box-shadow: 0 0 10px currentColor; }
+        #trivia-whisper { position: fixed; bottom: 140px; right: 105px; width: 240px; background: rgba(10, 10, 10, 0.95); border-radius: 24px 24px 0 24px; padding: 20px; font-size: 11px; display: none; z-index: 4500; backdrop-filter: blur(20px); }
         .whisper-blue { border: 1px solid var(--mood); color: var(--mood); box-shadow: 0 0 15px rgba(0, 242, 254, 0.2); }
-
-        .overlay { position: fixed; inset: 0; background: #000; z-index: 5000; display: none; flex-direction: column; padding: 0; }
         
+        .overlay { position: fixed; inset: 0; background: #000; z-index: 5000; display: none; flex-direction: column; padding: 0; }
         .portal-content { padding: 80px 25px 100px; overflow-y: auto; height: 100%; display: flex; flex-direction: column; align-items: center; }
         .card-glass { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1); border-radius: 24px; padding: 20px; margin-bottom: 12px; }
+        
         .nav-btn { font-size: 8px; font-weight: 900; text-transform: uppercase; opacity: 0.3; transition: 0.3s; pointer-events: auto; }
         .active-btn { opacity: 1; color: var(--mood); }
         .ripple { position: absolute; border: 1px solid var(--mood); border-radius: 50%; pointer-events: none; animation: rippleEffect 1.5s ease-out forwards; }
@@ -42,11 +33,7 @@
         
         .rank-container { width: 96px; }
         .rank-ring-glow { box-shadow: 0 0 15px var(--mood); border: 1px solid var(--mood); }
-        .close-btn-red { 
-            width: 48px; height: 48px; border-radius: 50%; background: rgba(220, 38, 38, 0.2); 
-            border: 1px solid rgba(220, 38, 38, 0.5); display: flex; align-items: center; justify-content: center;
-            color: rgba(220, 38, 38, 0.8); margin-top: auto; margin-bottom: 20px; pointer-events: auto;
-        }
+        .close-btn-red { width: 48px; height: 48px; border-radius: 50%; background: rgba(220, 38, 38, 0.2); border: 1px solid rgba(220, 38, 38, 0.5); display: flex; align-items: center; justify-content: center; color: rgba(220, 38, 38, 0.8); margin-top: auto; margin-bottom: 20px; pointer-events: auto; }
     </style>
 </head>
 <body>
@@ -84,7 +71,7 @@
         <div onclick="showTab('profile')" class="nav-btn">Profile</div>
     </nav>
     
-    <div class="fixed bottom-2 w-full text-center z-[5000] pointer-events-none opacity-30 text-[8px] font-mono tracking-widest text-white">Celi_AI v10.34 (Restored)</div>
+    <div class="fixed bottom-2 w-full text-center z-[5000] pointer-events-none opacity-30 text-[8px] font-mono tracking-widest text-white">Cali_AI v1.01.00</div>
 
     <div id="rank-portal-overlay" class="overlay">
         <div class="portal-content w-full max-w-md mx-auto">
@@ -142,11 +129,13 @@
         let cachedData = {}, currentMode = 'journal';
         const PHASE_COLORS = { "The Awakening Phase": "#00f2fe", "The Ignition Phase": "#fbbf24", "The Expansion Phase": "#8b5cf6", "The Singularity": "#ffffff" };
 
-        // GHOST BUSTER: Unregister any SW first to clear old cache
-        if(navigator.serviceWorker) {
+        if ('serviceWorker' in navigator) {
+            // UNREGISTER ALL EXISTING (CLEAN SLATE)
             navigator.serviceWorker.getRegistrations().then(function(registrations) {
                 for(let registration of registrations) { registration.unregister(); } 
                 console.log("Service Workers Purged for Restoration");
+                // REGISTER NEW VERSION
+                navigator.serviceWorker.register('/static/sw.js?v=1.01.00'); 
             });
         }
 
@@ -204,4 +193,4 @@
         function openEditProfile() { document.getElementById('edit-modal').style.display = 'flex'; }
         async function saveProfile() { await fetch('/api/update_profile', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({birthday:document.getElementById('edit-bday').value, fav_color:document.getElementById('edit-color').value})}); document.getElementById('edit-modal').style.display = 'none'; sync(); }
         async function confirmDelete() { if(confirm("Wipe Data?")) { await fetch('/api/delete_user', {method:'POST'}); window.location.reload(); } }
-        function showTab(t) { document.querySelectorAll('.overlay').forEach(e => e.sty
+        function showTab(t) { document.querySelectorAll('.overlay').forEach(e => e.style.display = 'none'); docum
