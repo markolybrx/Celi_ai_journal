@@ -20,7 +20,9 @@
         .btn-secondary { width: 100%; padding: 14px; background: rgba(255, 255, 255, 0.05); color: #fff; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px; font-weight: bold; text-transform: uppercase; font-size: 10px; cursor: pointer; margin-top: 10px; }
         .hidden { display: none; }
         .text-link { color: var(--mood); cursor: pointer; text-decoration: underline; }
-        .eye-icon { position: absolute; right: 12px; top: 38px; width: 16px; height: 16px; opacity: 0.5; cursor: pointer; }
+        
+        .eye-btn { position: absolute; right: 12px; top: 35px; cursor: pointer; opacity: 0.6; }
+        .eye-btn:hover { opacity: 1; }
         .color-dot { width: 20px; height: 20px; border-radius: 50%; position: absolute; right: 12px; top: 35px; border: 1px solid rgba(255,255,255,0.2); }
         
         #loading-overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.8); backdrop-filter: blur(5px); z-index: 50; display: none; align-items: center; justify-content: center; flex-direction: column; }
@@ -40,7 +42,13 @@
             <h1 class="text-3xl font-black text-center mb-8 tracking-tighter text-white">Celi</h1>
             <form onsubmit="handleLogin(event)">
                 <div class="input-group"><label class="input-label">Username</label><input type="text" name="username" class="input-field" placeholder="Traveler" required></div>
-                <div class="input-group"><label class="input-label">Password</label><input type="password" name="password" id="login-pass" class="input-field" placeholder="••••••" required><div class="eye-icon" onclick="togglePass('login-pass')">👁️</div></div>
+                <div class="input-group">
+                    <label class="input-label">Password</label>
+                    <input type="password" name="password" id="login-pass" class="input-field" placeholder="••••••" required>
+                    <div class="eye-btn" onclick="togglePass('login-pass')">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                    </div>
+                </div>
                 <button type="submit" class="btn-primary">Log In</button>
             </form>
             <button onclick="switchView('register')" class="btn-secondary">Register New Signal</button>
@@ -53,7 +61,13 @@
                 <div class="input-group"><label class="input-label">Preferred Username</label><input type="text" name="reg_username" class="input-field" required></div>
                 <div class="input-group"><label class="input-label">Date of Birth</label><input type="date" name="dob" class="input-field" required></div>
                 <div class="input-group"><label class="input-label">Favorite Color</label><input type="text" id="color-input" name="fav_color" class="input-field" placeholder="Cyan, Gold, Purple..." oninput="updateColorPreview(this.value)"><div id="color-preview" class="color-dot" style="background-color: #00f2fe;"></div></div>
-                <div class="input-group"><label class="input-label">Password</label><input type="password" name="reg_password" id="reg-pass" class="input-field" required><div class="eye-icon" onclick="togglePass('reg-pass')">👁️</div></div>
+                <div class="input-group">
+                    <label class="input-label">Password</label>
+                    <input type="password" name="reg_password" id="reg-pass" class="input-field" required>
+                    <div class="eye-btn" onclick="togglePass('reg-pass')">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                    </div>
+                </div>
                 <div class="input-group"><label class="input-label">Confirm Password</label><input type="password" id="confirm-pass" class="input-field" oninput="checkMatch()" required></div>
                 <div class="flex items-start gap-3 my-4"><input type="checkbox" id="privacy-check" required class="mt-1"><label for="privacy-check" class="text-[10px] opacity-70 leading-tight">I agree to the <span class="text-link" onclick="openPrivacy()">Data Privacy Disclosure</span>. I understand my data is stored securely.</label></div>
                 <button type="submit" class="btn-primary">Register</button>
@@ -62,7 +76,7 @@
         </div>
     </div>
 
-    <div class="fixed bottom-4 w-full text-center pointer-events-none opacity-20 text-[9px] font-mono uppercase tracking-widest text-white">Celi Access v1.5.1</div>
+    <div class="fixed bottom-4 w-full text-center pointer-events-none opacity-20 text-[9px] font-mono uppercase tracking-widest text-white">Celi Access v1.5.3</div>
 
     <div id="privacy-modal"><div class="privacy-box"><h2 class="text-xl font-bold mb-4 uppercase text-white">Data Privacy Disclosure</h2><p class="mb-3"><strong>1. Data Storage:</strong> Celi uses a secure, encrypted cloud database (MongoDB Atlas) to store your journal entries, rank progress, and user preferences.</p><p class="mb-3"><strong>2. AI Processing:</strong> Your journal entries are processed ephemerally by our AI provider (Google Gemini) solely to generate responses.</p><p class="mb-3"><strong>3. Sovereignty:</strong> You retain full ownership of your data.</p><button onclick="document.getElementById('privacy-modal').style.display='none'" class="btn-primary">I Understand</button></div></div>
 
