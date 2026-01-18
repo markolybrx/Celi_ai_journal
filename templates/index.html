@@ -3,17 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    
     <title>Celi Sovereign</title>
     <link rel="manifest" href="/static/manifest.json">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <link rel="apple-touch-icon" href="/static/image.png">
-    
+
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         :root { --mood: #00f2fe; --core: #ffd700; --warn: #6b7280; }
+        
+        /* SCROLL LOCK & TOUCH FIXES */
         html, body { background: #000; color: #fff; overflow: hidden; height: 100%; width: 100%; font-family: sans-serif; margin: 0; touch-action: none; }
         
+        /* WHISPER MODAL */
         #trivia-whisper {
             position: fixed; bottom: 140px; right: 105px; width: 240px;
             background: rgba(10, 10, 10, 0.95); border-radius: 24px 24px 0 24px;
@@ -22,17 +26,21 @@
         .whisper-blue { border: 1px solid var(--mood); color: var(--mood); box-shadow: 0 0 15px rgba(0, 242, 254, 0.2); }
         .whisper-gray { border: 1px solid var(--warn); color: var(--warn); opacity: 0.9; }
 
+        /* OVERLAYS */
         .overlay { position: fixed; inset: 0; background: #000; z-index: 5000; display: none; flex-direction: column; padding: 130px 25px 100px; }
         .card-glass { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1); border-radius: 24px; padding: 20px; margin-bottom: 12px; }
         
+        /* CHAT UI */
         .chat-bubble { max-width: 85%; padding: 16px 20px; border-radius: 24px; margin-bottom: 12px; font-size: 15px; animation: slideUp 0.3s ease-out; }
         .celi-bubble { align-self: flex-start; background: rgba(0,242,254,0.1); color: var(--mood); border-bottom-left-radius: 4px; border: 1px solid rgba(0,242,254,0.2); }
         .user-bubble { align-self: flex-end; background: rgba(255,255,255,0.1); border-bottom-right-radius: 4px; }
         @keyframes slideUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
+        /* NAV */
         .nav-btn { font-size: 8px; font-weight: 900; text-transform: uppercase; opacity: 0.3; transition: 0.3s; }
         .active-btn { opacity: 1; color: var(--mood); }
         
+        /* RIPPLE */
         .ripple { position: absolute; border: 1px solid var(--mood); border-radius: 50%; pointer-events: none; animation: rippleEffect 1.5s ease-out forwards; }
         @keyframes rippleEffect { 0% { width: 0; height: 0; opacity: 1; } 100% { width: 100px; height: 100px; opacity: 0; } }
     </style>
@@ -54,6 +62,7 @@
                     <div id="rank-bar" class="h-full bg-cyan-400 transition-all duration-1000 ease-out" style="width: 0%"></div>
                 </div>
             </div>
+
             <div onclick="showTab('profile')" class="w-10 h-10 bg-white/5 border border-white/10 rounded-xl flex items-center justify-center cursor-pointer hover:bg-white/10 transition">
                 <div class="w-4 h-4 border-2 border-white rounded-full"></div>
             </div>
@@ -107,28 +116,28 @@
     <script>
         let cachedData = {}, currentMode = 'journal';
 
-        // ... (Keep existing JS logic for greeting, sync, sendAction, triggerRankStatus, etc. from v10.20) ...
-        
-        // --- SERVICE WORKER REGISTRATION (THE NEW PART) ---
+        // --- SERVICE WORKER START ---
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('/static/sw.js')
-                    .then(reg => console.log('Sovereign Link Established:', reg.scope))
-                    .catch(err => console.log('Sovereign Link Failed:', err));
+                    .then(reg => console.log('SW Registered:', reg.scope))
+                    .catch(err => console.log('SW Fail:', err));
             });
         }
-        
-        // (Rest of your JS functions: updateGreeting, triggerRipple, etc. remain here)
+        // ----------------------------
+
         function updateGreeting() {
             const h = new Date().getHours();
             const g = h < 12 ? "Good Morning" : h < 18 ? "Good Afternoon" : "Good Evening";
             document.getElementById('greeting').innerText = `${g}, ${cachedData.username || 'Traveler'}!`;
         }
 
+        // TRIGGER RANK STATUS: Whispers Synthesis + Star Requirement
         function triggerRankStatus() {
             const pts = cachedData.points || 0;
             const next = cachedData.rank_config.find(r => r.threshold > pts);
             const syn = cachedData.rank_synthesis;
+            
             if (next) {
                 const diff = next.threshold - pts;
                 whisper(`${syn} (${diff} stars until ${next.name})`, 'trivia'); 
@@ -141,6 +150,7 @@
             const r = document.createElement('div'); r.className = 'ripple';
             r.style.left = e.clientX + 'px'; r.style.top = e.clientY + 'px';
             document.body.appendChild(r); setTimeout(() => r.remove(), 1500);
+            
             const pts = cachedData.points || 0;
             const next = cachedData.rank_config.find(r => r.threshold > pts);
             if(next && Math.random() > 0.7) whisper(`Restricted. Need ${next.threshold - pts} stars for ${next.name}.`, 'rank');
