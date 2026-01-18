@@ -1,11 +1,12 @@
-// celi_ai v1.3.0 External Script
-console.log("Script File Loaded v1.3.0");
+// celi_ai v1.5.3 External Script
+console.log("Script File Loaded v1.5.3");
 document.getElementById('debug-status').innerText = "Core Active";
 
 const PHASE_COLORS = { "The Awakening Phase": "#00f2fe", "The Ignition Phase": "#fbbf24", "The Expansion Phase": "#8b5cf6", "The Singularity": "#ffffff" };
 
 const app = {
-    data: { username: "Traveler", rank: "Observer", profile_pic: null, rank_config: [] },
+    data: { username: "Traveler", rank: "Observer", profile_pic: null, rank_config: [], history: {} },
+    calDate: new Date(),
     bubbleTimer: null,
 
     log: function(msg) {
@@ -14,47 +15,40 @@ const app = {
         console.log(msg);
     },
 
-    // --- CELI VOICE ---
-    speak: function(msg, type) {
-        const b = document.getElementById('celi-bubble');
-        const t = document.getElementById('bubble-text');
-        const a = document.getElementById('bubble-actions');
-        
-        b.className = ''; 
-        b.classList.add(type === 'menu' ? 'bubble-menu' : (type === 'warn' ? 'bubble-warn' : 'bubble-trivia'));
-        
-        t.innerText = msg;
-        a.classList.toggle('hidden', type !== 'menu');
-        b.style.display = 'block';
+    changeMonth: function(delta) {
+        this.calDate.setMonth(this.calDate.getMonth() + delta);
+        this.renderCalendar();
+    },
 
-        if (this.bubbleTimer) clearTimeout(this.bubbleTimer);
-        if (type !== 'menu') {
-            this.bubbleTimer = setTimeout(() => { b.style.display = 'none'; }, 6000);
+    renderCalendar: function() {
+        const year = this.calDate.getFullYear();
+        const month = this.calDate.getMonth();
+        const firstDay = new Date(year, month, 1).getDay();
+        const lastDate = new Date(year, month + 1, 0).getDate();
+        const today = new Date();
+        const isCurrentMonth = today.getFullYear() === year && today.getMonth() === month;
+        
+        const monthNames = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
+        document.getElementById('cal-month-year').innerText = `${monthNames[month]} ${year}`;
+        
+        const grid = document.getElementById('cal-days');
+        grid.innerHTML = "";
+
+        for (let i = 0; i < firstDay; i++) { grid.innerHTML += `<div></div>`; }
+
+        for (let i = 1; i <= lastDate; i++) {
+            let classes = "cal-day";
+            if (isCurrentMonth && i === today.getDate()) classes += " cal-day-today";
+            const checkDate = `${year}-${String(month+1).padStart(2,'0')}-${String(i).padStart(2,'0')}`;
+            let hasEntry = false;
+            if (this.data.history) {
+                hasEntry = Object.values(this.data.history).some(log => log.date === checkDate);
+            }
+            const dotHtml = hasEntry ? `<div class="has-entry-dot"></div>` : '';
+            grid.innerHTML += `<div class="${classes}">${i}${dotHtml}</div>`;
         }
     },
 
-    toggleAiMenu: function() {
-        const b = document.getElementById('celi-bubble');
-        if (b.style.display === 'block' && b.classList.contains('bubble-menu')) {
-            b.style.display = 'none';
-        } else {
-            this.speak("How shall we proceed?", 'menu');
-        }
-    },
-
-    flashWarning: function(needed) {
-        this.speak(`Access Denied. You need ${needed} more stars to align with this frequency.`, 'warn');
-    },
-
-    triggerTrivia: async function() {
-        try {
-            const res = await fetch('/api/trivia');
-            const d = await res.json();
-            if(d.trivia) this.speak(d.trivia, 'trivia');
-        } catch(e) {}
-    },
-
-    // --- RENDER ---
     render: function() {
         const d = this.data;
         const phaseColor = PHASE_COLORS[d.phase] || "#00f2fe";
@@ -129,8 +123,11 @@ const app = {
         document.getElementById('profile-bday').innerText = d.birthday || '--';
         if(d.fav_color) document.getElementById('profile-color-dot').style.backgroundColor = d.fav_color;
         document.getElementById('celi-analysis-text').innerText = d.celi_analysis || "Connecting...";
+        
         document.getElementById('edit-bday').value = (d.birthday && d.birthday !== 'Unset') ? d.birthday : '';
         document.getElementById('edit-color').value = d.fav_color || '#00f2fe';
+
+        this.renderCalendar();
     },
 
     sync: async function() {
@@ -149,80 +146,43 @@ const app = {
         }
     },
 
-    // --- ACTIONS ---
     openTab: function(id) { document.querySelectorAll('.overlay, #chat-modal').forEach(el => el.style.display = 'none'); document.getElementById(id + '-overlay').style.display = 'flex'; this.sync(); },
-    closeUI: function() { 
-        document.querySelectorAll('.overlay, #chat-modal').forEach(el => el.style.display = 'none'); 
-        document.getElementById('celi-bubble').style.display = 'none'; 
-    },
+    closeUI: function() { document.querySelectorAll('.overlay, #chat-modal').forEach(el => el.style.display = 'none'); document.getElementById('celi-bubble').style.display = 'none'; },
     closeChat: function() { document.getElementById('chat-modal').style.display = 'none'; },
     showIntent: function() { this.toggleAiMenu(); },
+    toggleAiMenu: function() { const b = document.getElementById('celi-bubble'); if (b.style.display === 'block' && b.classList.contains('bubble-menu')) { b.style.display = 'none'; } else { this.speak("How shall we proceed?", 'menu'); } },
     openEditProfile: function() { document.getElementById('edit-modal').style.display = 'flex'; },
     
-    startChat: function(mode) { 
-        this.currentMode = mode; 
-        document.getElementById('celi-bubble').style.display = 'none';
-        document.getElementById('chat-modal').style.display = 'flex'; 
-        setTimeout(() => document.getElementById('msg-input').focus(), 100);
+    startChat: function(mode) { this.currentMode = mode; document.getElementById('celi-bubble').style.display = 'none'; document.getElementById('chat-modal').style.display = 'flex'; setTimeout(() => document.getElementById('msg-input').focus(), 100); },
+    
+    speak: function(msg, type) {
+        const b = document.getElementById('celi-bubble'); const t = document.getElementById('bubble-text'); const a = document.getElementById('bubble-actions');
+        b.className = ''; b.classList.add(type === 'menu' ? 'bubble-menu' : (type === 'warn' ? 'bubble-warn' : 'bubble-trivia'));
+        t.innerText = msg; a.classList.toggle('hidden', type !== 'menu'); b.style.display = 'block';
+        if (this.bubbleTimer) clearTimeout(this.bubbleTimer);
+        if (type !== 'menu') this.bubbleTimer = setTimeout(() => { b.style.display = 'none'; }, 6000);
     },
     
-    saveProfile: async function() {
-        const bday = document.getElementById('edit-bday').value;
-        const color = document.getElementById('edit-color').value;
-        const file = document.getElementById('edit-pic').files[0];
-        let payload = { birthday: bday, fav_color: color };
-        const send = async (p) => { this.log("Saving..."); await fetch('/api/update_profile', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(p) }); document.getElementById('edit-modal').style.display = 'none'; this.sync(); };
-        if (file) { const reader = new FileReader(); reader.onload = (e) => { payload.profile_pic = e.target.result; send(payload); }; reader.readAsDataURL(file); } else { send(payload); }
-    },
+    flashWarning: function(needed) { this.speak(`Access Denied. You need ${needed} more stars to align with this frequency.`, 'warn'); },
+    triggerTrivia: async function() { try { const res = await fetch('/api/trivia'); const d = await res.json(); if(d.trivia) this.speak(d.trivia, 'trivia'); } catch(e) {} },
 
+    saveProfile: async function() { const bday = document.getElementById('edit-bday').value; const color = document.getElementById('edit-color').value; const file = document.getElementById('edit-pic').files[0]; let payload = { birthday: bday, fav_color: color }; const send = async (p) => { this.log("Saving..."); await fetch('/api/update_profile', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(p) }); document.getElementById('edit-modal').style.display = 'none'; this.sync(); }; if (file) { const reader = new FileReader(); reader.onload = (e) => { payload.profile_pic = e.target.result; send(payload); }; reader.readAsDataURL(file); } else { send(payload); } },
     confirmDelete: async function() { if (confirm("Delete data?")) { await fetch('/api/delete_user', { method: 'POST' }); window.location.reload(); } },
-
-    getTime: function() {
-        const now = new Date();
-        return now.getHours().toString().padStart(2,'0') + ":" + now.getMinutes().toString().padStart(2,'0');
-    },
-
+    
+    getTime: function() { const now = new Date(); return now.getHours().toString().padStart(2,'0') + ":" + now.getMinutes().toString().padStart(2,'0'); },
+    
     sendAction: async function() {
-        const input = document.getElementById('msg-input');
-        const text = input.value;
-        if (!text) return;
-        
-        const con = document.getElementById('chat-scroller');
-        const time = this.getTime();
-        
-        // 1. User Bubble
+        const input = document.getElementById('msg-input'); const text = input.value; if (!text) return;
+        const con = document.getElementById('chat-scroller'); const time = this.getTime();
         con.innerHTML += `<div class="msg msg-user">${text}<span class="timestamp">${time}</span></div>`;
-        input.value = '';
-        con.scrollTop = con.scrollHeight;
-
-        // 2. Typing Indicator
-        const typing = document.getElementById('typing-indicator');
-        typing.style.display = 'flex';
-        con.scrollTop = con.scrollHeight;
-
+        input.value = ''; con.scrollTop = con.scrollHeight;
+        const typing = document.getElementById('typing-indicator'); typing.style.display = 'flex'; con.scrollTop = con.scrollHeight;
         try {
-            // 3. API Call
             const res = await fetch('/api/process', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: text, mode: this.currentMode || 'journal' }) });
             const d = await res.json();
-            
-            // 4. Delay for "Thinking"
-            setTimeout(() => {
-                typing.style.display = 'none';
-                con.innerHTML += `<div class="msg msg-celi">${d.reply}<span class="timestamp">${time}</span></div>`;
-                con.scrollTop = con.scrollHeight;
-                this.sync();
-            }, 1500); 
-            
-        } catch (e) { 
-            this.log("Msg Error");
-            typing.style.display = 'none';
-        }
+            setTimeout(() => { typing.style.display = 'none'; con.innerHTML += `<div class="msg msg-celi">${d.reply}<span class="timestamp">${time}</span></div>`; con.scrollTop = con.scrollHeight; this.sync(); }, 1500);
+        } catch (e) { this.log("Msg Error"); typing.style.display = 'none'; }
     }
 };
 
-document.addEventListener('DOMContentLoaded', () => { 
-    app.sync(); 
-    setInterval(() => app.sync(), 30000); 
-    setTimeout(() => app.triggerTrivia(), 5000);
-    setInterval(() => app.triggerTrivia(), 60000);
-});
+document.addEventListener('DOMContentLoaded', () => { app.sync(); setInterval(() => app.sync(), 30000); setTimeout(() => app.triggerTrivia(), 5000); setInterval(() => app.triggerTrivia(), 60000); });
