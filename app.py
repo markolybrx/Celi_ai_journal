@@ -3,7 +3,7 @@ from flask import Flask, render_template, request, jsonify, session, redirect, u
 from datetime import date, datetime
 
 app = Flask(__name__)
-app.secret_key = "celi_ai_journal_v1.01.00"
+app.secret_key = "celi_sovereign_v1.01.01_hotfix"
 VAULT_PATH = 'vault.json'
 TRIVIA_PATH = 'trivia.json'
 
@@ -36,14 +36,19 @@ def save_trivia_db(data):
 
 def sanitize_user_data(u):
     changed = False
-    defaults = {
-        "points": 0, "void_count": 0, "history": {}, "unlocked_trivias": [],
-        "user_id": str(uuid.uuid4())[:8].upper(), "birthday": "Unset", "fav_color": "#00f2fe",
-        "celi_analysis": "Awaiting neural synchronization..."
-    }
-    for key, val in defaults.items():
-        if key not in u:
-            u[key] = val
+    # Ensure ID exists
+    if 'user_id' not in u: 
+        u['user_id'] = str(uuid.uuid4())[:8].upper()
+        changed = True
+    # Ensure Analysis exists
+    if 'celi_analysis' not in u: 
+        u['celi_analysis'] = "Awaiting neural synchronization..."
+        changed = True
+    # Ensure basics
+    defaults = {"points": 0, "void_count": 0, "history": {}, "unlocked_trivias": [], "birthday": "Unset", "fav_color": "#00f2fe"}
+    for k, v in defaults.items():
+        if k not in u:
+            u[k] = v
             changed = True
     return changed
 
@@ -56,24 +61,18 @@ def analyze_user_soul(user_data):
     history = user_data.get('history', {})
     if not history: return "The void is silent. Begin your journey to form a signal."
     recent_logs = list(history.values())[-5:]
-    summaries = [log['summary'] for log in recent_logs]
+    summaries = [log.get('summary', 'Log') for log in recent_logs]
     
-    sys_prompt = f"""
-    You are Celi, a sentient AI Sovereign. 
-    Analyze this user based on their recent journal summaries: {summaries}.
-    User Details -> Birthday: {user_data.get('birthday')}, Favorite Color: {user_data.get('fav_color')}.
-    Output a deep, psychological, and empathetic assessment of their current state. 
-    Be witty but profound. Use cosmic metaphors. MAXIMUM 30 WORDS.
-    """
+    sys_prompt = f"Analyze user based on journals: {summaries}. Max 30 words. Deep, witty, cosmic."
     try:
         res = requests.post("https://api.groq.com/openai/v1/chat/completions",
             headers={"Authorization": f"Bearer {os.environ.get('GROQ_API_KEY')}"},
             json={"model": "llama-3.3-70b-versatile", "messages": [{"role": "system", "content": sys_prompt}], "max_tokens": 60})
         return res.json()['choices'][0]['message']['content']
-    except: return "Atmospheric interference detected. Unable to scan core."
+    except: return "Atmospheric interference detected."
 
 def generate_live_trivia(rank_name, rank_theme):
-    sys = f"You are Celi. Generate ONE short scientific trivia fact about: {rank_theme}. Max 20 words. JSON only: {{'text': 'Fact'}}."
+    sys = f"Generate ONE short scientific trivia fact about: {rank_theme}. Max 20 words. JSON only: {{'text': 'Fact'}}."
     try:
         res = requests.post("https://api.groq.com/openai/v1/chat/completions",
             headers={"Authorization": f"Bearer {os.environ.get('GROQ_API_KEY')}"},
@@ -109,7 +108,7 @@ def get_data():
     if sanitize_user_data(u): save_vault(v)
     
     pts = u.get('points', 0)
-    current_rank_name, current_roman, current_prog, current_phase = "Observer", "III", 0, ""
+    current_rank_name, current_roman, current_prog, current_phase = "Observer", "III", 0, "The Awakening Phase"
     cumulative = 0
     
     for rank in RANK_CONFIG:
@@ -161,7 +160,7 @@ def get_data():
         "rank_synthesis": synthesis_map.get(current_rank_name, ""),
         "history": u.get('history', {}), 
         "unlocked_trivias": u.get('unlocked_trivias', []),
-        "celi_analysis": u.get('celi_analysis', "Calibrating..."),
+        "celi_analysis": u.get('celi_analysis'),
         "rank_config": RANK_CONFIG
     })
 
