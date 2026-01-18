@@ -9,20 +9,25 @@
         :root { --mood: #00f2fe; }
         body { background: #000; color: #fff; font-family: sans-serif; height: 100vh; display: flex; align-items: center; justify-content: center; overflow: hidden; position: relative; }
         
-        /* GLASS CONTAINER */
-        .glass-panel { width: 90%; max-width: 380px; background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 24px; padding: 30px; box-shadow: 0 20px 50px rgba(0,0,0,0.5); position: relative; overflow: hidden; transition: height 0.3s ease; }
+        .glass-panel { width: 90%; max-width: 380px; background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 24px; padding: 30px; box-shadow: 0 20px 50px rgba(0,0,0,0.5); position: relative; overflow: hidden; transition: all 0.4s ease; max-height: 90vh; overflow-y: auto; }
         .input-group { margin-bottom: 15px; position: relative; }
         .input-field { width: 100%; background: rgba(0, 0, 0, 0.3); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px; padding: 12px 15px; color: #fff; font-size: 13px; outline: none; transition: border-color 0.3s; }
         .input-field:focus { border-color: var(--mood); }
         .input-label { font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: rgba(255, 255, 255, 0.5); margin-bottom: 6px; display: block; }
+        
+        /* DROPDOWN STYLE */
+        select.input-field { appearance: none; -webkit-appearance: none; }
+        
         .btn-primary { width: 100%; padding: 14px; background: var(--mood); color: #000; border-radius: 12px; font-weight: 900; text-transform: uppercase; font-size: 11px; letter-spacing: 1px; cursor: pointer; transition: transform 0.2s; border: none; margin-top: 10px; }
         .btn-primary:active { transform: scale(0.98); }
         .btn-secondary { width: 100%; padding: 14px; background: rgba(255, 255, 255, 0.05); color: #fff; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px; font-weight: bold; text-transform: uppercase; font-size: 10px; cursor: pointer; margin-top: 10px; }
+        
         .hidden { display: none; }
         .text-link { color: var(--mood); cursor: pointer; text-decoration: underline; }
         
         .eye-btn { position: absolute; right: 12px; top: 35px; cursor: pointer; opacity: 0.6; }
         .eye-btn:hover { opacity: 1; }
+        .copy-btn { position: absolute; right: 12px; top: 35px; cursor: pointer; opacity: 0.6; background: rgba(255,255,255,0.1); padding: 4px; border-radius: 4px; }
         .color-dot { width: 20px; height: 20px; border-radius: 50%; position: absolute; right: 12px; top: 35px; border: 1px solid rgba(255,255,255,0.2); }
         
         #loading-overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.8); backdrop-filter: blur(5px); z-index: 50; display: none; align-items: center; justify-content: center; flex-direction: column; }
@@ -30,7 +35,8 @@
         @keyframes spin { to { transform: rotate(360deg); } }
         
         #privacy-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 100; display: none; align-items: center; justify-content: center; padding: 20px; }
-        .privacy-box { background: #111; border: 1px solid rgba(255,255,255,0.1); padding: 30px; border-radius: 20px; max-width: 500px; max-height: 80vh; overflow-y: auto; color: #ccc; font-size: 12px; line-height: 1.6; }
+        .privacy-box { background: #111; border: 1px solid rgba(255,255,255,0.1); padding: 30px; border-radius: 20px; max-width: 500px; max-height: 80vh; overflow-y: auto; color: #ccc; font-size: 12px; line-height: 1.6; text-align: justify; }
+        .privacy-box h3 { color: #fff; margin-top: 15px; margin-bottom: 5px; text-transform: uppercase; font-size: 11px; letter-spacing: 1px; }
     </style>
 </head>
 <body>
@@ -41,7 +47,7 @@
         <div id="view-login">
             <h1 class="text-3xl font-black text-center mb-8 tracking-tighter text-white">Celi</h1>
             <form onsubmit="handleLogin(event)">
-                <div class="input-group"><label class="input-label">Username</label><input type="text" name="username" class="input-field" placeholder="Traveler" required></div>
+                <div class="input-group"><label class="input-label">Username</label><input type="text" name="username" class="input-field" placeholder="Enter username" required></div>
                 <div class="input-group">
                     <label class="input-label">Password</label>
                     <input type="password" name="password" id="login-pass" class="input-field" placeholder="••••••" required>
@@ -51,6 +57,7 @@
                 </div>
                 <button type="submit" class="btn-primary">Log In</button>
             </form>
+            <div class="text-center mt-4"><p onclick="switchView('recovery')" class="text-[10px] text-white/50 cursor-pointer hover:text-white transition">Forgot Username or Password?</p></div>
             <button onclick="switchView('register')" class="btn-secondary">Register New Signal</button>
         </div>
 
@@ -61,39 +68,134 @@
                 <div class="input-group"><label class="input-label">Preferred Username</label><input type="text" name="reg_username" class="input-field" required></div>
                 <div class="input-group"><label class="input-label">Date of Birth</label><input type="date" name="dob" class="input-field" required></div>
                 <div class="input-group"><label class="input-label">Favorite Color</label><input type="text" id="color-input" name="fav_color" class="input-field" placeholder="Cyan, Gold, Purple..." oninput="updateColorPreview(this.value)"><div id="color-preview" class="color-dot" style="background-color: #00f2fe;"></div></div>
+                
+                <div class="input-group">
+                    <label class="input-label">Secret Question</label>
+                    <select name="secret_question" class="input-field" required>
+                        <option value="pet">What was the name of your first pet?</option>
+                        <option value="mother">What is your mother's maiden name?</option>
+                        <option value="school">What elementary school did you attend?</option>
+                        <option value="city">In what city were you born?</option>
+                    </select>
+                </div>
+                <div class="input-group"><label class="input-label">Secret Answer</label><input type="text" name="secret_answer" class="input-field" placeholder="Answer..." required></div>
+
                 <div class="input-group">
                     <label class="input-label">Password</label>
                     <input type="password" name="reg_password" id="reg-pass" class="input-field" required>
-                    <div class="eye-btn" onclick="togglePass('reg-pass')">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-                    </div>
+                    <div class="eye-btn" onclick="togglePass('reg-pass')"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></div>
                 </div>
-                <div class="input-group"><label class="input-label">Confirm Password</label><input type="password" id="confirm-pass" class="input-field" oninput="checkMatch()" required></div>
+                <div class="input-group">
+                    <label class="input-label">Confirm Password</label>
+                    <input type="password" id="confirm-pass" class="input-field" oninput="checkMatch()" required>
+                    <div class="eye-btn" onclick="togglePass('confirm-pass')"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></div>
+                </div>
                 <div class="flex items-start gap-3 my-4"><input type="checkbox" id="privacy-check" required class="mt-1"><label for="privacy-check" class="text-[10px] opacity-70 leading-tight">I agree to the <span class="text-link" onclick="openPrivacy()">Data Privacy Disclosure</span>. I understand my data is stored securely.</label></div>
                 <button type="submit" class="btn-primary">Register</button>
             </form>
             <button onclick="switchView('login')" class="btn-secondary">Already have an account?</button>
         </div>
+
+        <div id="view-recovery" class="hidden">
+            <h1 class="text-xl font-bold text-center mb-6 uppercase tracking-widest text-white/90">Signal Recovery</h1>
+            
+            <form id="rec-form-1" onsubmit="handleVerify(event)">
+                <p class="text-[10px] text-center mb-4 opacity-50">Please verify your identity to retrieve access.</p>
+                <div class="flex gap-2 mb-2"><div class="w-1/2"><label class="input-label">First Name</label><input type="text" name="fname" class="input-field" required></div><div class="w-1/2"><label class="input-label">Last Name</label><input type="text" name="lname" class="input-field" required></div></div>
+                <div class="input-group"><label class="input-label">Date of Birth</label><input type="date" name="dob" class="input-field" required></div>
+                <div class="input-group">
+                    <label class="input-label">Secret Question</label>
+                    <select name="secret_question" class="input-field" required>
+                        <option value="pet">What was the name of your first pet?</option>
+                        <option value="mother">What is your mother's maiden name?</option>
+                        <option value="school">What elementary school did you attend?</option>
+                        <option value="city">In what city were you born?</option>
+                    </select>
+                </div>
+                <div class="input-group"><label class="input-label">Secret Answer</label><input type="text" name="secret_answer" class="input-field" required></div>
+                <button type="submit" class="btn-primary">Verify Identity</button>
+            </form>
+
+            <form id="rec-form-2" class="hidden" onsubmit="handleReset(event)">
+                <div class="input-group">
+                    <label class="input-label">Your Username</label>
+                    <input type="text" id="rec-username" class="input-field" readonly style="color:var(--mood); font-weight:bold;">
+                    <div class="copy-btn" onclick="copyUser()">📋</div>
+                </div>
+                <div class="input-group">
+                    <label class="input-label">New Password</label>
+                    <input type="password" id="new-pass" class="input-field" required>
+                    <div class="eye-btn" onclick="togglePass('new-pass')"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></div>
+                </div>
+                <div class="input-group">
+                    <label class="input-label">Confirm New Password</label>
+                    <input type="password" id="conf-new-pass" class="input-field" oninput="checkResetMatch()" required>
+                    <div class="eye-btn" onclick="togglePass('conf-new-pass')"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></div>
+                </div>
+                <button type="submit" class="btn-primary">Confirm Reset</button>
+            </form>
+
+            <button onclick="switchView('login')" class="btn-secondary">Cancel</button>
+        </div>
+
     </div>
 
-    <div class="fixed bottom-4 w-full text-center pointer-events-none opacity-20 text-[9px] font-mono uppercase tracking-widest text-white">Celi Access v1.5.3</div>
+    <div class="fixed bottom-4 w-full text-center pointer-events-none opacity-20 text-[9px] font-mono uppercase tracking-widest text-white">Celi Access v1.6.0</div>
 
-    <div id="privacy-modal"><div class="privacy-box"><h2 class="text-xl font-bold mb-4 uppercase text-white">Data Privacy Disclosure</h2><p class="mb-3"><strong>1. Data Storage:</strong> Celi uses a secure, encrypted cloud database (MongoDB Atlas) to store your journal entries, rank progress, and user preferences.</p><p class="mb-3"><strong>2. AI Processing:</strong> Your journal entries are processed ephemerally by our AI provider (Google Gemini) solely to generate responses.</p><p class="mb-3"><strong>3. Sovereignty:</strong> You retain full ownership of your data.</p><button onclick="document.getElementById('privacy-modal').style.display='none'" class="btn-primary">I Understand</button></div></div>
+    <div id="privacy-modal">
+        <div class="privacy-box">
+            <h2 class="text-xl font-bold mb-4 uppercase text-white tracking-widest text-center">Data & Privacy Disclosure</h2>
+            
+            <h3>1. Introduction</h3>
+            <p>Welcome to Celi. By registering a "Signal" (User Account), you entrust us with personal thoughts, emotions, and biographical data. We take this responsibility as a sacred duty. This document outlines exactly how your data is handled, stored, and protected.</p>
+            
+            <h3>2. Data Storage & Infrastructure</h3>
+            <p>Celi utilizes <strong>MongoDB Atlas</strong>, an industry-leading cloud database provider, to store your information. Your data (including your username, hashed credentials, journal entries, and progress stats) resides in an encrypted cluster protected by network firewalls. Access is strictly limited to the Celi application interface.</p>
+            
+            <h3>3. AI Interactions & Ephemeral Processing</h3>
+            <p>Celi is powered by <strong>Google Gemini</strong>. When you submit a journal entry, the text is transmitted securely to Gemini's API for the sole purpose of generating an immediate response and a psychological summary. <strong>We do not grant AI providers the right to use your personal journal entries to train their public models.</strong> The processing is ephemeral: once the response is generated, the AI context is flushed, though a record of the conversation is saved in your Celi Vault for your personal history.</p>
+            
+            <h3>4. User Sovereignty & Rights</h3>
+            <p>You are the architect of your own universe. You retain full ownership of all data generated within Celi. You have the right to:</p>
+            <ul class="list-disc pl-4 mt-1 mb-2">
+                <li>Access your full history at any time via the Archive/Vault.</li>
+                <li>Permanently delete your account and all associated data instantly via the Profile Settings. When you click "Delete," your document is removed from our database entirely. It is not "soft deleted"—it is gone forever.</li>
+            </ul>
+
+            <h3>5. Security Measures</h3>
+            <p>We employ HTTPS (SSL/TLS) encryption for all data in transit between your device and our servers. We implement Identity Verification protocols (Secret Questions) to prevent unauthorized access to your account.</p>
+
+            <button onclick="document.getElementById('privacy-modal').style.display='none'" class="btn-primary mt-6">I Acknowledge & Consent</button>
+        </div>
+    </div>
 
     <script>
-        function switchView(view) { document.getElementById('view-login').classList.add('hidden'); document.getElementById('view-register').classList.add('hidden'); document.getElementById('view-' + view).classList.remove('hidden'); }
+        // --- GLOBAL STATE ---
+        let recoveryData = {};
+
+        function switchView(view) {
+            ['login', 'register', 'recovery'].forEach(v => document.getElementById('view-'+v).classList.add('hidden'));
+            document.getElementById('view-' + view).classList.remove('hidden');
+        }
         function togglePass(id) { const el = document.getElementById(id); el.type = el.type === 'password' ? 'text' : 'password'; }
-        function updateColorPreview(val) { const s = new Option().style; s.color = val; if (s.color !== '') { document.getElementById('color-preview').style.backgroundColor = val; } }
+        function updateColorPreview(val) { const s = new Option().style; s.color = val; if (s.color !== '') document.getElementById('color-preview').style.backgroundColor = val; }
         function checkMatch() { const p1 = document.getElementById('reg-pass').value; const p2 = document.getElementById('confirm-pass'); p2.style.borderColor = p2.value !== p1 ? 'red' : 'rgba(255,255,255,0.1)'; }
+        function checkResetMatch() { const p1 = document.getElementById('new-pass').value; const p2 = document.getElementById('conf-new-pass'); p2.style.borderColor = p2.value !== p1 ? 'red' : 'rgba(255,255,255,0.1)'; }
         function openPrivacy() { document.getElementById('privacy-modal').style.display = 'flex'; }
         function showLoading(msg) { document.getElementById('loading-text').innerText = msg; document.getElementById('loading-overlay').style.display = 'flex'; }
+        function copyUser() {
+            const u = document.getElementById('rec-username');
+            u.select(); document.execCommand('copy');
+            alert("Username copied to clipboard.");
+        }
 
         async function handleLogin(e) {
             e.preventDefault(); showLoading("Logging you in...");
             const form = new FormData(e.target);
             setTimeout(async () => {
                 const res = await fetch('/login', { method: 'POST', body: form });
-                if (res.ok) { window.location.href = '/'; } else { alert("Access Denied."); document.getElementById('loading-overlay').style.display = 'none'; }
+                if (res.ok) window.location.href = '/'; 
+                else { alert("Access Denied."); document.getElementById('loading-overlay').style.display = 'none'; }
             }, 1000);
         }
 
@@ -105,9 +207,37 @@
             const data = Object.fromEntries(formData.entries());
             setTimeout(async () => {
                 const res = await fetch('/api/register', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(data) });
-                if (res.ok) { alert("Registration Complete."); document.getElementById('loading-overlay').style.display = 'none'; switchView('login'); } else { const err = await res.json(); alert("Error: " + (err.error || "Failed")); document.getElementById('loading-overlay').style.display = 'none'; }
+                if (res.ok) { alert("Registration Complete."); document.getElementById('loading-overlay').style.display = 'none'; switchView('login'); } 
+                else { const err = await res.json(); alert("Error: " + (err.error || "Failed")); document.getElementById('loading-overlay').style.display = 'none'; }
             }, 1500);
         }
-    </script>
-</body>
-</html>
+
+        async function handleVerify(e) {
+            e.preventDefault();
+            showLoading("Verifying Identity...");
+            const formData = new FormData(e.target);
+            recoveryData = Object.fromEntries(formData.entries()); // Store for Step 2
+            
+            setTimeout(async () => {
+                const res = await fetch('/api/recover', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(recoveryData) });
+                const d = await res.json();
+                
+                if (res.ok) {
+                    document.getElementById('rec-form-1').classList.add('hidden');
+                    document.getElementById('rec-form-2').classList.remove('hidden');
+                    document.getElementById('rec-username').value = d.username;
+                    recoveryData.username = d.username; // Save username for reset step
+                    document.getElementById('loading-overlay').style.display = 'none';
+                } else {
+                    alert("Verification Failed: " + d.error);
+                    document.getElementById('loading-overlay').style.display = 'none';
+                }
+            }, 1500);
+        }
+
+        async function handleReset(e) {
+            e.preventDefault();
+            if(document.getElementById('new-pass').value !== document.getElementById('conf-new-pass').value) { alert("Passwords do not match."); return; }
+            
+            showLoading("Updating Your Access...");
+            const newPass = document.
