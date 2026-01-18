@@ -1,8 +1,8 @@
-const CACHE_NAME = 'celi-ai-v1.6.0';
+const CACHE_NAME = 'celi-ai-v1.6.1';
 const ASSETS_TO_CACHE = [
     '/static/manifest.json',
     '/static/image.png',
-    '/static/script.js?v=1.5.3',
+    '/static/script.js?v=1.5.3', // Use last stable script version
     'https://cdn.tailwindcss.com'
 ];
 
@@ -12,13 +12,7 @@ self.addEventListener('install', (event) => {
 });
 
 self.addEventListener('activate', (event) => {
-    event.waitUntil(
-        caches.keys().then((keyList) => {
-            return Promise.all(keyList.map((key) => {
-                if (key !== CACHE_NAME) return caches.delete(key);
-            }));
-        }).then(() => self.clients.claim())
-    );
+    event.waitUntil(caches.keys().then((keyList) => Promise.all(keyList.map((key) => { if (key !== CACHE_NAME) return caches.delete(key); }))).then(() => self.clients.claim()));
 });
 
 self.addEventListener('fetch', (event) => {
@@ -26,15 +20,5 @@ self.addEventListener('fetch', (event) => {
         event.respondWith(fetch(event.request).catch(() => new Response("You are offline.", { headers: { 'Content-Type': 'text/plain' } })));
         return;
     }
-    event.respondWith(
-        caches.match(event.request).then((cachedResponse) => {
-            if (cachedResponse) return cachedResponse;
-            return fetch(event.request).then((networkResponse) => {
-                if (!networkResponse || networkResponse.status !== 200 || networkResponse.type !== 'basic') return networkResponse;
-                const responseToCache = networkResponse.clone();
-                caches.open(CACHE_NAME).then((cache) => cache.put(event.request, responseToCache));
-                return networkResponse;
-            });
-        })
-    );
+    event.respondWith(caches.match(event.request).then((cachedResponse) => { if (cachedResponse) return cachedResponse; return fetch(event.request).then((networkResponse) => { if (!networkResponse || networkResponse.status !== 200 || networkResponse.type !== 'basic') return networkResponse; const responseToCache = networkResponse.clone(); caches.open(CACHE_NAME).then((cache) => cache.put(event.request, responseToCache)); return networkResponse; }); }));
 });
