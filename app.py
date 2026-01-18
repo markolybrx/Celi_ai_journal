@@ -3,7 +3,7 @@ from flask import Flask, render_template, request, jsonify, session, redirect, u
 from datetime import date, datetime
 
 app = Flask(__name__)
-app.secret_key = "celi_sovereign_v10.28_version_footer"
+app.secret_key = "celi_sovereign_v10.30_global_sync"
 VAULT_PATH = 'vault.json'
 TRIVIA_PATH = 'trivia.json'
 
@@ -35,7 +35,6 @@ def save_trivia_db(data):
     with open(TRIVIA_PATH, 'w') as f: json.dump(data, f, indent=4)
 
 def sanitize_user_data(u):
-    # CRITICAL FIX: Ensure no fields are missing to prevent JS crashes
     changed = False
     defaults = {
         "points": 0, "void_count": 0, "history": {}, "unlocked_trivias": [],
@@ -72,12 +71,10 @@ def get_trivia():
     if 'user' not in session: return jsonify({"trivia": "Connecting..."})
     v = get_vault(); u = v['users'][session['user']]
     if sanitize_user_data(u): save_vault(v)
-    
     rank_name, rank_theme = get_rank_info(u.get('points', 0))
     full_db = get_trivia_db()
     unlocked = u.setdefault('unlocked_trivias', [])
     available = [t for t in full_db if t['rank'] == rank_name and t['text'] not in unlocked]
-    
     fact = random.choice(available)['text'] if available else generate_live_trivia(rank_name, rank_theme)
     if fact not in unlocked:
         u['unlocked_trivias'].append(fact)
@@ -91,12 +88,8 @@ def get_data():
     if sanitize_user_data(u): save_vault(v)
     
     pts = u.get('points', 0)
-    current_rank_name = "Observer"
-    current_roman = "III"
-    current_prog = 0
-    current_phase = ""
+    current_rank_name, current_roman, current_prog, current_phase = "Observer", "III", 0, ""
     cumulative = 0
-    
     for rank in RANK_CONFIG:
         start_pts = cumulative
         end_pts = rank['threshold']
@@ -105,27 +98,21 @@ def get_data():
             current_phase = rank['phase']
             pts_in_rank = pts - start_pts
             stars_per = rank['stars_per_lvl']
-            
             level_idx = pts_in_rank // stars_per
             max_lvl = rank['levels']
             current_lvl_num = max(1, max_lvl - int(level_idx))
             roman_map = {1: "I", 2: "II", 3: "III", 4: "IV", 5: "V"}
             current_roman = roman_map.get(current_lvl_num, "I")
-            
             pts_in_level = pts_in_rank % stars_per
             current_prog = (pts_in_level / stars_per) * 100
             break
         cumulative = end_pts
     else:
-        current_rank_name = "Ethereal"
-        current_roman = "I"
-        current_prog = 100
-        current_phase = RANK_CONFIG[-1]['phase']
+        current_rank_name, current_roman, current_prog, current_phase = "Ethereal", "I", 100, RANK_CONFIG[-1]['phase']
 
     count = len(u.get('history', {}))
-    analysis = "Signal faint. Identity forming." if count < 5 else "Trajectory stable. Core gravity increasing." if count < 20 else "Singularity approaching. Alignment optimal."
+    analysis = "Signal faint. Identity forming." if count < 5 else "Trajectory stable."
     
-    # Synthesis Map
     synthesis_map = {
         "Observer": "Like the first light striking a lens, you are beginning to perceive your thoughts.",
         "Moonwalker": "The ego functions as a satellite. You are learning to navigate the quiet landscape.",
@@ -168,9 +155,7 @@ def update_profile():
 def delete_user():
     if 'user' not in session: return jsonify({"status": "error"})
     v = get_vault()
-    if session['user'] in v['users']:
-        del v['users'][session['user']]
-        save_vault(v)
+    if session['user'] in v['users']: del v['users'][session['user']]; save_vault(v)
     session.clear()
     return jsonify({"status": "success"})
 
@@ -196,9 +181,7 @@ def login():
     if request.method == 'POST':
         session['user'] = request.form['username']
         v = get_vault()
-        if session['user'] not in v['users']:
-            v['users'][session['user']] = {}
-            save_vault(v)
+        if session['user'] not in v['users']: v['users'][session['user']] = {}; save_vault(v)
         return redirect(url_for('home'))
     return render_template('auth.html')
 
@@ -208,10 +191,7 @@ def home():
     return render_template('index.html')
 
 @app.route('/logout')
-def logout():
-    session.clear()
-    return redirect(url_for('login'))
+def logout(): session.clear(); return redirect(url_for('login'))
 
-if __name__ == '__main__':
-    app.run(debug=True)
+if __name__ == '__main__': app.run(debug=True)
     
