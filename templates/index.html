@@ -3,8 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
-    <title>Celi Sovereign</title>
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
+
+    <title>Celi: AI Journal Companion</title>
     <link rel="manifest" href="/static/manifest.json">
     <link rel="apple-touch-icon" href="/static/image.png">
     <script src="https://cdn.tailwindcss.com"></script>
@@ -12,26 +16,58 @@
         :root { --mood: #00f2fe; }
         html, body { background: #000; color: #fff; overflow: hidden; height: 100%; width: 100%; font-family: sans-serif; touch-action: none; }
         
-        /* UNIFIED BUTTON DESIGN (Cosmic Lens) */
+        /* UNIFIED BUTTON DESIGN (Solid Pastel) */
         .btn-cosmic { 
-            width: 48px; height: 48px; 
+            width: 54px; height: 54px; 
             border-radius: 50%; 
-            background: rgba(20, 20, 20, 0.6); 
-            border: 1px solid rgba(255, 255, 255, 0.15); 
-            backdrop-filter: blur(12px); 
+            background: var(--mood); /* Solid Pastel Color */
+            color: #000; /* Dark Icon for Contrast */
+            border: 2px solid rgba(255, 255, 255, 0.8); 
             display: flex; align-items: center; justify-content: center; 
-            color: white; 
-            box-shadow: 0 4px 12px rgba(0,0,0,0.3); 
-            transition: all 0.3s ease; 
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
             pointer-events: auto;
             cursor: pointer;
+            font-weight: bold;
         }
-        .btn-cosmic:active { transform: scale(0.9); background: rgba(255, 255, 255, 0.1); }
+        .btn-cosmic:active { transform: scale(0.9); filter: brightness(0.9); }
         
-        /* Floating Position */
-        #ai-fab { position: fixed; bottom: 125px; left: 20px; z-index: 4500; border-color: var(--mood); color: var(--mood); box-shadow: 0 0 15px rgba(0,0,0,0.5); }
-        .pulse-slow { animation: pulseSlow 4s infinite ease-in-out; }
-        @keyframes pulseSlow { 0%, 100% { box-shadow: 0 0 10px var(--mood); } 50% { box-shadow: 0 0 25px var(--mood); } }
+        /* Active Glowing State (For AI Button) */
+        .btn-glow {
+            box-shadow: 0 0 20px var(--mood), 0 0 40px var(--mood);
+            animation: moodPulse 3s infinite ease-in-out;
+        }
+        @keyframes moodPulse {
+            0%, 100% { transform: scale(1); box-shadow: 0 0 15px var(--mood); }
+            50% { transform: scale(1.05); box-shadow: 0 0 30px var(--mood), 0 0 10px white; }
+        }
+
+        /* Static State (For Close Buttons) */
+        .btn-static {
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5); /* Simple shadow, no glow */
+        }
+
+        /* Floating Position - RIGHT SIDE */
+        #ai-fab { 
+            position: fixed; 
+            bottom: 130px; /* Clear of the bottom menu */
+            right: 25px;   /* Moved to Right */
+            z-index: 4500; 
+        }
+
+        /* WHISPER BUBBLE (Adjusted for Right Side) */
+        #trivia-whisper { 
+            position: fixed; 
+            bottom: 140px; 
+            right: 90px; /* To the left of the button */
+            width: 220px; 
+            background: rgba(10, 10, 10, 0.95); 
+            border: 1px solid var(--mood); 
+            border-radius: 20px 20px 0 20px; 
+            padding: 15px; font-size: 10px; color: #fff;
+            display: none; z-index: 4400; 
+            backdrop-filter: blur(10px); 
+            box-shadow: 0 0 20px rgba(0,0,0,0.5); 
+        }
 
         /* Standard Assets */
         .star-four-point { width: 12px; height: 12px; background: currentColor; clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%); }
@@ -40,12 +76,8 @@
         .card-glass { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1); border-radius: 24px; padding: 20px; margin-bottom: 12px; }
         .nav-btn { font-size: 8px; font-weight: 900; text-transform: uppercase; opacity: 0.3; transition: 0.3s; pointer-events: auto; }
         .active-btn { opacity: 1; color: var(--mood); }
-        
-        /* Whisper Bubble */
-        #trivia-whisper { position: fixed; bottom: 180px; left: 20px; width: 220px; background: rgba(10, 10, 10, 0.9); border: 1px solid var(--mood); border-radius: 20px 20px 20px 0; padding: 15px; font-size: 10px; display: none; z-index: 4400; backdrop-filter: blur(10px); box-shadow: 0 0 20px rgba(0,0,0,0.5); }
-        
-        #debug-status { opacity: 0.3; font-size: 9px; position: fixed; bottom: 30px; width: 100%; text-align: center; pointer-events: none; color: #fff; z-index: 6000; }
         .profile-img { width: 100%; height: 100%; object-fit: cover; }
+        #debug-status { opacity: 0.3; font-size: 9px; position: fixed; bottom: 30px; width: 100%; text-align: center; pointer-events: none; color: #fff; z-index: 6000; }
     </style>
 </head>
 <body>
@@ -74,8 +106,8 @@
 
     <main id="galaxy-container" class="fixed inset-0 overflow-hidden"></main>
 
-    <button id="ai-fab" class="btn-cosmic pulse-slow" onclick="app.showIntent()">
-        <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.384-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" /></svg>
+    <button id="ai-fab" class="btn-cosmic btn-glow" onclick="app.showIntent()">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.384-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" /></svg>
     </button>
     <div id="trivia-whisper"><p id="whisper-text">---</p></div>
 
@@ -86,7 +118,8 @@
         <div onclick="app.closeUI()" class="nav-btn active-btn">Galaxy</div>
         <div onclick="app.openTab('profile')" class="nav-btn">Profile</div>
     </nav>
-    <div class="fixed bottom-2 w-full text-center z-[5000] pointer-events-none opacity-30 text-[8px] font-mono tracking-widest text-white">celi_ai v1.2.6</div>
+    
+    <div class="fixed bottom-2 w-full text-center z-[5000] pointer-events-none opacity-30 text-[8px] font-mono tracking-widest text-white">Celi: AI Journal Companion v1.2.8</div>
     <div id="debug-status">Initializing...</div>
 
     <div id="rank-portal-overlay" class="overlay">
@@ -98,7 +131,7 @@
             <h2 id="portal-rank-name" class="text-3xl font-black uppercase tracking-tighter text-cyan-400 mb-8">---</h2>
             <div class="w-full card-glass border-l-4 border-cyan-400 mb-8 bg-white/5"><p id="portal-synthesis-text" class="text-sm italic leading-relaxed text-white/90"></p></div>
             <div id="portal-future-list" class="w-full space-y-2 pb-4"></div>
-            <button onclick="app.closeUI()" class="btn-cosmic mt-4"><svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg></button>
+            <button onclick="app.closeUI()" class="btn-cosmic btn-static mt-4"><svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg></button>
         </div>
     </div>
     
@@ -110,16 +143,16 @@
             <div class="w-full card-glass border-red-500/20 mb-8"><p class="text-[11px]">Void Entropy: <span id="entropy-val" class="text-red-500">0%</span></p></div>
             <div class="w-full flex gap-4 mb-8"><button onclick="app.confirmDelete()" class="flex-1 py-4 bg-red-900/20 text-red-400 text-[9px] font-bold uppercase rounded-xl">Delete Data</button><button onclick="window.location.href='/logout'" class="flex-1 py-4 bg-white/5 text-white text-[9px] font-bold uppercase rounded-xl">Logout</button></div>
             <div class="mt-auto text-center opacity-30 px-4"><h4 class="text-[9px] font-bold uppercase mb-2">Data Sovereignty</h4><p class="text-[8px]">Data stored locally.</p></div>
-            <button onclick="app.closeUI()" class="btn-cosmic mt-6"><svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg></button>
+            <button onclick="app.closeUI()" class="btn-cosmic btn-static mt-6"><svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg></button>
         </div>
     </div>
 
     <div id="chat-overlay" class="overlay" style="padding: 130px 25px 100px;"><div id="chat-scroller" class="flex flex-col-reverse overflow-y-auto flex-grow pb-4"><div id="msg-container" class="flex flex-col"></div></div><div class="pb-10 pt-4"><textarea id="msg-input" class="w-full bg-white/5 rounded-3xl p-6 text-white outline-none border border-white/10" placeholder="Speak..."></textarea><button onclick="app.sendAction()" class="mt-4 w-full py-5 bg-white text-black font-black uppercase rounded-2xl">Transmit</button><button onclick="app.closeUI()" class="mt-4 w-full text-[10px] opacity-20 uppercase text-center">Minimize</button></div></div>
-    <div id="archive-overlay" class="overlay"><div class="portal-content"><h2 class="text-3xl font-black mb-8 uppercase">Archive</h2><div id="archive-list" class="space-y-4 w-full"></div><button onclick="app.closeUI()" class="btn-cosmic mt-6"><svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg></button></div></div>
-    <div id="vault-overlay" class="overlay"><div class="portal-content"><h2 class="text-3xl font-black mb-8 uppercase">Vault</h2><div id="vault-content" class="space-y-4 w-full"></div><button onclick="app.closeUI()" class="btn-cosmic mt-6"><svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg></button></div></div>
+    <div id="archive-overlay" class="overlay"><div class="portal-content"><h2 class="text-3xl font-black mb-8 uppercase">Archive</h2><div id="archive-list" class="space-y-4 w-full"></div><button onclick="app.closeUI()" class="btn-cosmic btn-static mt-6"><svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg></button></div></div>
+    <div id="vault-overlay" class="overlay"><div class="portal-content"><h2 class="text-3xl font-black mb-8 uppercase">Vault</h2><div id="vault-content" class="space-y-4 w-full"></div><button onclick="app.closeUI()" class="btn-cosmic btn-static mt-6"><svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg></button></div></div>
     <div id="intent-modal" class="fixed inset-0 bg-black/95 z-[6000] hidden items-center justify-center"><div class="text-center p-10 space-y-4 w-full"><button onclick="app.startChat('journal')" class="w-full py-6 bg-white text-black font-black uppercase rounded-xl">Grow Star</button><button onclick="app.startChat('rant')" class="w-full py-6 bg-white/10 text-white font-black border border-white/20 uppercase rounded-xl">Cast Void</button><button onclick="app.closeUI()" class="opacity-20 uppercase text-[10px] mt-4">Close</button></div></div>
     <div id="edit-modal" class="fixed inset-0 bg-black/95 z-[6000] hidden items-center justify-center p-8"><div class="glass w-full max-w-sm p-8 rounded-3xl border border-white/10 bg-gray-900"><h3 class="text-xl font-black uppercase mb-6 text-center">Update Signal</h3><div class="mb-4"><label class="text-[9px] uppercase opacity-50 block mb-2">Profile Picture</label><input type="file" id="edit-pic" accept="image/*" class="w-full text-xs text-white"></div><div class="mb-4"><label class="text-[9px] uppercase opacity-50 block mb-2">Date of Birth</label><input type="date" id="edit-bday" class="w-full bg-white/5 border border-white/10 rounded-xl p-4 text-white text-xs"></div><div class="mb-6"><label class="text-[9px] uppercase opacity-50 block mb-2">Resonance Color</label><input type="color" id="edit-color" class="bg-transparent w-full h-10 rounded-xl overflow-hidden border-none" value="#00f2fe"></div><div class="flex gap-2"><button onclick="app.saveProfile()" class="flex-1 py-3 bg-white text-black font-bold uppercase rounded-xl text-xs">Confirm</button><button onclick="document.getElementById('edit-modal').style.display='none'" class="flex-1 py-3 bg-white/10 text-white font-bold uppercase rounded-xl text-xs">Cancel</button></div></div></div>
 
-    <script src="/static/script.js?v=1.2.6"></script>
+    <script src="/static/script.js?v=1.2.8"></script>
 </body>
 </html>
