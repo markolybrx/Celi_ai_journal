@@ -1,8 +1,8 @@
-const CACHE_NAME = 'celi-ai-v1.6.1';
+const CACHE_NAME = 'celi-ai-v1.6.2';
 const ASSETS_TO_CACHE = [
     '/static/manifest.json',
     '/static/image.png',
-    '/static/script.js?v=1.5.3', // Use last stable script version
+    '/static/script.js?v=1.5.3',
     'https://cdn.tailwindcss.com'
 ];
 
