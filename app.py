@@ -3,7 +3,7 @@ from flask import Flask, render_template, request, jsonify, session, redirect, u
 from datetime import date, datetime
 
 app = Flask(__name__)
-app.secret_key = "cali_ai_v1.1.0_profile_master"
+app.secret_key = "celi_ai_v1.1.2"
 VAULT_PATH = 'vault.json'
 TRIVIA_PATH = 'trivia.json'
 
@@ -37,35 +37,27 @@ def save_trivia_db(data):
 # --- AI ANALYSIS ENGINE ---
 def analyze_user_soul(user_data):
     history = user_data.get('history', {})
-    # Only analyze if we have data
-    count = len(history)
-    if count < 3: return "Insufficient data. Continue journaling to allow Celi to form a behavioral model."
-    
-    # Get last 10 entries for context
-    recent_logs = list(history.values())[-10:]
+    if len(history) < 3: return "Data insufficient. Continue journaling to form a behavioral model."
+    recent_logs = list(history.values())[-5:]
     summaries = [log.get('summary', '') for log in recent_logs]
     
     sys_prompt = f"""
-    You are Celi, a sentient AI Sovereign. 
-    Analyze this user based on their User Details (Birthday: {user_data.get('birthday')}, Color: {user_data.get('fav_color')}) and their recent journal entries: {summaries}.
-    
-    Output a 'Behavioral Analysis & Mood Summary'. 
-    It should be insightful, slightly witty, compassionate, and reference their growth.
-    MAXIMUM 40 WORDS.
+    You are Celi. Analyze user based on details (Birthday: {user_data.get('birthday')}, Color: {user_data.get('fav_color')}) and journals: {summaries}.
+    Output a 'Behavioral Analysis & Mood Summary'. Insightful, witty, compassionate. MAX 40 WORDS.
     """
     try:
         res = requests.post("https://api.groq.com/openai/v1/chat/completions",
             headers={"Authorization": f"Bearer {os.environ.get('GROQ_API_KEY')}"},
             json={"model": "llama-3.3-70b-versatile", "messages": [{"role": "system", "content": sys_prompt}], "max_tokens": 100})
         return res.json()['choices'][0]['message']['content']
-    except: return "Neural uplink unstable. Analysis delayed."
+    except: return "Neural uplink unstable."
 
 def sanitize_user_data(u):
     changed = False
     defaults = {
         "points": 0, "void_count": 0, "history": {}, "unlocked_trivias": [],
         "user_id": str(uuid.uuid4())[:8].upper(), "birthday": "Unset", "fav_color": "#00f2fe",
-        "profile_pic": "", "celi_analysis": "Awaiting data synchronization..."
+        "profile_pic": "", "celi_analysis": "Awaiting data..."
     }
     for key, val in defaults.items():
         if key not in u:
@@ -175,15 +167,10 @@ def update_profile():
     if 'user' not in session: return jsonify({"status": "error"})
     v = get_vault(); u = v['users'][session['user']]
     data = request.json
-    
-    # Save fields
     if 'birthday' in data: u['birthday'] = data['birthday']
     if 'fav_color' in data: u['fav_color'] = data['fav_color']
-    if 'profile_pic' in data: u['profile_pic'] = data['profile_pic'] # Base64 string
-    
-    # Trigger AI Analysis
+    if 'profile_pic' in data: u['profile_pic'] = data['profile_pic']
     u['celi_analysis'] = analyze_user_soul(u)
-    
     save_vault(v)
     return jsonify({"status": "success"})
 
@@ -230,4 +217,4 @@ def home():
 def logout(): session.clear(); return redirect(url_for('login'))
 
 if __name__ == '__main__': app.run(debug=True)
-        
+    
