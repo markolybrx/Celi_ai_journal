@@ -2,11 +2,26 @@ import os, json, time, random, uuid
 from flask import Flask, render_template, request, jsonify, session, redirect, url_for
 from datetime import date
 import google.generativeai as genai
+from pymongo import MongoClient
 
 app = Flask(__name__)
-app.secret_key = "celi_ai_v1.3.0_anchor_build"
-VAULT_PATH = 'vault.json'
-TRIVIA_PATH = 'trivia.json'
+app.secret_key = "celi_ai_v1.4.0_mongo_core"
+
+# --- MONGODB CONNECTION ---
+MONGO_URI = os.environ.get("MONGO_URI")
+db = None
+users_col = None
+
+if MONGO_URI:
+    try:
+        client = MongoClient(MONGO_URI)
+        db = client.get_database("celi_db")
+        users_col = db.users
+        print("✅ MONGODB CONNECTED")
+    except Exception as e:
+        print(f"❌ MONGO CONNECTION FAILED: {e}")
+else:
+    print("⚠️ WARNING: MONGO_URI not found. App will crash on data access.")
 
 # --- GEMINI CONFIGURATION ---
 model = None
@@ -17,117 +32,74 @@ try:
         model = genai.GenerativeModel('gemini-1.5-flash', 
             generation_config={"response_mime_type": "application/json"})
     else:
-        print("WARNING: GEMINI_API_KEY missing. AI in Simulation Mode.")
+        print("⚠️ GEMINI_API_KEY missing. AI Disabled.")
 except Exception as e:
     print(f"AI INIT ERROR: {e}")
 
 RANK_CONFIG = [
-    {"name": "Observer", "levels": 3, "stars_per_lvl": 2, "threshold": 6, "phase": "The Awakening Phase", "theme": "Light, Eyes, Perception"},
-    {"name": "Moonwalker", "levels": 3, "stars_per_lvl": 2, "threshold": 12, "phase": "The Awakening Phase", "theme": "The Moon, Craters, Tides"},
-    {"name": "Celestial", "levels": 4, "stars_per_lvl": 3, "threshold": 24, "phase": "The Ignition Phase", "theme": "Planetary Orbits, Mechanics"},
-    {"name": "Stellar", "levels": 4, "stars_per_lvl": 3, "threshold": 36, "phase": "The Ignition Phase", "theme": "Stars, The Sun, Fusion"},
-    {"name": "Interstellar", "levels": 5, "stars_per_lvl": 4, "threshold": 56, "phase": "The Expansion Phase", "theme": "Nebulas, Void, Voyager"},
-    {"name": "Galactic", "levels": 5, "stars_per_lvl": 4, "threshold": 76, "phase": "The Expansion Phase", "theme": "Milky Way, Black Holes"},
-    {"name": "Ethereal", "levels": 5, "stars_per_lvl": 8, "threshold": 116, "phase": "The Singularity", "theme": "Universe, Quantum, Entropy"}
+    {"name": "Observer", "levels": 3, "stars_per_lvl": 2, "threshold": 6, "phase": "The Awakening Phase"},
+    {"name": "Moonwalker", "levels": 3, "stars_per_lvl": 2, "threshold": 12, "phase": "The Awakening Phase"},
+    {"name": "Celestial", "levels": 4, "stars_per_lvl": 3, "threshold": 24, "phase": "The Ignition Phase"},
+    {"name": "Stellar", "levels": 4, "stars_per_lvl": 3, "threshold": 36, "phase": "The Ignition Phase"},
+    {"name": "Interstellar", "levels": 5, "stars_per_lvl": 4, "threshold": 56, "phase": "The Expansion Phase"},
+    {"name": "Galactic", "levels": 5, "stars_per_lvl": 4, "threshold": 76, "phase": "The Expansion Phase"},
+    {"name": "Ethereal", "levels": 5, "stars_per_lvl": 8, "threshold": 116, "phase": "The Singularity"}
 ]
 
-def get_vault():
-    if not os.path.exists(VAULT_PATH):
-        with open(VAULT_PATH, 'w') as f: json.dump({"users": {}}, f)
-    with open(VAULT_PATH, 'r') as f: return json.load(f)
+# --- HELPER FUNCTIONS ---
+def get_user_data(username):
+    if users_col is None: return None
+    user = users_col.find_one({"username": username})
+    if not user:
+        # Create new user if not exists
+        new_user = {
+            "username": username,
+            "user_id": str(uuid.uuid4())[:8].upper(),
+            "points": 0,
+            "void_count": 0,
+            "history": {},
+            "unlocked_trivias": [],
+            "birthday": "Unset",
+            "fav_color": "#00f2fe",
+            "profile_pic": "",
+            "celi_analysis": "Awaiting data..."
+        }
+        users_col.insert_one(new_user)
+        return new_user
+    return user
 
-def save_vault(data):
-    with open(VAULT_PATH, 'w') as f: json.dump(data, f, indent=4)
+def update_user_data(username, update_dict):
+    if users_col is None: return
+    users_col.update_one({"username": username}, {"$set": update_dict})
 
-def get_trivia_db():
-    if not os.path.exists(TRIVIA_PATH):
-        with open(TRIVIA_PATH, 'w') as f: json.dump([], f)
-        return []
-    with open(TRIVIA_PATH, 'r') as f: return json.load(f)
-
-def save_trivia_db(data):
-    with open(TRIVIA_PATH, 'w') as f: json.dump(data, f, indent=4)
-
-# --- AI ENGINE ---
 def analyze_user_soul(user_data):
     if not model: return "Simulation Mode: Trajectory stable."
-    
     history = user_data.get('history', {})
-    if len(history) < 3: return "Data insufficient. Continue journaling to form a behavioral model."
+    if len(history) < 3: return "Data insufficient. Continue journaling."
     
-    recent_logs = list(history.values())[-10:]
+    # Get last 5 logs
+    recent_logs = list(history.values())[-5:]
     summaries = [log.get('summary', '') for log in recent_logs]
     
     prompt = f"""
-    You are Celi, an AI Sovereign. Analyze this user.
-    User Context: Birthday {user_data.get('birthday')}, Color {user_data.get('fav_color')}.
-    Journal History: {summaries}
-    
-    Output a JSON object with a single key 'analysis'.
-    The value should be a deep, witty, compassionate psychological summary (max 40 words).
+    Analyze user based on journals: {summaries}.
+    Output JSON: {{ "analysis": "Deep, witty psychological summary (max 30 words)." }}
     """
     try:
         response = model.generate_content(prompt)
         return json.loads(response.text)['analysis']
-    except: return "Neural synchronization interrupted."
-
-def generate_live_trivia(rank_name, rank_theme):
-    if not model: return "The stars are silent (No API Key)."
-    prompt = f"Generate ONE short scientific trivia fact about: {rank_theme}. Output JSON with key 'text'. Max 20 words."
-    try:
-        response = model.generate_content(prompt)
-        return json.loads(response.text)['text']
-    except: return "The cosmos is quiet."
-
-def sanitize_user_data(u):
-    changed = False
-    defaults = {
-        "points": 0, "void_count": 0, "history": {}, "unlocked_trivias": [],
-        "user_id": str(uuid.uuid4())[:8].upper(), "birthday": "Unset", "fav_color": "#00f2fe",
-        "profile_pic": "", "celi_analysis": "Awaiting data..."
-    }
-    for key, val in defaults.items():
-        if key not in u or u[key] is None:
-            u[key] = val
-            changed = True
-    return changed
-
-def get_rank_info(pts):
-    for rank in RANK_CONFIG:
-        if pts < rank['threshold']: return rank['name'], rank['theme']
-    return "Ethereal", RANK_CONFIG[-1]['theme']
+    except: return "Neural uplink unstable."
 
 # --- ROUTES ---
-@app.route('/api/trivia')
-def get_trivia():
-    try:
-        if 'user' not in session: return jsonify({"trivia": "Connecting..."})
-        v = get_vault(); u = v['users'][session['user']]
-        if sanitize_user_data(u): save_vault(v)
-        
-        rank_name, rank_theme = get_rank_info(u.get('points', 0))
-        full_db = get_trivia_db()
-        available = [t for t in full_db if t['rank'] == rank_name and t['text'] not in u['unlocked_trivias']]
-        
-        if available: fact = random.choice(available)['text']
-        else: fact = generate_live_trivia(rank_name, rank_theme)
-
-        if fact not in u['unlocked_trivias']:
-            u['unlocked_trivias'].append(fact)
-            save_vault(v)
-        return jsonify({"trivia": fact})
-    except: return jsonify({"trivia": "Stellar silence."})
 
 @app.route('/api/data')
 def get_data():
     try:
         if 'user' not in session: return jsonify({"status": "guest"})
-        v = get_vault()
-        if session['user'] not in v['users']: return jsonify({"status": "guest"})
+        u = get_user_data(session['user'])
+        if not u: return jsonify({"status": "guest"})
         
-        u = v['users'][session['user']]
-        if sanitize_user_data(u): save_vault(v)
-        
+        # Rank Logic
         pts = u.get('points', 0)
         current_rank_name, current_roman, current_prog, current_phase = "Observer", "III", 0, ""
         cumulative = 0
@@ -155,30 +127,20 @@ def get_data():
             current_prog = 100
             current_phase = RANK_CONFIG[-1]['phase']
 
-        synthesis_map = {
-            "Observer": "Like the first light striking a lens, you are beginning to perceive your thoughts.",
-            "Moonwalker": "The ego functions as a satellite. You are learning to navigate the quiet landscape.",
-            "Celestial": "You have entered a stable orbit. The flux of the self is governed by purpose.",
-            "Stellar": "Nuclear fusion has commenced. Your internal values are generating gravity.",
-            "Interstellar": "You are pushing beyond the boundaries, traveling through the vast vacuum.",
-            "Galactic": "You are no longer a single star, but a system of billions.",
-            "Ethereal": "Singularity achieved. You are the cosmos experiencing itself."
-        }
-
+        # Return Data
         return jsonify({
             "status": "ok",
-            "username": session['user'],
+            "username": u['username'],
             "user_id": u.get('user_id'),
             "birthday": u.get('birthday'),
             "fav_color": u.get('fav_color'),
             "profile_pic": u.get('profile_pic'),
             "points": pts, 
             "rank": f"{current_rank_name} {current_roman}",
-            "rank_pure": current_rank_name,
             "rank_roman": current_roman,
             "phase": current_phase,
             "rank_progress": current_prog,
-            "rank_synthesis": synthesis_map.get(current_rank_name, ""),
+            "rank_synthesis": "Orbiting...",
             "history": u.get('history', {}), 
             "unlocked_trivias": u.get('unlocked_trivias', []),
             "celi_analysis": u.get('celi_analysis'),
@@ -188,62 +150,80 @@ def get_data():
         print(f"DATA ERROR: {e}")
         return jsonify({"status": "error"})
 
+@app.route('/api/process', methods=['POST'])
+def process():
+    try:
+        u = get_user_data(session['user'])
+        data = request.json
+        
+        # AI Response
+        reply_text = "I'm listening..."
+        summary_text = "User entry."
+        
+        if model:
+            prompt = f"""
+            You are Celi. Empathetic, friendly, witty.
+            User: {data.get('message')}
+            Output JSON: {{ "reply": "Your response", "summary": "Short summary" }}
+            """
+            res = model.generate_content(prompt)
+            ai_data = json.loads(res.text)
+            reply_text = ai_data['reply']
+            summary_text = ai_data['summary']
+
+        # Update Stats
+        updates = {}
+        if data.get('mode') != 'rant': updates['points'] = u.get('points', 0) + 1
+        else: updates['void_count'] = u.get('void_count', 0) + 1
+        
+        # Update History
+        new_history = u.get('history', {})
+        new_history[str(time.time())] = {
+            "summary": summary_text, 
+            "reply": reply_text, 
+            "date": str(date.today()), 
+            "type": data.get('mode', 'journal')
+        }
+        updates['history'] = new_history
+        
+        update_user_data(session['user'], updates)
+        return jsonify({"reply": reply_text})
+        
+    except Exception as e:
+        print(f"CHAT ERROR: {e}")
+        return jsonify({"reply": "Static noise..."})
+
 @app.route('/api/update_profile', methods=['POST'])
 def update_profile():
     try:
-        v = get_vault(); u = v['users'][session['user']]
         data = request.json
-        if 'birthday' in data: u['birthday'] = data['birthday']
-        if 'fav_color' in data: u['fav_color'] = data['fav_color']
-        if 'profile_pic' in data: u['profile_pic'] = data['profile_pic']
-        u['celi_analysis'] = analyze_user_soul(u)
-        save_vault(v)
+        u = get_user_data(session['user'])
+        updates = {}
+        if 'birthday' in data: updates['birthday'] = data['birthday']
+        if 'fav_color' in data: updates['fav_color'] = data['fav_color']
+        if 'profile_pic' in data: updates['profile_pic'] = data['profile_pic']
+        
+        # Re-analyze if profile changes
+        updates['celi_analysis'] = analyze_user_soul(u)
+        
+        update_user_data(session['user'], updates)
         return jsonify({"status": "success"})
     except: return jsonify({"status": "error"})
 
 @app.route('/api/delete_user', methods=['POST'])
 def delete_user():
-    try:
-        v = get_vault(); del v['users'][session['user']]; save_vault(v)
-        session.clear()
-        return jsonify({"status": "success"})
-    except: return jsonify({"status": "error"})
+    if users_col:
+        users_col.delete_one({"username": session['user']})
+    session.clear()
+    return jsonify({"status": "success"})
 
-@app.route('/api/process', methods=['POST'])
-def process():
-    try:
-        v = get_vault(); u = v['users'][session['user']]
-        sanitize_user_data(u)
-        data = request.json
-        
-        if not model:
-            ai_data = {"summary": "Simulated Log", "reply": "I hear you. (Gemini Key Missing)"}
-        else:
-            prompt = f"""
-            System: You are Celi. Heart-spoken, witty, empathetic. A shoulder to cry on.
-            User Input: {data.get('message')}
-            Task: Reply to the user and summarize their input.
-            Output JSON: {{ "reply": "...", "summary": "..." }}
-            """
-            response = model.generate_content(prompt)
-            ai_data = json.loads(response.text)
-
-        if data.get('mode') != 'rant': u['points'] = u.get('points', 0) + 1
-        else: u['void_count'] = u.get('void_count', 0) + 1
-        
-        u['history'][str(time.time())] = {"summary": ai_data['summary'], "reply": ai_data['reply'], "date": str(date.today()), "type": "rant" if data.get('mode') == 'rant' else "journal"}
-        save_vault(v)
-        return jsonify(ai_data)
-    except Exception as e: 
-        print(f"CHAT ERROR: {e}")
-        return jsonify({"reply": "Static noise... (Error)", "summary": "Error"})
-
+# --- AUTH ---
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        session['user'] = request.form['username']
-        v = get_vault()
-        if session['user'] not in v['users']: v['users'][session['user']] = {}; save_vault(v)
+        username = request.form['username']
+        session['user'] = username
+        get_user_data(username) # Ensure user exists in DB
         return redirect(url_for('home'))
     return render_template('auth.html')
 
@@ -252,7 +232,11 @@ def home():
     if 'user' not in session: return redirect(url_for('login'))
     return render_template('index.html')
 
+@app.route('/api/trivia')
+def api_trivia(): return jsonify({"trivia": "Stardust."})
+
 @app.route('/logout')
 def logout(): session.clear(); return redirect(url_for('login'))
 
 if __name__ == '__main__': app.run(debug=True)
+    
