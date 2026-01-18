@@ -5,7 +5,7 @@ import google.generativeai as genai
 from pymongo import MongoClient
 
 app = Flask(__name__)
-app.secret_key = "celi_ai_v1.4.0_mongo_core"
+app.secret_key = "celi_ai_v1.5.1_anchor_final"
 
 # --- MONGODB CONNECTION ---
 MONGO_URI = os.environ.get("MONGO_URI")
@@ -21,7 +21,7 @@ if MONGO_URI:
     except Exception as e:
         print(f"❌ MONGO CONNECTION FAILED: {e}")
 else:
-    print("⚠️ WARNING: MONGO_URI not found. App will crash on data access.")
+    print("⚠️ WARNING: MONGO_URI not found. Data will not persist.")
 
 # --- GEMINI CONFIGURATION ---
 model = None
@@ -46,26 +46,11 @@ RANK_CONFIG = [
     {"name": "Ethereal", "levels": 5, "stars_per_lvl": 8, "threshold": 116, "phase": "The Singularity"}
 ]
 
-# --- HELPER FUNCTIONS ---
+# --- DATABASE HELPERS ---
 def get_user_data(username):
     if users_col is None: return None
     user = users_col.find_one({"username": username})
-    if not user:
-        # Create new user if not exists
-        new_user = {
-            "username": username,
-            "user_id": str(uuid.uuid4())[:8].upper(),
-            "points": 0,
-            "void_count": 0,
-            "history": {},
-            "unlocked_trivias": [],
-            "birthday": "Unset",
-            "fav_color": "#00f2fe",
-            "profile_pic": "",
-            "celi_analysis": "Awaiting data..."
-        }
-        users_col.insert_one(new_user)
-        return new_user
+    # If using Mongo, we don't auto-create users on GET anymore; they must Register first.
     return user
 
 def update_user_data(username, update_dict):
@@ -77,7 +62,6 @@ def analyze_user_soul(user_data):
     history = user_data.get('history', {})
     if len(history) < 3: return "Data insufficient. Continue journaling."
     
-    # Get last 5 logs
     recent_logs = list(history.values())[-5:]
     summaries = [log.get('summary', '') for log in recent_logs]
     
@@ -90,14 +74,50 @@ def analyze_user_soul(user_data):
         return json.loads(response.text)['analysis']
     except: return "Neural uplink unstable."
 
-# --- ROUTES ---
+# --- API ROUTES ---
+
+@app.route('/api/register', methods=['POST'])
+def register():
+    try:
+        data = request.json
+        username = data.get('reg_username')
+        
+        if users_col and users_col.find_one({"username": username}):
+            return jsonify({"error": "Username already exists"}), 400
+            
+        new_user = {
+            "username": username,
+            "password": data.get('reg_password'), # Plain text for prototype
+            "first_name": data.get('fname'),
+            "last_name": data.get('lname'),
+            "birthday": data.get('dob'),
+            "fav_color": data.get('fav_color', '#00f2fe'),
+            "user_id": str(uuid.uuid4())[:8].upper(),
+            "points": 0,
+            "void_count": 0,
+            "history": {},
+            "unlocked_trivias": [],
+            "profile_pic": "",
+            "celi_analysis": "New Signal Detected."
+        }
+        
+        if users_col:
+            users_col.insert_one(new_user)
+            return jsonify({"status": "success"})
+        else:
+            return jsonify({"error": "Database unavailable"}), 500
+            
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 @app.route('/api/data')
 def get_data():
     try:
         if 'user' not in session: return jsonify({"status": "guest"})
         u = get_user_data(session['user'])
-        if not u: return jsonify({"status": "guest"})
+        if not u: 
+            session.clear()
+            return jsonify({"status": "guest"})
         
         # Rank Logic
         pts = u.get('points', 0)
@@ -127,7 +147,6 @@ def get_data():
             current_prog = 100
             current_phase = RANK_CONFIG[-1]['phase']
 
-        # Return Data
         return jsonify({
             "status": "ok",
             "username": u['username'],
@@ -156,7 +175,6 @@ def process():
         u = get_user_data(session['user'])
         data = request.json
         
-        # AI Response
         reply_text = "I'm listening..."
         summary_text = "User entry."
         
@@ -171,12 +189,10 @@ def process():
             reply_text = ai_data['reply']
             summary_text = ai_data['summary']
 
-        # Update Stats
         updates = {}
         if data.get('mode') != 'rant': updates['points'] = u.get('points', 0) + 1
         else: updates['void_count'] = u.get('void_count', 0) + 1
         
-        # Update History
         new_history = u.get('history', {})
         new_history[str(time.time())] = {
             "summary": summary_text, 
@@ -202,10 +218,7 @@ def update_profile():
         if 'birthday' in data: updates['birthday'] = data['birthday']
         if 'fav_color' in data: updates['fav_color'] = data['fav_color']
         if 'profile_pic' in data: updates['profile_pic'] = data['profile_pic']
-        
-        # Re-analyze if profile changes
         updates['celi_analysis'] = analyze_user_soul(u)
-        
         update_user_data(session['user'], updates)
         return jsonify({"status": "success"})
     except: return jsonify({"status": "error"})
@@ -217,14 +230,24 @@ def delete_user():
     session.clear()
     return jsonify({"status": "success"})
 
-# --- AUTH ---
+# --- PAGES ---
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        username = request.form['username']
+        username = request.form.get('username')
+        password = request.form.get('password')
+        
+        if users_col:
+            user = users_col.find_one({"username": username})
+            if user and user.get('password') == password:
+                session['user'] = username
+                return redirect(url_for('home'))
+            return jsonify({"error": "Invalid credentials"}), 401
+        
+        # Fallback for dev mode without DB
         session['user'] = username
-        get_user_data(username) # Ensure user exists in DB
         return redirect(url_for('home'))
+
     return render_template('auth.html')
 
 @app.route('/')
@@ -239,4 +262,4 @@ def api_trivia(): return jsonify({"trivia": "Stardust."})
 def logout(): session.clear(); return redirect(url_for('login'))
 
 if __name__ == '__main__': app.run(debug=True)
-    
+        
