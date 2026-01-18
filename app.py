@@ -3,7 +3,7 @@ from flask import Flask, render_template, request, jsonify, session, redirect, u
 from datetime import date, datetime
 
 app = Flask(__name__)
-app.secret_key = "celi_sovereign_v10.30_global_sync"
+app.secret_key = "celi_sovereign_v10.31_unfrozen"
 VAULT_PATH = 'vault.json'
 TRIVIA_PATH = 'trivia.json'
 
@@ -98,11 +98,13 @@ def get_data():
             current_phase = rank['phase']
             pts_in_rank = pts - start_pts
             stars_per = rank['stars_per_lvl']
+            
             level_idx = pts_in_rank // stars_per
             max_lvl = rank['levels']
             current_lvl_num = max(1, max_lvl - int(level_idx))
             roman_map = {1: "I", 2: "II", 3: "III", 4: "IV", 5: "V"}
             current_roman = roman_map.get(current_lvl_num, "I")
+            
             pts_in_level = pts_in_rank % stars_per
             current_prog = (pts_in_level / stars_per) * 100
             break
@@ -113,6 +115,7 @@ def get_data():
     count = len(u.get('history', {}))
     analysis = "Signal faint. Identity forming." if count < 5 else "Trajectory stable."
     
+    # Synthesis Map
     synthesis_map = {
         "Observer": "Like the first light striking a lens, you are beginning to perceive your thoughts.",
         "Moonwalker": "The ego functions as a satellite. You are learning to navigate the quiet landscape.",
