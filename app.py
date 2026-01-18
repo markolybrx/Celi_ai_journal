@@ -1,298 +1,194 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Celi: Access Portal</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        :root { --mood: #00f2fe; }
-        body { background: #000; color: #fff; font-family: sans-serif; height: 100vh; display: flex; align-items: center; justify-content: center; overflow: hidden; position: relative; }
+import os, json, time, random, uuid
+from flask import Flask, render_template, request, jsonify, session, redirect, url_for
+from datetime import date
+import google.generativeai as genai
+from pymongo import MongoClient
+import certifi
+
+app = Flask(__name__)
+app.secret_key = "celi_ai_v1.6.2_final_polish"
+
+# --- MONGODB CONNECTION ---
+MONGO_URI = os.environ.get("MONGO_URI")
+db = None
+users_col = None
+
+if MONGO_URI:
+    try:
+        client = MongoClient(MONGO_URI, tlsCAFile=certifi.where())
+        db = client.get_database("celi_db")
+        users_col = db.users
+        print("MONGODB CONNECTED")
+    except Exception as e:
+        print(f"MONGO CONNECTION FAILED: {e}")
+
+# --- GEMINI CONFIGURATION ---
+model = None
+try:
+    GEMINI_KEY = os.environ.get("GEMINI_API_KEY")
+    if GEMINI_KEY:
+        genai.configure(api_key=GEMINI_KEY)
+        model = genai.GenerativeModel('gemini-1.5-flash', 
+            generation_config={"response_mime_type": "application/json"})
+
+RANK_CONFIG = [
+    {"name": "Observer", "levels": 3, "stars_per_lvl": 2, "threshold": 6, "phase": "The Awakening Phase"},
+    {"name": "Moonwalker", "levels": 3, "stars_per_lvl": 2, "threshold": 12, "phase": "The Awakening Phase"},
+    {"name": "Celestial", "levels": 4, "stars_per_lvl": 3, "threshold": 24, "phase": "The Ignition Phase"},
+    {"name": "Stellar", "levels": 4, "stars_per_lvl": 3, "threshold": 36, "phase": "The Ignition Phase"},
+    {"name": "Interstellar", "levels": 5, "stars_per_lvl": 4, "threshold": 56, "phase": "The Expansion Phase"},
+    {"name": "Galactic", "levels": 5, "stars_per_lvl": 4, "threshold": 76, "phase": "The Expansion Phase"},
+    {"name": "Ethereal", "levels": 5, "stars_per_lvl": 8, "threshold": 116, "phase": "The Singularity"}
+]
+
+# --- DATABASE HELPERS ---
+def get_user_data(username):
+    if users_col is None: return None
+    user = users_col.find_one({"username": username})
+    return user
+
+def update_user_data(username, update_dict):
+    if users_col is None: return
+    users_col.update_one({"username": username}, {"$set": update_dict})
+
+def analyze_user_soul(user_data):
+    if not model: return "Simulation Mode."
+    history = user_data.get('history', {})
+    if len(history) < 3: return "Data insufficient."
+    recent_logs = list(history.values())[-5:]
+    summaries = [log.get('summary', '') for log in recent_logs]
+    prompt = f"""Analyze user based on journals: {summaries}. Output JSON: {{ "analysis": "Deep, witty psychological summary (max 30 words)." }}"""
+    try:
+        response = model.generate_content(prompt)
+        return json.loads(response.text)['analysis']
+    except: return "Neural uplink unstable."
+
+# --- API ROUTES ---
+
+@app.route('/api/register', methods=['POST'])
+def register():
+    try:
+        data = request.json
+        username = data.get('reg_username')
+        if users_col and users_col.find_one({"username": username}):
+            return jsonify({"error": "Username already exists"}), 400
+        new_user = {
+            "username": username,
+            "password": data.get('reg_password'),
+            "first_name": data.get('fname'),
+            "last_name": data.get('lname'),
+            "birthday": data.get('dob'),
+            "secret_question": data.get('secret_question'),
+            "secret_answer": data.get('secret_answer').lower().strip(),
+            "fav_color": data.get('fav_color', '#00f2fe'),
+            "user_id": str(uuid.uuid4())[:8].upper(),
+            "points": 0, "void_count": 0, "history": {}, "unlocked_trivias": [], "profile_pic": "", "celi_analysis": "New Signal."
+        }
+        if users_col:
+            users_col.insert_one(new_user)
+            return jsonify({"status": "success"})
+        return jsonify({"error": "DB unavailable"}), 500
+    except Exception as e: return jsonify({"error": str(e)}), 500
+
+@app.route('/api/recover', methods=['POST'])
+def recover():
+    try:
+        data = request.json
+        query = { "first_name": data.get('fname'), "last_name": data.get('lname'), "birthday": data.get('dob'), "secret_question": data.get('secret_question'), "secret_answer": data.get('secret_answer').lower().strip() }
+        if users_col:
+            user = users_col.find_one(query)
+            if user: return jsonify({"status": "success", "username": user['username']})
+            return jsonify({"error": "Identity verification failed."}), 404
+        return jsonify({"error": "DB unavailable"}), 500
+    except Exception as e: return jsonify({"error": str(e)}), 500
+
+@app.route('/api/reset_password', methods=['POST'])
+def reset_password():
+    try:
+        data = request.json
+        username = data.get('username')
+        new_pass = data.get('new_password')
+        query = { "username": username, "first_name": data.get('fname'), "last_name": data.get('lname'), "secret_answer": data.get('secret_answer').lower().strip() }
+        if users_col:
+            user = users_col.find_one(query)
+            if user:
+                users_col.update_one({"username": username}, {"$set": {"password": new_pass}})
+                return jsonify({"status": "success"})
+            return jsonify({"error": "Security check failed."}), 403
+        return jsonify({"error": "DB unavailable"}), 500
+    except: return jsonify({"error": "Failed"}), 500
+
+@app.route('/api/data')
+def get_data():
+    try:
+        if 'user' not in session: return jsonify({"status": "guest"})
+        u = get_user_data(session['user'])
+        if not u: session.clear(); return jsonify({"status": "guest"})
+        pts = u.get('points', 0)
+        current_rank_name, current_roman, current_prog, current_phase = "Observer", "III", 0, ""
+        cumulative = 0
+        for rank in RANK_CONFIG:
+            start_pts = cumulative; end_pts = rank['threshold']
+            if pts < end_pts:
+                current_rank_name = rank['name']; current_phase = rank['phase']
+                pts_in_rank = pts - start_pts; stars_per = rank['stars_per_lvl']
+                level_idx = pts_in_rank // stars_per; max_lvl = rank['levels']
+                current_lvl_num = max(1, max_lvl - int(level_idx))
+                roman_map = {1: "I", 2: "II", 3: "III", 4: "IV", 5: "V"}
+                current_roman = roman_map.get(current_lvl_num, "I"); pts_in_level = pts_in_rank % stars_per
+                current_prog = (pts_in_level / stars_per) * 100; break
+            cumulative = end_pts
+        else: current_rank_name = "Ethereal"; current_roman = "I"; current_prog = 100; current_phase = RANK_CONFIG[-1]['phase']
         
-        /* LAYOUT & PANEL */
-        .glass-panel { width: 90%; max-width: 380px; background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 24px; padding: 30px; box-shadow: 0 20px 50px rgba(0,0,0,0.5); position: relative; overflow: hidden; transition: all 0.4s ease; max-height: 90vh; overflow-y: auto; }
-        
-        /* INPUTS */
-        .input-group { margin-bottom: 15px; position: relative; }
-        .input-field { width: 100%; background: rgba(0, 0, 0, 0.3); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px; padding: 12px 15px; color: #fff; font-size: 13px; outline: none; transition: border-color 0.3s; }
-        .input-field:focus { border-color: var(--mood); }
-        .input-label { font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: rgba(255, 255, 255, 0.5); margin-bottom: 6px; display: block; }
-        .input-error { border-color: #ef4444 !important; }
-        select.input-field { appearance: none; -webkit-appearance: none; }
+        return jsonify({ "status": "ok", "username": u['username'], "user_id": u.get('user_id'), "birthday": u.get('birthday'), "fav_color": u.get('fav_color'), "profile_pic": u.get('profile_pic'), "points": pts, "rank": f"{current_rank_name} {current_roman}", "rank_roman": current_roman, "phase": current_phase, "rank_progress": current_prog, "rank_synthesis": "Orbiting...", "history": u.get('history', {}), "unlocked_trivias": u.get('unlocked_trivias', []), "celi_analysis": u.get('celi_analysis'), "rank_config": RANK_CONFIG })
+    except: return jsonify({"status": "error"})
 
-        /* BUTTONS */
-        .btn-primary { width: 100%; padding: 14px; background: var(--mood); color: #000; border-radius: 12px; font-weight: 900; text-transform: uppercase; font-size: 11px; letter-spacing: 1px; cursor: pointer; transition: transform 0.2s; border: none; margin-top: 10px; display: flex; align-items: center; justify-content: center; }
-        .btn-primary:active { transform: scale(0.98); }
-        .btn-secondary { width: 100%; padding: 14px; background: rgba(255, 255, 255, 0.05); color: #fff; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px; font-weight: bold; text-transform: uppercase; font-size: 10px; cursor: pointer; margin-top: 10px; display: flex; align-items: center; justify-content: center; }
-        
-        /* UTILS */
-        .hidden { display: none !important; }
-        .text-link { color: var(--mood); cursor: pointer; text-decoration: underline; }
-        .text-red-glow { text-shadow: 0 0 10px rgba(239, 68, 68, 0.5); }
-        
-        /* ICONS */
-        .icon-btn { position: absolute; right: 12px; top: 35px; cursor: pointer; opacity: 0.6; transition: opacity 0.2s; }
-        .icon-btn:hover { opacity: 1; }
-        .color-dot { width: 20px; height: 20px; border-radius: 50%; position: absolute; right: 12px; top: 35px; border: 1px solid rgba(255,255,255,0.2); }
+@app.route('/api/process', methods=['POST'])
+def process():
+    try:
+        u = get_user_data(session['user'])
+        data = request.json
+        reply_text = "I'm listening..."; summary_text = "User entry."
+        if model:
+            res = model.generate_content(f"""You are Celi. Empathetic, friendly, witty. User: {data.get('message')} Output JSON: {{ "reply": "Your response", "summary": "Short summary" }}""")
+            ai_data = json.loads(res.text); reply_text = ai_data['reply']; summary_text = ai_data['summary']
+        updates = {}; updates['points'] = u.get('points', 0) + 1 if data.get('mode') != 'rant' else u.get('points', 0)
+        if data.get('mode') == 'rant': updates['void_count'] = u.get('void_count', 0) + 1
+        new_history = u.get('history', {}); new_history[str(time.time())] = { "summary": summary_text, "reply": reply_text, "date": str(date.today()), "type": data.get('mode', 'journal') }
+        updates['history'] = new_history; update_user_data(session['user'], updates)
+        return jsonify({"reply": reply_text})
+    except: return jsonify({"reply": "Static noise..."})
 
-        /* MODALS */
-        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 100; display: none; align-items: center; justify-content: center; padding: 20px; }
-        .modal-box { background: #111; border: 1px solid rgba(255,255,255,0.15); padding: 30px; border-radius: 20px; max-width: 400px; width: 100%; text-align: center; box-shadow: 0 10px 40px rgba(0,0,0,0.8); }
-        .modal-title { font-size: 14px; font-weight: 900; text-transform: uppercase; margin-bottom: 10px; color: #fff; letter-spacing: 1px; }
-        .modal-body { font-size: 12px; color: #ccc; line-height: 1.5; margin-bottom: 20px; }
-        .privacy-content { max-height: 60vh; overflow-y: auto; text-align: left; margin-bottom: 20px; }
-        .privacy-content h3 { color: #fff; margin-top: 15px; margin-bottom: 5px; text-transform: uppercase; font-size: 10px; letter-spacing: 1px; }
+@app.route('/api/update_profile', methods=['POST'])
+def update_profile():
+    try:
+        data = request.json; u = get_user_data(session['user']); updates = {}
+        if 'birthday' in data: updates['birthday'] = data['birthday']
+        if 'fav_color' in data: updates['fav_color'] = data['fav_color']
+        if 'profile_pic' in data: updates['profile_pic'] = data['profile_pic']
+        updates['celi_analysis'] = analyze_user_soul(u); update_user_data(session['user'], updates)
+        return jsonify({"status": "success"})
+    except: return jsonify({"status": "error"})
 
-        /* LOADING */
-        #loading-overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(8px); z-index: 50; display: none; align-items: center; justify-content: center; flex-direction: column; }
-        .spinner { width: 40px; height: 40px; border: 3px solid rgba(255,255,255,0.1); border-top-color: var(--mood); border-radius: 50%; animation: spin 1s infinite linear; margin-bottom: 15px; }
-        @keyframes spin { to { transform: rotate(360deg); } }
-    </style>
-</head>
-<body>
+@app.route('/api/delete_user', methods=['POST'])
+def delete_user():
+    if users_col: users_col.delete_one({"username": session['user']})
+    session.clear(); return jsonify({"status": "success"})
 
-    <div class="glass-panel" id="auth-container">
-        
-        <div id="loading-overlay">
-            <div class="spinner"></div>
-            <p id="loading-text" class="text-xs uppercase tracking-widest text-white/80">Processing...</p>
-        </div>
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        username = request.form.get('username'); password = request.form.get('password')
+        if users_col:
+            user = users_col.find_one({"username": username})
+            if user and user.get('password') == password:
+                session['user'] = username; session.permanent = True; return redirect(url_for('home'))
+            return jsonify({"error": "Invalid credentials"}), 401
+        session['user'] = username; return redirect(url_for('home'))
+    return render_template('auth.html')
 
-        <div id="view-login">
-            <h1 class="text-3xl font-black text-center mb-8 tracking-tighter text-white">Celi</h1>
+@app.route('/'); def home(): return redirect(url_for('login')) if 'user' not in session else render_template('index.html')
+@app.route('/logout'); def logout(): session.clear(); return redirect(url_for('login'))
+@app.route('/api/trivia'); def api_trivia(): return jsonify({"trivia": "Stardust."})
+if __name__ == '__main__': app.run(debug=True)
             
-            <form onsubmit="handleLogin(event)">
-                <div class="input-group">
-                    <label class="input-label">Username</label>
-                    <input type="text" id="login-username" name="username" class="input-field" placeholder="Enter username" required>
-                </div>
-                <div class="input-group">
-                    <label class="input-label">Password</label>
-                    <input type="password" name="password" id="login-pass" class="input-field" placeholder="••••••" required>
-                    <div class="icon-btn" onclick="togglePass('login-pass')">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-                    </div>
-                </div>
-                
-                <div class="flex items-center justify-between mb-4 h-6">
-                    <div class="flex items-center gap-2">
-                        <input type="checkbox" id="remember-me" class="rounded bg-white/10 border-white/20 w-3 h-3">
-                        <label for="remember-me" class="text-[9px] text-white/60 uppercase tracking-wide cursor-pointer">Remember Me</label>
-                    </div>
-                    <div id="login-error" class="text-[9px] text-red-500 font-bold uppercase tracking-wide hidden">Incorrect username or password</div>
-                </div>
-
-                <button type="submit" class="btn-primary">Log In</button>
-            </form>
-            
-            <button type="button" onclick="switchView('register')" class="btn-secondary">Register</button>
-            
-            <div class="text-center mt-6">
-                <button type="button" onclick="switchView('recovery')" class="text-[9px] text-white/40 cursor-pointer hover:text-white transition border-b border-transparent hover:border-white/40 inline-block uppercase tracking-widest">Forgot your log in?</button>
-            </div>
-        </div>
-
-        <div id="view-register" class="hidden">
-            <h1 class="text-xl font-bold text-center mb-6 uppercase tracking-widest text-white/90">Registration</h1>
-            <form onsubmit="handleRegister(event)">
-                <div class="flex gap-2 mb-2">
-                    <div class="w-1/2"><label class="input-label">First Name</label><input type="text" name="fname" class="input-field" required></div>
-                    <div class="w-1/2"><label class="input-label">Last Name</label><input type="text" name="lname" class="input-field" required></div>
-                </div>
-                <div class="input-group"><label class="input-label">Preferred Username</label><input type="text" name="reg_username" class="input-field" required></div>
-                <div class="input-group"><label class="input-label">Date of Birth</label><input type="date" name="dob" class="input-field" required></div>
-                <div class="input-group">
-                    <label class="input-label">Favorite Color</label>
-                    <input type="text" id="color-input" name="fav_color" class="input-field" placeholder="Cyan, Gold..." oninput="updateColorPreview(this.value)">
-                    <div id="color-preview" class="color-dot" style="background-color: #00f2fe;"></div>
-                </div>
-                
-                <div class="input-group">
-                    <label class="input-label">Secret Question</label>
-                    <select name="secret_question" class="input-field" required>
-                        <option value="pet">What was the name of your first pet?</option>
-                        <option value="mother">What is your mother's maiden name?</option>
-                        <option value="school">What elementary school did you attend?</option>
-                        <option value="city">In what city were you born?</option>
-                    </select>
-                </div>
-                <div class="input-group"><label class="input-label">Secret Answer</label><input type="text" name="secret_answer" class="input-field" placeholder="Answer..." required></div>
-
-                <div class="input-group">
-                    <label class="input-label">Password</label>
-                    <input type="password" name="reg_password" id="reg-pass" class="input-field" required>
-                    <div class="icon-btn" onclick="togglePass('reg-pass')"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></div>
-                </div>
-                <div class="input-group">
-                    <label class="input-label">Confirm Password</label>
-                    <input type="password" id="confirm-pass" class="input-field" oninput="checkMatch()" required>
-                    <div class="icon-btn" onclick="togglePass('confirm-pass')"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></div>
-                </div>
-                <div class="flex items-start gap-3 my-4">
-                    <input type="checkbox" id="privacy-check" required class="mt-1 w-3 h-3 bg-white/10 border-white/20 rounded">
-                    <label for="privacy-check" class="text-[10px] opacity-70 leading-tight">I agree to the <span class="text-link" onclick="openModal('privacy')">Data Privacy Disclosure</span>.</label>
-                </div>
-                <button type="submit" class="btn-primary">Register</button>
-            </form>
-            <button type="button" onclick="switchView('login')" class="btn-secondary">Back to Login</button>
-        </div>
-
-        <div id="view-recovery" class="hidden">
-            <h1 class="text-xl font-bold text-center mb-6 uppercase tracking-widest text-white/90">Signal Recovery</h1>
-            
-            <form id="rec-form-1" onsubmit="handleVerify(event)">
-                <p class="text-[10px] text-center mb-4 opacity-50">Verify your identity to retrieve access.</p>
-                <div class="flex gap-2 mb-2"><div class="w-1/2"><label class="input-label">First Name</label><input type="text" name="fname" class="input-field" required></div><div class="w-1/2"><label class="input-label">Last Name</label><input type="text" name="lname" class="input-field" required></div></div>
-                <div class="input-group"><label class="input-label">Date of Birth</label><input type="date" name="dob" class="input-field" required></div>
-                <div class="input-group">
-                    <label class="input-label">Secret Question</label>
-                    <select name="secret_question" class="input-field" required>
-                        <option value="pet">What was the name of your first pet?</option>
-                        <option value="mother">What is your mother's maiden name?</option>
-                        <option value="school">What elementary school did you attend?</option>
-                        <option value="city">In what city were you born?</option>
-                    </select>
-                </div>
-                <div class="input-group"><label class="input-label">Secret Answer</label><input type="text" name="secret_answer" class="input-field" required></div>
-                <button type="submit" class="btn-primary">Verify Identity</button>
-            </form>
-
-            <form id="rec-form-2" class="hidden" onsubmit="handleReset(event)">
-                <div class="input-group">
-                    <label class="input-label">Your Username</label>
-                    <input type="text" id="rec-username" class="input-field" readonly style="color:var(--mood); font-weight:bold;">
-                    <div class="icon-btn" onclick="copyUser()" title="Copy Username">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect></svg>
-                    </div>
-                </div>
-                <div class="input-group">
-                    <label class="input-label">New Password</label>
-                    <input type="password" id="new-pass" class="input-field" required>
-                    <div class="icon-btn" onclick="togglePass('new-pass')"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></div>
-                </div>
-                <div class="input-group">
-                    <label class="input-label">Confirm New Password</label>
-                    <input type="password" id="conf-new-pass" class="input-field" oninput="checkResetMatch()" required>
-                    <div class="icon-btn" onclick="togglePass('conf-new-pass')"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></div>
-                </div>
-                <button type="submit" class="btn-primary">Confirm Reset</button>
-            </form>
-
-            <button type="button" onclick="switchView('login')" class="btn-secondary">Cancel</button>
-        </div>
-    </div>
-
-    <div class="fixed bottom-4 w-full text-center pointer-events-none opacity-30 text-[9px] font-mono uppercase tracking-widest text-white flex flex-col gap-1">
-        <span>Celi Access v1.6.2</span>
-        <span class="opacity-70">Powered by Gemini AI</span>
-    </div>
-
-    <div id="message-modal" class="modal-overlay">
-        <div class="modal-box">
-            <h3 id="modal-title" class="modal-title">Notification</h3>
-            <p id="modal-body" class="modal-body"></p>
-            <button onclick="closeModal('message-modal')" class="btn-primary">Dismiss</button>
-        </div>
-    </div>
-
-    <div id="privacy-modal" class="modal-overlay">
-        <div class="modal-box">
-            <h2 class="modal-title">Data & Privacy Disclosure</h2>
-            <div class="privacy-content">
-                <h3>1. Introduction</h3><p>Welcome to Celi. By registering a "Signal" (User Account), you entrust us with personal thoughts, emotions, and biographical data. We take this responsibility as a sacred duty.</p>
-                <h3>2. Data Storage</h3><p>Celi utilizes <strong>MongoDB Atlas</strong>, an encrypted cloud database provider. Your data resides in an encrypted cluster protected by network firewalls.</p>
-                <h3>3. AI Processing</h3><p>Celi is powered by <strong>Google Gemini</strong>. Journal entries are sent ephemerally to generating responses. <strong>We do not grant rights to train public models with your data.</strong></p>
-                <h3>4. Sovereignty</h3><p>You retain full ownership. You may delete your account and all data permanently via Profile Settings.</p>
-                <h3>5. Security</h3><p>We employ HTTPS encryption and Identity Verification protocols.</p>
-            </div>
-            <button onclick="closeModal('privacy-modal')" class="btn-primary">I Acknowledge</button>
-        </div>
-    </div>
-
-    <script>
-        // --- GLOBAL & INIT ---
-        let recoveryData = {};
-
-        document.addEventListener('DOMContentLoaded', () => {
-            const savedUser = localStorage.getItem('celi_user');
-            if (savedUser) {
-                document.getElementById('login-username').value = savedUser;
-                document.getElementById('remember-me').checked = true;
-            }
-        });
-
-        // --- NAVIGATION ---
-        function switchView(viewName) {
-            // Hide all
-            document.getElementById('view-login').classList.add('hidden');
-            document.getElementById('view-register').classList.add('hidden');
-            document.getElementById('view-recovery').classList.add('hidden');
-            
-            // Show Target
-            const target = document.getElementById('view-' + viewName);
-            if(target) target.classList.remove('hidden');
-            
-            // Clear errors
-            document.getElementById('login-error').classList.add('hidden');
-        }
-
-        // --- UI UTILS ---
-        function togglePass(id) { 
-            const el = document.getElementById(id); 
-            el.type = el.type === 'password' ? 'text' : 'password'; 
-        }
-        
-        function updateColorPreview(val) { 
-            const s = new Option().style; s.color = val; 
-            if (s.color !== '') document.getElementById('color-preview').style.backgroundColor = val; 
-        }
-
-        function checkMatch() { 
-            const p1 = document.getElementById('reg-pass').value; 
-            const p2 = document.getElementById('confirm-pass'); 
-            p2.classList.toggle('input-error', p2.value !== p1);
-        }
-
-        function checkResetMatch() {
-            const p1 = document.getElementById('new-pass').value;
-            const p2 = document.getElementById('conf-new-pass');
-            p2.classList.toggle('input-error', p2.value !== p1);
-        }
-
-        // --- MODALS ---
-        function openModal(type, title, body) {
-            if (type === 'privacy') {
-                document.getElementById('privacy-modal').style.display = 'flex';
-            } else {
-                document.getElementById('modal-title').innerText = title || 'Notification';
-                document.getElementById('modal-body').innerText = body || '';
-                document.getElementById('message-modal').style.display = 'flex';
-            }
-        }
-        
-        function closeModal(id) {
-            document.getElementById(id).style.display = 'none';
-        }
-
-        function showLoading(msg) {
-            document.getElementById('loading-text').innerText = msg;
-            document.getElementById('loading-overlay').style.display = 'flex';
-        }
-
-        function hideLoading() {
-            document.getElementById('loading-overlay').style.display = 'none';
-        }
-
-        function copyUser() {
-            const u = document.getElementById('rec-username');
-            u.select(); document.execCommand('copy');
-            openModal('msg', 'Success', 'Username copied to clipboard.');
-        }
-
-        // --- HANDLERS ---
-        async function handleLogin(e) {
-            e.preventDefault();
-            document.getElementById('login-error').classList.add('hidden');
-            showLoading("Logging In...");
-            
-            const form = new F
