@@ -26,12 +26,9 @@
         }
         .whisper-blue { border: 1px solid var(--mood); color: var(--mood); box-shadow: 0 0 15px rgba(0, 242, 254, 0.2); }
 
-        /* STRICT OVERLAY RESET: Ensures UI is clickable by default */
         .overlay { position: fixed; inset: 0; background: #000; z-index: 5000; display: none; flex-direction: column; padding: 0; }
-        
         .portal-content { padding: 80px 25px 100px; overflow-y: auto; height: 100%; display: flex; flex-direction: column; align-items: center; }
         .card-glass { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1); border-radius: 24px; padding: 20px; margin-bottom: 12px; }
-        
         .nav-btn { font-size: 8px; font-weight: 900; text-transform: uppercase; opacity: 0.3; transition: 0.3s; pointer-events: auto; }
         .active-btn { opacity: 1; color: var(--mood); }
         .ripple { position: absolute; border: 1px solid var(--mood); border-radius: 50%; pointer-events: none; animation: rippleEffect 1.5s ease-out forwards; }
@@ -81,9 +78,7 @@
         <div onclick="showTab('profile')" class="nav-btn">Profile</div>
     </nav>
     
-    <div class="fixed bottom-2 w-full text-center z-[5000] pointer-events-none opacity-30 text-[8px] font-mono tracking-widest text-white">
-        Celi_AI v10.30
-    </div>
+    <div class="fixed bottom-2 w-full text-center z-[5000] pointer-events-none opacity-30 text-[8px] font-mono tracking-widest text-white">Celi_AI v10.31</div>
 
     <div id="rank-portal-overlay" class="overlay">
         <div class="portal-content w-full max-w-md mx-auto">
@@ -190,7 +185,10 @@
                 document.getElementById('edit-color').value = d.fav_color || '#00f2fe';
                 document.getElementById('archive-list').innerHTML = (d.unlocked_trivias||[]).map(t => `<div class="card-glass text-[11px] opacity-80">${t}</div>`).join('');
                 document.getElementById('vault-content').innerHTML = Object.entries(d.history||{}).reverse().map(([k, v]) => `<div class="card-glass border-l-2 ${v.type==='journal'?'border-cyan-400':'border-red-500'}"><p class="text-[8px] uppercase opacity-40">${v.date}</p><p class="text-sm mt-1">${v.summary}</p></div>`).join('');
-            } catch(e) { console.error("Sync failed", e); }
+            } catch(e) { 
+                console.error("Sync failed", e); 
+                document.getElementById('greeting').innerText = "System Offline";
+            }
         }
 
         function openEditProfile() { document.getElementById('edit-modal').style.display = 'flex'; }
@@ -201,4 +199,4 @@
         function showIntent() { document.getElementById('intent-modal').style.display = 'flex'; }
         function startChat(m) { currentMode = m; closeUI(); document.getElementById('chat-overlay').style.display = 'flex'; }
         async function triggerTrivia() { try { const r = await fetch('/api/trivia'); const d = await r.json(); whisper(d.trivia, 'trivia'); } catch(e){} }
-        function triggerRipple(e) { const r = document.crea
+        function triggerRipple(e) { const r = docu
