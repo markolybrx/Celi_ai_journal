@@ -6,7 +6,7 @@ from pymongo import MongoClient
 import certifi
 
 app = Flask(__name__)
-app.secret_key = "celi_ai_v1.6.0_security_core"
+app.secret_key = "celi_ai_v1.6.1_ui_polish"
 
 # --- MONGODB CONNECTION ---
 MONGO_URI = os.environ.get("MONGO_URI")
@@ -92,7 +92,7 @@ def register():
             "last_name": data.get('lname'),
             "birthday": data.get('dob'),
             "secret_question": data.get('secret_question'),
-            "secret_answer": data.get('secret_answer').lower().strip(), # Normalize answer
+            "secret_answer": data.get('secret_answer').lower().strip(),
             "fav_color": data.get('fav_color', '#00f2fe'),
             "user_id": str(uuid.uuid4())[:8].upper(),
             "points": 0,
@@ -116,7 +116,6 @@ def register():
 def recover():
     try:
         data = request.json
-        # Query matching ALL verification fields
         query = {
             "first_name": data.get('fname'),
             "last_name": data.get('lname'),
@@ -142,7 +141,6 @@ def reset_password():
         username = data.get('username')
         new_pass = data.get('new_password')
         
-        # Security Re-check (Prevent IDOR)
         query = {
             "username": username,
             "first_name": data.get('fname'),
@@ -272,6 +270,9 @@ def login():
             user = users_col.find_one({"username": username})
             if user and user.get('password') == password:
                 session['user'] = username
+                # Session is permanent if 'remember me' is managed by browser cookies mostly, 
+                # but flask session defaults are okay for now.
+                session.permanent = True 
                 return redirect(url_for('home'))
             return jsonify({"error": "Invalid credentials"}), 401
         session['user'] = username
@@ -290,4 +291,4 @@ def api_trivia(): return jsonify({"trivia": "Stardust."})
 def logout(): session.clear(); return redirect(url_for('login'))
 
 if __name__ == '__main__': app.run(debug=True)
-        
+                                
