@@ -1,24 +1,26 @@
 import os, json, time, random, uuid
 from flask import Flask, render_template, request, jsonify, session, redirect, url_for
 from datetime import date
-import google.generativeai as genai
 
 app = Flask(__name__)
-app.secret_key = "celi_ai_v1.2.0_gemini_core"
+app.secret_key = "celi_ai_v1.2.1_safety_core"
 VAULT_PATH = 'vault.json'
 TRIVIA_PATH = 'trivia.json'
 
-# --- GEMINI CONFIGURATION ---
-# Checks for API Key to prevent crash on startup
-GEMINI_KEY = os.environ.get("GEMINI_API_KEY")
-if GEMINI_KEY:
-    genai.configure(api_key=GEMINI_KEY)
-    # 1.5 Flash is fast, cheap, and supports JSON mode natively
-    model = genai.GenerativeModel('gemini-1.5-flash', 
-        generation_config={"response_mime_type": "application/json"})
-else:
-    model = None
-    print("WARNING: GEMINI_API_KEY not found. App running in Simulation Mode.")
+# --- SAFE IMPORT: PREVENTS CRASH IF LIBRARY MISSING ---
+model = None
+try:
+    import google.generativeai as genai
+    GEMINI_KEY = os.environ.get("GEMINI_API_KEY")
+    if GEMINI_KEY:
+        genai.configure(api_key=GEMINI_KEY)
+        model = genai.GenerativeModel('gemini-1.5-flash', generation_config={"response_mime_type": "application/json"})
+    else:
+        print("NOTICE: GEMINI_API_KEY missing. AI Disabled.")
+except ImportError:
+    print("CRITICAL: google-generativeai not installed. AI Disabled.")
+except Exception as e:
+    print(f"AI INIT ERROR: {e}")
 
 RANK_CONFIG = [
     {"name": "Observer", "levels": 3, "stars_per_lvl": 2, "threshold": 6, "phase": "The Awakening Phase", "theme": "Light, Eyes, Perception"},
@@ -47,41 +49,28 @@ def get_trivia_db():
 def save_trivia_db(data):
     with open(TRIVIA_PATH, 'w') as f: json.dump(data, f, indent=4)
 
-# --- GEMINI AI ENGINE ---
+# --- AI ENGINE ---
 def analyze_user_soul(user_data):
-    if not model: return "Simulation Mode: Trajectory stable."
+    if not model: return "Simulation Mode: Trajectory aligning with projected constants."
     
     history = user_data.get('history', {})
-    if len(history) < 3: return "Data insufficient. Continue journaling to form a behavioral model."
+    if len(history) < 3: return "Data insufficient. Continue journaling."
     
     recent_logs = list(history.values())[-10:]
     summaries = [log.get('summary', '') for log in recent_logs]
     
-    # Prompt specifically designed for Gemini's JSON mode
     prompt = f"""
-    You are Celi, an AI Sovereign. Analyze this user.
-    User Context: Birthday {user_data.get('birthday')}, Color {user_data.get('fav_color')}.
-    Journal History: {summaries}
-    
-    Output a JSON object with a single key 'analysis'.
-    The value should be a deep, witty, compassionate psychological summary (max 40 words).
-    Example: {{ "analysis": "You are navigating a nebula of doubt..." }}
+    You are Celi. Analyze user based on details (Birthday: {user_data.get('birthday')}, Color: {user_data.get('fav_color')}) and journals: {summaries}.
+    Output a JSON object with key 'analysis'. Insightful, witty, compassionate. MAX 40 WORDS.
     """
     try:
         response = model.generate_content(prompt)
         return json.loads(response.text)['analysis']
-    except Exception as e:
-        print(f"Gemini Analysis Error: {e}")
-        return "Neural synchronization interrupted."
+    except: return "Neural uplink unstable."
 
 def generate_live_trivia(rank_name, rank_theme):
-    if not model: return "The stars are silent (No API Key)."
-    
-    prompt = f"""
-    Generate ONE short scientific trivia fact about: {rank_theme}.
-    Output JSON with key 'text'. Max 20 words.
-    Example: {{ "text": "A neutron star is denser than..." }}
-    """
+    if not model: return "The stars are silent (No API)."
+    prompt = f"Generate ONE short scientific trivia about: {rank_theme}. Output JSON key 'text'. Max 20 words."
     try:
         response = model.generate_content(prompt)
         return json.loads(response.text)['text']
@@ -105,34 +94,12 @@ def get_rank_info(pts):
         if pts < rank['threshold']: return rank['name'], rank['theme']
     return "Ethereal", RANK_CONFIG[-1]['theme']
 
-# --- ROUTES ---
-
-@app.route('/api/trivia')
-def get_trivia():
-    try:
-        if 'user' not in session: return jsonify({"trivia": "Connecting..."})
-        v = get_vault(); u = v['users'][session['user']]
-        if sanitize_user_data(u): save_vault(v)
-        
-        rank_name, rank_theme = get_rank_info(u.get('points', 0))
-        full_db = get_trivia_db()
-        available = [t for t in full_db if t['rank'] == rank_name and t['text'] not in u['unlocked_trivias']]
-        
-        if available: fact = random.choice(available)['text']
-        else: fact = generate_live_trivia(rank_name, rank_theme)
-
-        if fact not in u['unlocked_trivias']:
-            u['unlocked_trivias'].append(fact)
-            save_vault(v)
-        return jsonify({"trivia": fact})
-    except: return jsonify({"trivia": "Stellar silence."})
-
 @app.route('/api/data')
 def get_data():
     try:
-        if 'user' not in session: return jsonify({})
+        if 'user' not in session: return jsonify({"status": "guest"})
         v = get_vault()
-        if session['user'] not in v['users']: return jsonify({"error": "User missing"}), 401
+        if session['user'] not in v['users']: return jsonify({"status": "guest"})
         
         u = v['users'][session['user']]
         if sanitize_user_data(u): save_vault(v)
@@ -175,6 +142,7 @@ def get_data():
         }
 
         return jsonify({
+            "status": "ok",
             "username": session['user'],
             "user_id": u.get('user_id'),
             "birthday": u.get('birthday'),
@@ -194,8 +162,7 @@ def get_data():
         })
     except Exception as e:
         print(f"DATA ERROR: {e}")
-        # Return a safe, empty object to prevent frontend freeze
-        return jsonify({})
+        return jsonify({"status": "error", "message": str(e)})
 
 @app.route('/api/update_profile', methods=['POST'])
 def update_profile():
@@ -205,10 +172,7 @@ def update_profile():
         if 'birthday' in data: u['birthday'] = data['birthday']
         if 'fav_color' in data: u['fav_color'] = data['fav_color']
         if 'profile_pic' in data: u['profile_pic'] = data['profile_pic']
-        
-        # Trigger Gemini Analysis
         u['celi_analysis'] = analyze_user_soul(u)
-        
         save_vault(v)
         return jsonify({"status": "success"})
     except: return jsonify({"status": "error"})
@@ -229,15 +193,9 @@ def process():
         data = request.json
         
         if not model:
-            ai_data = {"summary": "Simulated Log", "reply": "I hear you. (Gemini Key Missing)"}
+            ai_data = {"summary": "Simulated Log", "reply": "I hear you. (AI Disabled)"}
         else:
-            # Gemini Chat Logic
-            prompt = f"""
-            System: You are Celi. Heart-spoken, witty, empathetic.
-            User Input: {data.get('message')}
-            Task: Reply to the user and summarize their input.
-            Output JSON: {{ "reply": "...", "summary": "..." }}
-            """
+            prompt = f"System: You are Celi. User: {data.get('message')}. Output JSON: {{'reply': '...', 'summary': '...'}}"
             response = model.generate_content(prompt)
             ai_data = json.loads(response.text)
 
@@ -247,9 +205,11 @@ def process():
         u['history'][str(time.time())] = {"summary": ai_data['summary'], "reply": ai_data['reply'], "date": str(date.today()), "type": "rant" if data.get('mode') == 'rant' else "journal"}
         save_vault(v)
         return jsonify(ai_data)
-    except Exception as e: 
-        print(f"CHAT ERROR: {e}")
-        return jsonify({"reply": "Static noise... (Error)", "summary": "Error"})
+    except: return jsonify({"reply": "Static noise...", "summary": "Error"})
+
+# Keep trivial routes for compatibility
+@app.route('/api/trivia')
+def api_trivia_dummy(): return jsonify({"trivia": "Stardust."})
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -269,4 +229,3 @@ def home():
 def logout(): session.clear(); return redirect(url_for('login'))
 
 if __name__ == '__main__': app.run(debug=True)
-        
