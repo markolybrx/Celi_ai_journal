@@ -40,3 +40,8 @@ self.addEventListener('fetch', (event) => {
         })
     );
 });
+
+// SERVICE WORKER DISABLED FOR STABILITY v1.1.3
+self.addEventListener('install', () => self.skipWaiting());
+self.addEventListener('activate', () => self.clients.claim());
+
