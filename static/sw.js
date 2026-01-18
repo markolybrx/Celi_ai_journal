@@ -1,4 +1,4 @@
-const CACHE_NAME = 'celi-sovereign-v10.22';
+const CACHE_NAME = 'celi-sovereign-v10.27';
 const ASSETS_TO_CACHE = [
     '/',
     '/static/manifest.json',
