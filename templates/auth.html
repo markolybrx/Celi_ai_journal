@@ -13,25 +13,20 @@
         .input-field { width: 100%; background: rgba(0, 0, 0, 0.3); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px; padding: 12px 15px; color: #fff; font-size: 13px; outline: none; transition: border-color 0.3s; }
         .input-field:focus { border-color: var(--mood); }
         .input-label { font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: rgba(255, 255, 255, 0.5); margin-bottom: 6px; display: block; }
-        .input-error { border-color: #ef4444 !important; }
         select.input-field { appearance: none; -webkit-appearance: none; }
         .btn-primary { width: 100%; padding: 14px; background: var(--mood); color: #000; border-radius: 12px; font-weight: 900; text-transform: uppercase; font-size: 11px; letter-spacing: 1px; cursor: pointer; transition: transform 0.2s; border: none; margin-top: 10px; display: flex; align-items: center; justify-content: center; }
-        .btn-primary:active { transform: scale(0.98); }
         .btn-secondary { width: 100%; padding: 14px; background: rgba(255, 255, 255, 0.05); color: #fff; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px; font-weight: bold; text-transform: uppercase; font-size: 10px; cursor: pointer; margin-top: 10px; display: flex; align-items: center; justify-content: center; }
-        .hidden { display: none !important; }
-        .text-link { color: var(--mood); cursor: pointer; text-decoration: underline; }
-        .icon-btn { position: absolute; right: 12px; top: 35px; cursor: pointer; opacity: 0.6; transition: opacity 0.2s; }
-        .icon-btn:hover { opacity: 1; }
+        .icon-btn { position: absolute; right: 12px; top: 35px; cursor: pointer; opacity: 0.6; }
         .color-dot { width: 20px; height: 20px; border-radius: 50%; position: absolute; right: 12px; top: 35px; border: 1px solid rgba(255,255,255,0.2); }
-        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 100; display: none; align-items: center; justify-content: center; padding: 20px; }
-        .modal-box { background: #111; border: 1px solid rgba(255,255,255,0.15); padding: 30px; border-radius: 20px; max-width: 400px; width: 100%; text-align: center; box-shadow: 0 10px 40px rgba(0,0,0,0.8); }
-        .modal-title { font-size: 14px; font-weight: 900; text-transform: uppercase; margin-bottom: 10px; color: #fff; letter-spacing: 1px; }
-        .modal-body { font-size: 12px; color: #ccc; line-height: 1.5; margin-bottom: 20px; }
-        .privacy-content { max-height: 60vh; overflow-y: auto; text-align: left; margin-bottom: 20px; }
-        .privacy-content h3 { color: #fff; margin-top: 15px; margin-bottom: 5px; text-transform: uppercase; font-size: 10px; letter-spacing: 1px; }
+        .hidden-force { display: none !important; }
+        
         #loading-overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(8px); z-index: 50; display: none; align-items: center; justify-content: center; flex-direction: column; }
         .spinner { width: 40px; height: 40px; border: 3px solid rgba(255,255,255,0.1); border-top-color: var(--mood); border-radius: 50%; animation: spin 1s infinite linear; margin-bottom: 15px; }
         @keyframes spin { to { transform: rotate(360deg); } }
+        
+        /* Modal Styles */
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 100; display: none; align-items: center; justify-content: center; padding: 20px; }
+        .modal-box { background: #111; border: 1px solid rgba(255,255,255,0.15); padding: 30px; border-radius: 20px; max-width: 400px; width: 100%; text-align: center; }
     </style>
 </head>
 <body>
@@ -45,7 +40,7 @@
 
         <div id="view-login">
             <h1 class="text-3xl font-black text-center mb-8 tracking-tighter text-white">Celi</h1>
-            <form onsubmit="handleLogin(event)">
+            <form id="form-login">
                 <div class="input-group">
                     <label class="input-label">Username</label>
                     <input type="text" id="login-username" name="username" class="input-field" placeholder="Enter username" required>
@@ -53,28 +48,32 @@
                 <div class="input-group">
                     <label class="input-label">Password</label>
                     <input type="password" name="password" id="login-pass" class="input-field" placeholder="••••••" required>
-                    <div class="icon-btn" onclick="togglePass('login-pass')">
+                    <div class="icon-btn" id="toggle-login-pass">
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
                     </div>
                 </div>
+                
                 <div class="flex items-center justify-between mb-4 mt-2 h-6">
                     <div class="flex items-center gap-2">
                         <input type="checkbox" id="remember-me" class="rounded bg-white/10 border-white/20 w-3 h-3">
                         <label for="remember-me" class="text-[9px] text-white/60 uppercase tracking-wide cursor-pointer">Remember Me</label>
                     </div>
-                    <div id="login-error" class="text-[9px] text-red-500 font-bold uppercase tracking-wide hidden">Incorrect username or password</div>
+                    <div id="login-error" class="text-[9px] text-red-500 font-bold uppercase tracking-wide hidden-force">Incorrect username or password</div>
                 </div>
+
                 <button type="submit" class="btn-primary">Log In</button>
             </form>
-            <button type="button" onclick="switchView('register')" class="btn-secondary">Register</button>
+            
+            <button type="button" id="btn-goto-register" class="btn-secondary">Register</button>
+            
             <div class="text-center mt-6">
-                <button type="button" onclick="switchView('recovery')" class="text-[9px] text-white/40 cursor-pointer hover:text-white transition border-b border-transparent hover:border-white/40 inline-block uppercase tracking-widest bg-transparent border-none">Forgot your log in?</button>
+                <button type="button" id="btn-goto-recovery" class="text-[9px] text-white/40 cursor-pointer hover:text-white transition border-b border-transparent hover:border-white/40 inline-block uppercase tracking-widest bg-transparent border-none">Forgot your log in?</button>
             </div>
         </div>
 
-        <div id="view-register" class="hidden">
+        <div id="view-register" class="hidden-force">
             <h1 class="text-xl font-bold text-center mb-6 uppercase tracking-widest text-white/90">Registration</h1>
-            <form onsubmit="handleRegister(event)">
+            <form id="form-register">
                 <div class="flex gap-2 mb-2">
                     <div class="w-1/2"><label class="input-label">First Name</label><input type="text" name="fname" class="input-field" required></div>
                     <div class="w-1/2"><label class="input-label">Last Name</label><input type="text" name="lname" class="input-field" required></div>
@@ -83,7 +82,7 @@
                 <div class="input-group"><label class="input-label">Date of Birth</label><input type="date" name="dob" class="input-field" required></div>
                 <div class="input-group">
                     <label class="input-label">Favorite Color</label>
-                    <input type="text" id="color-input" name="fav_color" class="input-field" placeholder="Cyan, Gold..." oninput="updateColorPreview(this.value)">
+                    <input type="text" id="color-input" name="fav_color" class="input-field" placeholder="Cyan, Gold..." oninput="document.getElementById('color-preview').style.backgroundColor = this.value">
                     <div id="color-preview" class="color-dot" style="background-color: #00f2fe;"></div>
                 </div>
                 <div class="input-group">
@@ -99,25 +98,23 @@
                 <div class="input-group">
                     <label class="input-label">Password</label>
                     <input type="password" name="reg_password" id="reg-pass" class="input-field" required>
-                    <div class="icon-btn" onclick="togglePass('reg-pass')"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></div>
                 </div>
                 <div class="input-group">
                     <label class="input-label">Confirm Password</label>
                     <input type="password" id="confirm-pass" class="input-field" required>
-                    <div class="icon-btn" onclick="togglePass('confirm-pass')"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></div>
                 </div>
                 <div class="flex items-start gap-3 my-4">
                     <input type="checkbox" id="privacy-check" required class="mt-1 w-3 h-3 bg-white/10 border-white/20 rounded">
-                    <label for="privacy-check" class="text-[10px] opacity-70 leading-tight">I agree to the <span class="text-link" onclick="openModal('privacy')">Data Privacy Disclosure</span>.</label>
+                    <label for="privacy-check" class="text-[10px] opacity-70 leading-tight">I agree to the <span class="text-link" id="btn-privacy">Data Privacy Disclosure</span>.</label>
                 </div>
                 <button type="submit" class="btn-primary">Register</button>
             </form>
-            <button type="button" onclick="switchView('login')" class="btn-secondary">Back to Login</button>
+            <button type="button" id="btn-back-login-1" class="btn-secondary">Back to Login</button>
         </div>
 
-        <div id="view-recovery" class="hidden">
+        <div id="view-recovery" class="hidden-force">
             <h1 class="text-xl font-bold text-center mb-6 uppercase tracking-widest text-white/90">Signal Recovery</h1>
-            <form id="rec-form-1" onsubmit="handleVerify(event)">
+            <form id="form-verify">
                 <p class="text-[10px] text-center mb-4 opacity-50">Verify your identity to retrieve access.</p>
                 <div class="flex gap-2 mb-2"><div class="w-1/2"><label class="input-label">First Name</label><input type="text" name="fname" class="input-field" required></div><div class="w-1/2"><label class="input-label">Last Name</label><input type="text" name="lname" class="input-field" required></div></div>
                 <div class="input-group"><label class="input-label">Date of Birth</label><input type="date" name="dob" class="input-field" required></div>
@@ -134,151 +131,193 @@
                 <button type="submit" class="btn-primary">Verify Identity</button>
             </form>
 
-            <form id="rec-form-2" class="hidden" onsubmit="handleReset(event)">
+            <form id="form-reset" class="hidden-force">
                 <div class="input-group">
                     <label class="input-label">Your Username</label>
                     <input type="text" id="rec-username" class="input-field" readonly style="color:var(--mood); font-weight:bold;">
-                    <div class="icon-btn" onclick="copyUser()" title="Copy Username">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect></svg>
-                    </div>
                 </div>
                 <div class="input-group">
                     <label class="input-label">New Password</label>
                     <input type="password" id="new-pass" class="input-field" required>
-                    <div class="icon-btn" onclick="togglePass('new-pass')"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></div>
                 </div>
                 <div class="input-group">
                     <label class="input-label">Confirm New Password</label>
                     <input type="password" id="conf-new-pass" class="input-field" required>
-                    <div class="icon-btn" onclick="togglePass('conf-new-pass')"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></div>
                 </div>
                 <button type="submit" class="btn-primary">Confirm Reset</button>
             </form>
-            <button type="button" onclick="switchView('login')" class="btn-secondary">Cancel</button>
+            <button type="button" id="btn-back-login-2" class="btn-secondary">Cancel</button>
         </div>
     </div>
 
     <div class="fixed bottom-4 w-full text-center pointer-events-none opacity-30 text-[9px] font-mono uppercase tracking-widest text-white flex flex-col gap-1">
-        <span>Celi Access v1.7.0</span>
+        <span>Celi Access v1.8.0</span>
         <span class="opacity-70">Powered by Gemini AI</span>
     </div>
 
     <div id="message-modal" class="modal-overlay">
         <div class="modal-box">
-            <h3 id="modal-title" class="modal-title">Notification</h3>
-            <p id="modal-body" class="modal-body"></p>
-            <button onclick="closeModal('message-modal')" class="btn-primary">Dismiss</button>
+            <h3 id="modal-title" class="text-sm font-bold uppercase mb-2">Notification</h3>
+            <p id="modal-body" class="text-xs mb-4 text-gray-300"></p>
+            <button id="btn-close-modal" class="btn-primary">Dismiss</button>
         </div>
     </div>
 
     <div id="privacy-modal" class="modal-overlay">
         <div class="modal-box">
-            <h2 class="modal-title">Data & Privacy Disclosure</h2>
-            <div class="privacy-content">
-                <h3>1. Introduction</h3><p>By registering a "Signal" (User Account), you entrust Celi with your data.</p>
-                <h3>2. Storage</h3><p>Secured via encrypted MongoDB Atlas.</p>
-                <h3>3. AI Usage</h3><p>Gemini AI processes text ephemerally for responses only. No public training.</p>
-                <h3>4. Rights</h3><p>Full ownership and deletion rights retained by user.</p>
+            <h2 class="text-sm font-bold uppercase mb-4">Data & Privacy</h2>
+            <div class="text-left text-xs text-gray-400 h-40 overflow-y-auto mb-4">
+                <p class="mb-2">1. Celi uses MongoDB Atlas (Encrypted) for storage.</p>
+                <p class="mb-2">2. Google Gemini is used for AI processing only. No data training.</p>
+                <p class="mb-2">3. You own your data. Delete anytime.</p>
             </div>
-            <button onclick="closeModal('privacy-modal')" class="btn-primary">I Acknowledge</button>
+            <button id="btn-close-privacy" class="btn-primary">I Acknowledge</button>
         </div>
     </div>
 
     <script>
-        // Force clear old service workers to fix cache issues
-        if(window.navigator && navigator.serviceWorker) {
-            navigator.serviceWorker.getRegistrations().then(r => { for(let reg of r) reg.unregister(); });
-        }
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log("Celi Auth v1.8.0 Initializing...");
 
-        let recoveryData = {};
-
-        // 1. Navigation Logic
-        function switchView(viewName) {
-            document.getElementById('view-login').classList.add('hidden');
-            document.getElementById('view-register').classList.add('hidden');
-            document.getElementById('view-recovery').classList.add('hidden');
-            document.getElementById('view-' + viewName).classList.remove('hidden');
-            document.getElementById('login-error').classList.add('hidden');
-        }
-
-        // 2. UI Helper
-        function togglePass(id) { 
-            const el = document.getElementById(id); 
-            el.type = el.type === 'password' ? 'text' : 'password'; 
-        }
-
-        function updateColorPreview(val) { 
-            const s = new Option().style; s.color = val; 
-            if (s.color !== '') document.getElementById('color-preview').style.backgroundColor = val; 
-        }
-
-        // 3. Modals
-        function openModal(type, title, body) {
-            if (type === 'privacy') {
-                document.getElementById('privacy-modal').style.display = 'flex';
-            } else {
-                document.getElementById('modal-title').innerText = title || 'Notification';
-                document.getElementById('modal-body').innerText = body || '';
-                document.getElementById('message-modal').style.display = 'flex';
+            // 0. SERVICE WORKER KILLER
+            if(window.navigator && navigator.serviceWorker) {
+                navigator.serviceWorker.getRegistrations().then(r => { for(let reg of r) reg.unregister(); });
             }
-        }
-        function closeModal(id) { document.getElementById(id).style.display = 'none'; }
-        
-        function showLoading(msg) {
-            document.getElementById('loading-text').innerText = msg;
-            document.getElementById('loading-overlay').style.display = 'flex';
-        }
-        function hideLoading() { document.getElementById('loading-overlay').style.display = 'none'; }
 
-        function copyUser() {
-            const u = document.getElementById('rec-username');
-            u.select(); document.execCommand('copy');
-            openModal('msg', 'Success', 'Username copied.');
-        }
-
-        // 4. API Handlers
-        async function handleLogin(e) {
-            e.preventDefault();
-            document.getElementById('login-error').classList.add('hidden');
-            showLoading("Logging In...");
+            // 1. HELPERS
+            const get = (id) => document.getElementById(id);
+            const show = (id) => get(id).style.setProperty('display', 'block', 'important');
+            const hide = (id) => get(id).style.setProperty('display', 'none', 'important');
             
-            if(document.getElementById('remember-me').checked) {
-                localStorage.setItem('celi_user', document.getElementById('login-username').value);
-            } else { localStorage.removeItem('celi_user'); }
-
-            const form = new FormData(e.target);
-            try {
-                const res = await fetch('/login', { method: 'POST', body: form });
-                if (res.ok) {
-                    window.location.href = '/';
-                } else {
-                    hideLoading();
-                    document.getElementById('login-error').classList.remove('hidden');
-                }
-            } catch (err) {
-                hideLoading();
-                openModal('msg', 'Error', 'Connection Failed');
+            // 2. VIEW SWITCHING
+            function switchView(view) {
+                console.log("Switching to:", view);
+                ['view-login', 'view-register', 'view-recovery'].forEach(v => hide(v));
+                show('view-' + view);
+                hide('login-error');
             }
-        }
 
-        async function handleRegister(e) {
-            e.preventDefault();
-            const p1 = document.getElementById('reg-pass').value;
-            const p2 = document.getElementById('confirm-pass').value;
-            if(p1 !== p2) { openModal('msg', 'Error', 'Passwords do not match'); return; }
-            
-            showLoading("Registering...");
-            const formData = new FormData(e.target);
-            const data = Object.fromEntries(formData.entries());
-            
-            try {
-                const res = await fetch('/api/register', { 
-                    method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(data) 
-                });
-                if(res.ok) {
-                    hideLoading();
-                    openModal('msg', 'Success', 'Account Created. Please Login.');
-                    switchView('login');
-                } else {
-                    const d = await res.json();
+            // 3. EVENT BINDINGS (The Fix)
+            get('btn-goto-register').addEventListener('click', () => switchView('register'));
+            get('btn-goto-recovery').addEventListener('click', () => switchView('recovery'));
+            get('btn-back-login-1').addEventListener('click', () => switchView('login'));
+            get('btn-back-login-2').addEventListener('click', () => switchView('login'));
+
+            // Toggle Passwords
+            get('toggle-login-pass').addEventListener('click', () => {
+                const el = get('login-pass'); el.type = el.type === 'password' ? 'text' : 'password';
+            });
+
+            // Modals
+            get('btn-privacy').addEventListener('click', () => show('privacy-modal'));
+            get('btn-close-privacy').addEventListener('click', () => hide('privacy-modal'));
+            get('btn-close-modal').addEventListener('click', () => hide('message-modal'));
+
+            // 4. FORMS
+            // LOGIN
+            get('form-login').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                hide('login-error');
+                show('loading-overlay');
+                
+                // Remember Me
+                if(get('remember-me').checked) localStorage.setItem('celi_user', get('login-username').value);
+                else localStorage.removeItem('celi_user');
+
+                const form = new FormData(e.target);
+                try {
+                    const res = await fetch('/login', { method: 'POST', body: form });
+                    const data = await res.json();
                     
+                    if (data.status === 'success') {
+                        window.location.href = '/';
+                    } else {
+                        hide('loading-overlay');
+                        // FORCE SHOW ERROR
+                        show('login-error');
+                    }
+                } catch (err) {
+                    hide('loading-overlay');
+                    alert("Connection Error");
+                }
+            });
+
+            // REGISTER
+            get('form-register').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                if(get('reg-pass').value !== get('confirm-pass').value) { alert("Passwords do not match"); return; }
+                
+                show('loading-overlay');
+                const data = Object.fromEntries(new FormData(e.target));
+                
+                try {
+                    const res = await fetch('/api/register', { 
+                        method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(data)
+                    });
+                    const d = await res.json();
+                    hide('loading-overlay');
+                    
+                    if(res.ok) {
+                        alert("Success! Please Login.");
+                        switchView('login');
+                    } else {
+                        alert(d.error || "Failed");
+                    }
+                } catch(e) { hide('loading-overlay'); alert("Network Error"); }
+            });
+
+            // RECOVERY
+            get('form-verify').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                show('loading-overlay');
+                const data = Object.fromEntries(new FormData(e.target));
+                window.recoveryData = data;
+                
+                try {
+                    const res = await fetch('/api/recover', { 
+                        method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(data)
+                    });
+                    const d = await res.json();
+                    hide('loading-overlay');
+                    
+                    if(res.ok) {
+                        hide('form-verify');
+                        show('form-reset');
+                        get('rec-username').value = d.username;
+                        window.recoveryData.username = d.username;
+                    } else {
+                        alert(d.error || "Identity not found");
+                    }
+                } catch(e) { hide('loading-overlay'); alert("Network Error"); }
+            });
+
+            get('form-reset').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                if(get('new-pass').value !== get('conf-new-pass').value) { alert("Passwords mismatch"); return; }
+                
+                show('loading-overlay');
+                const payload = { ...window.recoveryData, new_password: get('new-pass').value };
+                
+                try {
+                    const res = await fetch('/api/reset_password', { 
+                        method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload)
+                    });
+                    hide('loading-overlay');
+                    if(res.ok) {
+                        alert("Password Updated.");
+                        switchView('login');
+                    } else { alert("Failed"); }
+                } catch(e) { hide('loading-overlay'); alert("Network Error"); }
+            });
+
+            // 5. RESTORE SAVED USER
+            const savedUser = localStorage.getItem('celi_user');
+            if(savedUser) {
+                get('login-username').value = savedUser;
+                get('remember-me').checked = true;
+            }
+        });
+    </script>
+</body>
+    </html>
+    
