@@ -7,7 +7,6 @@
     <script src="https://cdn.tailwindcss.com"></script>
     
     <script>
-        // AGGRESSIVE CACHE CLEARING
         if(window.navigator && navigator.serviceWorker) {
             navigator.serviceWorker.getRegistrations().then(function(registrations) {
                 for(let registration of registrations) { registration.unregister(); }
@@ -21,23 +20,26 @@
         
         button, input { touch-action: manipulation; }
         
-        /* MAIN PANEL */
+        /* --- PANEL --- */
         .glass-panel { width: 90%; max-width: 380px; background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 24px; padding: 30px; box-shadow: 0 20px 50px rgba(0,0,0,0.5); position: relative; overflow: hidden; transition: height 0.3s ease; max-height: 90vh; overflow-y: auto; z-index: 10; }
         
+        /* --- INPUTS --- */
         .input-group { margin-bottom: 15px; position: relative; }
         .input-field { width: 100%; background: rgba(0, 0, 0, 0.3); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px; padding: 12px 15px; color: #fff; font-size: 13px; outline: none; transition: border-color 0.3s; }
         .input-field:focus { border-color: var(--mood); }
         .input-label { font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: rgba(255, 255, 255, 0.5); margin-bottom: 6px; display: block; }
         .error-text { color: #ef4444; font-size: 10px; font-weight: 900; text-transform: uppercase; margin-top: 5px; margin-bottom: 10px; letter-spacing: 0.5px; text-align: center; }
         
+        /* --- BUTTONS --- */
         .btn-primary { width: 100%; padding: 14px; background: var(--mood); color: #000; border-radius: 12px; font-weight: 900; text-transform: uppercase; font-size: 11px; letter-spacing: 1px; cursor: pointer; transition: transform 0.2s; border: none; margin-top: 10px; }
         .btn-secondary { width: 100%; padding: 14px; background: rgba(255, 255, 255, 0.05); color: #fff; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px; font-weight: bold; text-transform: uppercase; font-size: 10px; cursor: pointer; margin-top: 10px; }
         
+        /* --- DECOR --- */
         .icon-btn { position: absolute; right: 12px; top: 35px; cursor: pointer; opacity: 0.6; padding: 5px; } 
         .color-dot { width: 20px; height: 20px; border-radius: 50%; position: absolute; right: 12px; top: 35px; border: 1px solid rgba(255,255,255,0.2); pointer-events: none; }
         .text-link { color: var(--mood); cursor: pointer; text-decoration: underline; }
         
-        /* MODALS (Fixed Layout) */
+        /* --- MODALS --- */
         .modal-overlay { 
             position: fixed; inset: 0; background: rgba(0,0,0,0.95); z-index: 9999; 
             display: none; align-items: center; justify-content: center; padding: 20px; 
@@ -47,27 +49,21 @@
         .modal-box { 
             background: #111; border: 1px solid rgba(255,255,255,0.15); 
             border-radius: 20px; max-width: 450px; width: 100%; 
-            display: flex; flex-direction: column; /* Critical for scrolling */
-            max-height: 85vh; /* Keep inside screen */
-            padding: 25px;
+            display: flex; flex-direction: column;
+            max-height: 85vh; padding: 25px;
             box-shadow: 0 10px 40px rgba(0,0,0,0.8);
             position: relative;
         }
         
-        /* X Close Button */
         .modal-close-x {
             position: absolute; top: 15px; right: 15px; cursor: pointer;
             width: 24px; height: 24px; opacity: 0.7; z-index: 20;
         }
 
         .legal-box { 
-            text-align: left; 
-            overflow-y: auto; /* Only this part scrolls */
-            flex: 1; /* Take remaining space */
-            background: rgba(255,255,255,0.05); 
-            padding: 15px; border-radius: 10px; 
-            margin-bottom: 20px; 
-            border: 1px solid rgba(255,255,255,0.1); 
+            text-align: left; overflow-y: auto; flex: 1; 
+            background: rgba(255,255,255,0.05); padding: 15px; 
+            border-radius: 10px; margin-bottom: 20px; border: 1px solid rgba(255,255,255,0.1); 
         }
         
         .legal-box h3 { color: var(--mood); font-size: 11px; font-weight: bold; text-transform: uppercase; margin-top: 15px; margin-bottom: 5px; }
@@ -80,7 +76,7 @@
     </style>
     
     <script>
-        // VIEW NAVIGATION
+        // --- UI CONTROLLERS ---
         function switchView(viewName) {
             document.getElementById('view-login').style.display = 'none';
             document.getElementById('view-register').style.display = 'none';
@@ -88,21 +84,17 @@
             document.getElementById('view-' + viewName).style.display = 'block';
             document.getElementById('login-error-msg').style.display = 'none';
         }
-
-        // UTILS
         function togglePass(id) { const el = document.getElementById(id); el.type = el.type === 'password' ? 'text' : 'password'; }
         function showLoading(msg) { document.getElementById('loading-text').innerText = msg; document.getElementById('loading-overlay').style.display = 'flex'; }
         function hideLoading() { document.getElementById('loading-overlay').style.display = 'none'; }
-        
         function showModal(title, body) { 
             document.getElementById('modal-title').innerText = title; 
             document.getElementById('modal-body').innerText = body; 
             document.getElementById('message-modal').style.display = 'flex'; 
         }
-        
         function hideModal(id) { document.getElementById(id).style.display = 'none'; }
 
-        // API ACTIONS
+        // --- AUTHENTICATION ACTIONS ---
         async function doLogin(e) {
             e.preventDefault();
             document.getElementById('login-error-msg').style.display = 'none';
@@ -190,6 +182,7 @@
         };
     </script>
 </head>
+
 <body>
 
     <div class="glass-panel" id="auth-container">
@@ -278,13 +271,10 @@
             <div class="modal-close-x" onclick="hideModal('privacy-modal')">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="#fff" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
             </div>
-            
             <h2 class="text-xl font-bold mb-4 uppercase text-white tracking-widest text-center">Data & Privacy</h2>
-            
             <div class="legal-box">
                 <h3>1. Introduction and Scope</h3>
                 <p>Celi ("The Application") is designed as a personal AI journaling companion. We are committed to transparency regarding the collection, storage, and processing of your digital footprint. By creating a "Signal" (Account), you agree to these terms.</p>
-                
                 <h3>2. Data Collection</h3>
                 <p>We adhere to a principle of <strong>Data Minimization</strong>. We collect:</p>
                 <ul>
@@ -293,11 +283,9 @@
                     <li><strong>Biographical Markers:</strong> Date of Birth for AI context.</li>
                     <li><strong>System Logs:</strong> Timestamps for organizing entries.</li>
                 </ul>
-
                 <h3>3. Journal and Collected Information</h3>
                 <p><strong>Ownership:</strong> The User retains 100% Intellectual Property ownership of their User Content. Celi claims no ownership rights.</p>
                 <p><strong>Usage:</strong> Content is accessed solely for history display and AI context generation (via ephemeral processing).</p>
-
                 <h3>4. AI Utilisation (Artificial Intelligence)</h3>
                 <p>Celi leverages <strong>Google Gemini</strong> for text generation.</p>
                 <ul>
@@ -305,21 +293,17 @@
                     <li><strong>Ephemeral Processing:</strong> AI processing is stateless. Data is used to generate a response and then discarded.</li>
                     <li><strong>No Training:</strong> Celi does not grant Google rights to use your data to train public foundation models.</li>
                 </ul>
-
                 <h3>5. Data Storage & Infrastructure</h3>
                 <p>Data is stored in <strong>MongoDB Atlas</strong> using <strong>AES-256 encryption</strong> at rest and TLS in transit. Infrastructure is secured by standard cloud security protocols.</p>
-
                 <h3>6. User Data Rights</h3>
                 <p>In alignment with global privacy standards:</p>
                 <ul>
                     <li><strong>Right to Access:</strong> View complete history in the Vault.</li>
                     <li><strong>Right to Erasure:</strong> Permanently delete your account via Profile Settings.</li>
                 </ul>
-                
                 <h3>7. User Data Security</h3>
                 <p>Access is protected by passwords and Identity Verification protocols (Secret Questions). In the event of a breach, we will notify users within 72 hours.</p>
             </div>
-            
             <button onclick="hideModal('privacy-modal')" class="btn-primary">I Acknowledge & Consent</button>
         </div>
     </div>
