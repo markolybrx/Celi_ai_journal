@@ -6,3 +6,5 @@ dnspython
 certifi
 celery
 redis
+werkzeug
+google-api-python-client
