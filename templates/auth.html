@@ -8,31 +8,21 @@
     <style>
         :root { --mood: #00f2fe; }
         body { background: #000; color: #fff; font-family: sans-serif; height: 100vh; display: flex; align-items: center; justify-content: center; overflow: hidden; position: relative; }
-        
-        /* LAYOUT */
         .glass-panel { width: 90%; max-width: 380px; background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 24px; padding: 30px; box-shadow: 0 20px 50px rgba(0,0,0,0.5); position: relative; overflow: hidden; transition: all 0.4s ease; max-height: 90vh; overflow-y: auto; }
-        
         .input-group { margin-bottom: 15px; position: relative; }
         .input-field { width: 100%; background: rgba(0, 0, 0, 0.3); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px; padding: 12px 15px; color: #fff; font-size: 13px; outline: none; transition: border-color 0.3s; }
         .input-field:focus { border-color: var(--mood); }
         .input-label { font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: rgba(255, 255, 255, 0.5); margin-bottom: 6px; display: block; }
         .input-error { border-color: #ef4444 !important; }
         select.input-field { appearance: none; -webkit-appearance: none; }
-
         .btn-primary { width: 100%; padding: 14px; background: var(--mood); color: #000; border-radius: 12px; font-weight: 900; text-transform: uppercase; font-size: 11px; letter-spacing: 1px; cursor: pointer; transition: transform 0.2s; border: none; margin-top: 10px; display: flex; align-items: center; justify-content: center; }
         .btn-primary:active { transform: scale(0.98); }
         .btn-secondary { width: 100%; padding: 14px; background: rgba(255, 255, 255, 0.05); color: #fff; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px; font-weight: bold; text-transform: uppercase; font-size: 10px; cursor: pointer; margin-top: 10px; display: flex; align-items: center; justify-content: center; }
-        
-        /* UTILS */
         .hidden { display: none !important; }
         .text-link { color: var(--mood); cursor: pointer; text-decoration: underline; }
-        
-        /* ICONS */
         .icon-btn { position: absolute; right: 12px; top: 35px; cursor: pointer; opacity: 0.6; transition: opacity 0.2s; }
         .icon-btn:hover { opacity: 1; }
         .color-dot { width: 20px; height: 20px; border-radius: 50%; position: absolute; right: 12px; top: 35px; border: 1px solid rgba(255,255,255,0.2); }
-
-        /* MODALS & LOADERS */
         .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 100; display: none; align-items: center; justify-content: center; padding: 20px; }
         .modal-box { background: #111; border: 1px solid rgba(255,255,255,0.15); padding: 30px; border-radius: 20px; max-width: 400px; width: 100%; text-align: center; box-shadow: 0 10px 40px rgba(0,0,0,0.8); }
         .modal-title { font-size: 14px; font-weight: 900; text-transform: uppercase; margin-bottom: 10px; color: #fff; letter-spacing: 1px; }
@@ -43,151 +33,6 @@
         .spinner { width: 40px; height: 40px; border: 3px solid rgba(255,255,255,0.1); border-top-color: var(--mood); border-radius: 50%; animation: spin 1s infinite linear; margin-bottom: 15px; }
         @keyframes spin { to { transform: rotate(360deg); } }
     </style>
-    
-    <script>
-        // Force clear old service workers
-        if(window.navigator && navigator.serviceWorker) { navigator.serviceWorker.getRegistrations().then(r => { for(let reg of r) reg.unregister(); }); }
-
-        let recoveryData = {};
-
-        // 1. Navigation Logic
-        window.switchView = function(viewName) {
-            document.getElementById('view-login').classList.add('hidden');
-            document.getElementById('view-register').classList.add('hidden');
-            document.getElementById('view-recovery').classList.add('hidden');
-            
-            document.getElementById('view-' + viewName).classList.remove('hidden');
-            document.getElementById('login-error').classList.add('hidden'); // Reset error
-        }
-
-        // 2. UI Toggles
-        window.togglePass = function(id) { 
-            const el = document.getElementById(id); 
-            el.type = el.type === 'password' ? 'text' : 'password'; 
-        }
-        window.updateColorPreview = function(val) { 
-            const s = new Option().style; s.color = val; 
-            if (s.color !== '') document.getElementById('color-preview').style.backgroundColor = val; 
-        }
-
-        // 3. Modals
-        window.openModal = function(type, title, body) {
-            if (type === 'privacy') {
-                document.getElementById('privacy-modal').style.display = 'flex';
-            } else {
-                document.getElementById('modal-title').innerText = title || 'Notification';
-                document.getElementById('modal-body').innerText = body || '';
-                document.getElementById('message-modal').style.display = 'flex';
-            }
-        }
-        window.closeModal = function(id) { document.getElementById(id).style.display = 'none'; }
-        window.showLoading = function(msg) { document.getElementById('loading-text').innerText = msg; document.getElementById('loading-overlay').style.display = 'flex'; }
-        window.hideLoading = function() { document.getElementById('loading-overlay').style.display = 'none'; }
-
-        // 4. Form Handlers
-        window.handleLogin = async function(e) {
-            e.preventDefault();
-            document.getElementById('login-error').classList.add('hidden');
-            window.showLoading("Logging In...");
-            
-            const form = new FormData(e.target);
-            // Handle Remember Me
-            if(document.getElementById('remember-me').checked) {
-                localStorage.setItem('celi_user', document.getElementById('login-username').value);
-            } else { localStorage.removeItem('celi_user'); }
-
-            try {
-                const res = await fetch('/login', { method: 'POST', body: form });
-                if (res.ok) {
-                    // API sends JSON success, we manually redirect
-                    window.location.href = '/';
-                } else {
-                    window.hideLoading();
-                    document.getElementById('login-error').classList.remove('hidden');
-                }
-            } catch (err) {
-                window.hideLoading();
-                window.openModal('msg', 'Error', 'Connection Failed');
-            }
-        }
-
-        window.handleRegister = async function(e) {
-            e.preventDefault();
-            const p1 = document.getElementById('reg-pass').value;
-            const p2 = document.getElementById('confirm-pass').value;
-            if(p1 !== p2) { window.openModal('msg', 'Error', 'Passwords do not match'); return; }
-            
-            window.showLoading("Registering...");
-            const formData = new FormData(e.target);
-            const data = Object.fromEntries(formData.entries());
-            
-            try {
-                const res = await fetch('/api/register', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(data) });
-                if(res.ok) {
-                    window.hideLoading();
-                    window.openModal('msg', 'Success', 'Account Created. Please Login.');
-                    window.switchView('login');
-                } else {
-                    const d = await res.json();
-                    window.hideLoading();
-                    window.openModal('msg', 'Error', d.error || "Failed");
-                }
-            } catch(e) { window.hideLoading(); window.openModal('msg', 'Error', 'Network Error'); }
-        }
-
-        window.handleVerify = async function(e) {
-            e.preventDefault();
-            window.showLoading("Verifying...");
-            const formData = new FormData(e.target);
-            recoveryData = Object.fromEntries(formData.entries());
-            
-            try {
-                const res = await fetch('/api/recover', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(recoveryData) });
-                const d = await res.json();
-                window.hideLoading();
-                if(res.ok) {
-                    document.getElementById('rec-form-1').classList.add('hidden');
-                    document.getElementById('rec-form-2').classList.remove('hidden');
-                    document.getElementById('rec-username').value = d.username;
-                    recoveryData.username = d.username;
-                } else { window.openModal('msg', 'Error', d.error || "Identity not found"); }
-            } catch(e) { window.hideLoading(); window.openModal('msg', 'Error', 'Network Error'); }
-        }
-
-        window.handleReset = async function(e) {
-            e.preventDefault();
-            const p1 = document.getElementById('new-pass').value;
-            const p2 = document.getElementById('conf-new-pass').value;
-            if(p1 !== p2) { window.openModal('msg', 'Error', 'Passwords do not match'); return; }
-            
-            window.showLoading("Updating...");
-            const payload = { ...recoveryData, new_password: p1 };
-            
-            try {
-                const res = await fetch('/api/reset_password', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload) });
-                window.hideLoading();
-                if(res.ok) {
-                    window.openModal('msg', 'Success', 'Password Updated.');
-                    window.switchView('login');
-                } else { window.openModal('msg', 'Error', 'Reset Failed'); }
-            } catch(e) { window.hideLoading(); window.openModal('msg', 'Error', 'Network Error'); }
-        }
-
-        window.copyUser = function() {
-            const u = document.getElementById('rec-username');
-            u.select(); document.execCommand('copy');
-            window.openModal('msg', 'Success', 'Username copied.');
-        }
-
-        // Init Remember Me
-        document.addEventListener('DOMContentLoaded', () => {
-            const savedUser = localStorage.getItem('celi_user');
-            if(savedUser) {
-                document.getElementById('login-username').value = savedUser;
-                document.getElementById('remember-me').checked = true;
-            }
-        });
-    </script>
 </head>
 <body>
 
@@ -294,4 +139,146 @@
                     <label class="input-label">Your Username</label>
                     <input type="text" id="rec-username" class="input-field" readonly style="color:var(--mood); font-weight:bold;">
                     <div class="icon-btn" onclick="copyUser()" title="Copy Username">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-l
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect></svg>
+                    </div>
+                </div>
+                <div class="input-group">
+                    <label class="input-label">New Password</label>
+                    <input type="password" id="new-pass" class="input-field" required>
+                    <div class="icon-btn" onclick="togglePass('new-pass')"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></div>
+                </div>
+                <div class="input-group">
+                    <label class="input-label">Confirm New Password</label>
+                    <input type="password" id="conf-new-pass" class="input-field" required>
+                    <div class="icon-btn" onclick="togglePass('conf-new-pass')"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></div>
+                </div>
+                <button type="submit" class="btn-primary">Confirm Reset</button>
+            </form>
+            <button type="button" onclick="switchView('login')" class="btn-secondary">Cancel</button>
+        </div>
+    </div>
+
+    <div class="fixed bottom-4 w-full text-center pointer-events-none opacity-30 text-[9px] font-mono uppercase tracking-widest text-white flex flex-col gap-1">
+        <span>Celi Access v1.7.0</span>
+        <span class="opacity-70">Powered by Gemini AI</span>
+    </div>
+
+    <div id="message-modal" class="modal-overlay">
+        <div class="modal-box">
+            <h3 id="modal-title" class="modal-title">Notification</h3>
+            <p id="modal-body" class="modal-body"></p>
+            <button onclick="closeModal('message-modal')" class="btn-primary">Dismiss</button>
+        </div>
+    </div>
+
+    <div id="privacy-modal" class="modal-overlay">
+        <div class="modal-box">
+            <h2 class="modal-title">Data & Privacy Disclosure</h2>
+            <div class="privacy-content">
+                <h3>1. Introduction</h3><p>By registering a "Signal" (User Account), you entrust Celi with your data.</p>
+                <h3>2. Storage</h3><p>Secured via encrypted MongoDB Atlas.</p>
+                <h3>3. AI Usage</h3><p>Gemini AI processes text ephemerally for responses only. No public training.</p>
+                <h3>4. Rights</h3><p>Full ownership and deletion rights retained by user.</p>
+            </div>
+            <button onclick="closeModal('privacy-modal')" class="btn-primary">I Acknowledge</button>
+        </div>
+    </div>
+
+    <script>
+        // Force clear old service workers to fix cache issues
+        if(window.navigator && navigator.serviceWorker) {
+            navigator.serviceWorker.getRegistrations().then(r => { for(let reg of r) reg.unregister(); });
+        }
+
+        let recoveryData = {};
+
+        // 1. Navigation Logic
+        function switchView(viewName) {
+            document.getElementById('view-login').classList.add('hidden');
+            document.getElementById('view-register').classList.add('hidden');
+            document.getElementById('view-recovery').classList.add('hidden');
+            document.getElementById('view-' + viewName).classList.remove('hidden');
+            document.getElementById('login-error').classList.add('hidden');
+        }
+
+        // 2. UI Helper
+        function togglePass(id) { 
+            const el = document.getElementById(id); 
+            el.type = el.type === 'password' ? 'text' : 'password'; 
+        }
+
+        function updateColorPreview(val) { 
+            const s = new Option().style; s.color = val; 
+            if (s.color !== '') document.getElementById('color-preview').style.backgroundColor = val; 
+        }
+
+        // 3. Modals
+        function openModal(type, title, body) {
+            if (type === 'privacy') {
+                document.getElementById('privacy-modal').style.display = 'flex';
+            } else {
+                document.getElementById('modal-title').innerText = title || 'Notification';
+                document.getElementById('modal-body').innerText = body || '';
+                document.getElementById('message-modal').style.display = 'flex';
+            }
+        }
+        function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+        
+        function showLoading(msg) {
+            document.getElementById('loading-text').innerText = msg;
+            document.getElementById('loading-overlay').style.display = 'flex';
+        }
+        function hideLoading() { document.getElementById('loading-overlay').style.display = 'none'; }
+
+        function copyUser() {
+            const u = document.getElementById('rec-username');
+            u.select(); document.execCommand('copy');
+            openModal('msg', 'Success', 'Username copied.');
+        }
+
+        // 4. API Handlers
+        async function handleLogin(e) {
+            e.preventDefault();
+            document.getElementById('login-error').classList.add('hidden');
+            showLoading("Logging In...");
+            
+            if(document.getElementById('remember-me').checked) {
+                localStorage.setItem('celi_user', document.getElementById('login-username').value);
+            } else { localStorage.removeItem('celi_user'); }
+
+            const form = new FormData(e.target);
+            try {
+                const res = await fetch('/login', { method: 'POST', body: form });
+                if (res.ok) {
+                    window.location.href = '/';
+                } else {
+                    hideLoading();
+                    document.getElementById('login-error').classList.remove('hidden');
+                }
+            } catch (err) {
+                hideLoading();
+                openModal('msg', 'Error', 'Connection Failed');
+            }
+        }
+
+        async function handleRegister(e) {
+            e.preventDefault();
+            const p1 = document.getElementById('reg-pass').value;
+            const p2 = document.getElementById('confirm-pass').value;
+            if(p1 !== p2) { openModal('msg', 'Error', 'Passwords do not match'); return; }
+            
+            showLoading("Registering...");
+            const formData = new FormData(e.target);
+            const data = Object.fromEntries(formData.entries());
+            
+            try {
+                const res = await fetch('/api/register', { 
+                    method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(data) 
+                });
+                if(res.ok) {
+                    hideLoading();
+                    openModal('msg', 'Success', 'Account Created. Please Login.');
+                    switchView('login');
+                } else {
+                    const d = await res.json();
+                    
