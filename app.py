@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 app = Flask(__name__)
 
 # --- CONFIGURATION ---
-app.secret_key = "celi_ai_v1.14.00.00_recovery_flow"
+app.secret_key = "celi_ai_v2.0.01_anchor_build"
 app.permanent_session_lifetime = timedelta(days=30)
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 app.config['SESSION_COOKIE_SECURE'] = True
@@ -101,26 +101,39 @@ def update_user_data(username, update_dict):
     if users_col is None: return
     users_col.update_one({"username": username}, {"$set": update_dict})
 
+# --- HELPER: NORMALIZE DATE ---
+def normalize_date(date_str):
+    """Ensures date is YYYY-MM-DD even if browser sends DD/MM/YYYY"""
+    if not date_str: return ""
+    if '/' in date_str:
+        parts = date_str.split('/')
+        if len(parts) == 3:
+            # Assuming format is DD/MM/YYYY, convert to YYYY-MM-DD
+            return f"{parts[2]}-{parts[1]}-{parts[0]}"
+    return date_str
+
 # --- API ROUTES ---
 
 @app.route('/health')
 def health(): return "Alive", 200
 
-# NEW ROUTE: Step 1 of Recovery - Find User & Get Question
+# STEP 1: FIND USER
 @app.route('/api/find_user', methods=['POST'])
 def find_user():
     try:
         d = request.json
-        # Look for user by Name + DOB only
+        # Normalize Date
+        clean_dob = normalize_date(d.get('dob'))
+        
         q = { 
             "first_name": d.get('fname'), 
             "last_name": d.get('lname'), 
-            "birthday": d.get('dob') 
+            "birthday": clean_dob 
         }
+        
         if users_col is not None:
             user = users_col.find_one(q)
             if user:
-                # Return the question so the UI can display it
                 return jsonify({
                     "status": "found", 
                     "question_code": user.get('secret_question', 'pet')
@@ -129,18 +142,21 @@ def find_user():
         return jsonify({"error": "DB Unavailable"}), 500
     except Exception as e: return jsonify({"error": str(e)}), 500
 
-# MODIFIED ROUTE: Step 2 of Recovery - Verify Answer
+# STEP 2: VERIFY ANSWER
 @app.route('/api/recover', methods=['POST'])
 def recover():
     try:
         d = request.json
+        # Normalize Date Here Too
+        clean_dob = normalize_date(d.get('dob'))
+        
         q = { 
             "first_name": d.get('fname'), 
             "last_name": d.get('lname'), 
-            "birthday": d.get('dob'), 
-            # We verify the answer here
+            "birthday": clean_dob,
             "secret_answer": d.get('secret_answer').lower().strip() 
         }
+        
         if users_col is not None:
             u = users_col.find_one(q)
             if u: 
@@ -158,6 +174,10 @@ def register():
         if users_col.find_one({"username": u}): return jsonify({"error": "Username taken"}), 400
         
         hashed_pw = generate_password_hash(data.get('reg_password'))
+        
+        # We assume registration sends correct YYYY-MM-DD from the date picker
+        # but storing it raw is fine as long as retrieval normalizes to match it.
+        
         new_user = {
             "username": u, "password": hashed_pw,
             "first_name": data.get('fname'), "last_name": data.get('lname'),
@@ -175,7 +195,6 @@ def register():
 def reset_password():
     try:
         d = request.json
-        # Double check identity before reset
         q = { "username": d.get('username'), "first_name": d.get('fname'), "last_name": d.get('lname'), "secret_answer": d.get('secret_answer').lower().strip() }
         if users_col is not None and users_col.find_one(q):
             new_hashed = generate_password_hash(d.get('new_password'))
