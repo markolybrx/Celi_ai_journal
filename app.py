@@ -1,17 +1,22 @@
-import os, json, time, random, uuid, ssl
+import os, json, time, random, uuid, ssl, logging
 from flask import Flask, render_template, request, jsonify, session, redirect, url_for
 from datetime import date, timedelta
 import google.generativeai as genai
 from pymongo import MongoClient
 import certifi
 from werkzeug.middleware.proxy_fix import ProxyFix
-from werkzeug.security import generate_password_hash, check_password_hash # SECURITY IMPORT
+from werkzeug.security import generate_password_hash, check_password_hash
 from celery import Celery
+from google.api_core import retry
+
+# --- LOGGING SETUP (New) ---
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
 
 # --- CONFIGURATION ---
-app.secret_key = "celi_ai_v1.11.00.00_hashed_security"
+app.secret_key = "celi_ai_v1.12.00.00_optimized"
 app.permanent_session_lifetime = timedelta(days=30)
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 app.config['SESSION_COOKIE_SECURE'] = True
@@ -29,11 +34,7 @@ app.config['CELERY_RESULT_BACKEND'] = raw_redis_url
 
 # --- CELERY SETUP ---
 def make_celery(app):
-    celery = Celery(
-        app.import_name, 
-        broker=app.config['CELERY_BROKER_URL'],
-        backend=app.config['CELERY_RESULT_BACKEND']
-    )
+    celery = Celery(app.import_name, broker=app.config['CELERY_BROKER_URL'], backend=app.config['CELERY_RESULT_BACKEND'])
     celery.conf.update(app.config)
     celery.conf.broker_use_ssl = {"ssl_cert_reqs": ssl.CERT_NONE}
     celery.conf.redis_backend_use_ssl = {"ssl_cert_reqs": ssl.CERT_NONE}
@@ -43,17 +44,16 @@ celery_app = make_celery(app)
 
 # --- MONGODB CONNECTION ---
 MONGO_URI = os.environ.get("MONGO_URI")
-db = None
-users_col = None
+db = None; users_col = None
 
 if MONGO_URI:
     try:
         client = MongoClient(MONGO_URI, tlsCAFile=certifi.where())
         db = client.get_database("celi_db")
         users_col = db.users
-        print("✅ MONGODB CONNECTED")
+        logger.info("✅ MONGODB CONNECTED")
     except Exception as e:
-        print(f"❌ MONGO CONNECTION FAILED: {e}")
+        logger.error(f"❌ MONGO CONNECTION FAILED: {e}")
 
 # --- GEMINI (GLOBAL) ---
 GEMINI_KEY = os.environ.get("GEMINI_API_KEY")
@@ -77,21 +77,23 @@ RANK_CONFIG = [
 # --- BACKGROUND WORKER TASK ---
 @celery_app.task(name='app.background_analyze_soul')
 def background_analyze_soul(username, recent_logs):
-    print(f"🔄 Worker: Analyzing {username}...")
+    logger.info(f"🔄 Worker: Analyzing {username}...")
     try:
         if not GEMINI_KEY: return
         genai.configure(api_key=GEMINI_KEY)
         worker_model = genai.GenerativeModel('gemini-1.5-flash', generation_config={"response_mime_type": "application/json"})
         prompt = f"Analyze user based on journals: {recent_logs}. Output JSON: {{ 'analysis': 'Deep, witty psychological summary (max 30 words).' }}"
-        response = worker_model.generate_content(prompt)
+        
+        # Timeout added to prevent worker hanging
+        response = worker_model.generate_content(prompt, request_options={'timeout': 20})
         analysis_text = json.loads(response.text)['analysis']
         
         worker_client = MongoClient(MONGO_URI, tlsCAFile=certifi.where())
         worker_db = worker_client.get_database("celi_db")
         worker_db.users.update_one({"username": username}, {"$set": {"celi_analysis": analysis_text}})
-        print(f"✅ Worker: Analysis saved for {username}")
+        logger.info(f"✅ Worker: Analysis saved for {username}")
     except Exception as e:
-        print(f"❌ Worker Error: {e}")
+        logger.error(f"❌ Worker Error: {e}")
 
 # --- HELPERS ---
 def get_user_data(username):
@@ -104,21 +106,22 @@ def update_user_data(username, update_dict):
 
 # --- API ROUTES ---
 
+@app.route('/health')
+def health():
+    """Simple check for Uptime Robots"""
+    return "Alive", 200
+
 @app.route('/api/register', methods=['POST'])
 def register():
     try:
         data = request.json
         u = data.get('reg_username')
-        
         if users_col is not None and users_col.find_one({"username": u}):
             return jsonify({"error": "Username taken"}), 400
         
-        # SECURITY UPDATE: Hashing Password
         hashed_pw = generate_password_hash(data.get('reg_password'))
-        
         new_user = {
-            "username": u, 
-            "password": hashed_pw, # Storing Hash, not Text
+            "username": u, "password": hashed_pw,
             "first_name": data.get('fname'), "last_name": data.get('lname'),
             "birthday": data.get('dob'), "secret_question": data.get('secret_question'),
             "secret_answer": data.get('secret_answer').lower().strip(),
@@ -126,21 +129,20 @@ def register():
             "points": 0, "void_count": 0, "history": {}, "unlocked_trivias": [],
             "profile_pic": "", "celi_analysis": "New Signal Detected."
         }
-        
         if users_col is not None:
             users_col.insert_one(new_user)
+            logger.info(f"User Registered: {u}")
             return jsonify({"status": "success"})
         return jsonify({"error": "Database unavailable"}), 500
-    except Exception as e: return jsonify({"error": str(e)}), 500
+    except Exception as e:
+        logger.error(f"Reg Error: {e}")
+        return jsonify({"error": str(e)}), 500
 
 @app.route('/api/recover', methods=['POST'])
 def recover():
     try:
         d = request.json
-        q = { "first_name": d.get('fname'), "last_name": d.get('lname'), 
-              "birthday": d.get('dob'), "secret_question": d.get('secret_question'), 
-              "secret_answer": d.get('secret_answer').lower().strip() }
-        
+        q = { "first_name": d.get('fname'), "last_name": d.get('lname'), "birthday": d.get('dob'), "secret_question": d.get('secret_question'), "secret_answer": d.get('secret_answer').lower().strip() }
         if users_col is not None:
             u = users_col.find_one(q)
             if u: return jsonify({"status": "success", "username": u['username']})
@@ -153,9 +155,7 @@ def reset_password():
     try:
         d = request.json
         q = { "username": d.get('username'), "first_name": d.get('fname'), "last_name": d.get('lname'), "secret_answer": d.get('secret_answer').lower().strip() }
-        
         if users_col is not None and users_col.find_one(q):
-            # SECURITY UPDATE: Hash new password
             new_hashed = generate_password_hash(d.get('new_password'))
             users_col.update_one({"username": d.get('username')}, {"$set": {"password": new_hashed}})
             return jsonify({"status": "success"})
@@ -199,9 +199,15 @@ def process():
         
         if model:
             try:
-                res = model.generate_content(f"Celi (Friendly AI). User: {data.get('message')} Output JSON: {{ 'reply': '...', 'summary': '...' }}")
+                # LATENCY FIX: 10 Second Timeout
+                res = model.generate_content(
+                    f"Celi (Friendly AI). User: {data.get('message')} Output JSON: {{ 'reply': '...', 'summary': '...' }}",
+                    request_options={'timeout': 10}
+                )
                 ai = json.loads(res.text); reply_text=ai['reply']; summary_text=ai['summary']
-            except: pass
+            except Exception as e:
+                logger.warning(f"Gemini Timeout/Error: {e}")
+                reply_text = "I received your signal, but the connection is static. I've logged it in the vault."
 
         updates = {}
         if data.get('mode') != 'rant': updates['points'] = u.get('points', 0) + 1
@@ -245,25 +251,16 @@ def delete_user():
         users_col.delete_one({"username": session['user']})
     session.clear(); return jsonify({"status": "success"})
 
-# --- PAGES ---
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
         u = request.form.get('username'); p = request.form.get('password')
-        
         if users_col is not None:
             user = users_col.find_one({"username": u})
-            
-            # SECURITY UPDATE: Verify Hash
             if user and check_password_hash(user.get('password', ''), p):
                 session['user'] = u; session.permanent = True
                 return jsonify({"status": "success"})
-            
-            # Fallback for old plain-text users (Optional: Remove this line for strict security)
-            # if user and user.get('password') == p: return jsonify({"error": "Legacy Account. Please Reset Password."}), 401
-
             return jsonify({"error": "Invalid credentials"}), 401
-        
         session['user'] = u; return jsonify({"status": "success"})
     return render_template('auth.html')
 
@@ -280,4 +277,3 @@ def api_trivia(): return jsonify({"trivia": "Stardust."})
 
 if __name__ == '__main__':
     app.run(debug=True)
-    
