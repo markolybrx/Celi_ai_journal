@@ -5,12 +5,13 @@ import google.generativeai as genai
 from pymongo import MongoClient
 import certifi
 from werkzeug.middleware.proxy_fix import ProxyFix
+from werkzeug.security import generate_password_hash, check_password_hash # SECURITY IMPORT
 from celery import Celery
 
 app = Flask(__name__)
 
 # --- CONFIGURATION ---
-app.secret_key = "celi_ai_v1.10.04.00_compliance"
+app.secret_key = "celi_ai_v1.11.00.00_hashed_security"
 app.permanent_session_lifetime = timedelta(days=30)
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 app.config['SESSION_COOKIE_SECURE'] = True
@@ -94,12 +95,10 @@ def background_analyze_soul(username, recent_logs):
 
 # --- HELPERS ---
 def get_user_data(username):
-    # FIXED: Explicit None check
     if users_col is None: return None
     return users_col.find_one({"username": username})
 
 def update_user_data(username, update_dict):
-    # FIXED: Explicit None check
     if users_col is None: return
     users_col.update_one({"username": username}, {"$set": update_dict})
 
@@ -111,12 +110,15 @@ def register():
         data = request.json
         u = data.get('reg_username')
         
-        # FIXED: Explicit None check
         if users_col is not None and users_col.find_one({"username": u}):
             return jsonify({"error": "Username taken"}), 400
         
+        # SECURITY UPDATE: Hashing Password
+        hashed_pw = generate_password_hash(data.get('reg_password'))
+        
         new_user = {
-            "username": u, "password": data.get('reg_password'),
+            "username": u, 
+            "password": hashed_pw, # Storing Hash, not Text
             "first_name": data.get('fname'), "last_name": data.get('lname'),
             "birthday": data.get('dob'), "secret_question": data.get('secret_question'),
             "secret_answer": data.get('secret_answer').lower().strip(),
@@ -125,7 +127,6 @@ def register():
             "profile_pic": "", "celi_analysis": "New Signal Detected."
         }
         
-        # FIXED: Explicit None check
         if users_col is not None:
             users_col.insert_one(new_user)
             return jsonify({"status": "success"})
@@ -140,7 +141,6 @@ def recover():
               "birthday": d.get('dob'), "secret_question": d.get('secret_question'), 
               "secret_answer": d.get('secret_answer').lower().strip() }
         
-        # FIXED: Explicit None check
         if users_col is not None:
             u = users_col.find_one(q)
             if u: return jsonify({"status": "success", "username": u['username']})
@@ -154,9 +154,10 @@ def reset_password():
         d = request.json
         q = { "username": d.get('username'), "first_name": d.get('fname'), "last_name": d.get('lname'), "secret_answer": d.get('secret_answer').lower().strip() }
         
-        # FIXED: Explicit None check
         if users_col is not None and users_col.find_one(q):
-            users_col.update_one({"username": d.get('username')}, {"$set": {"password": d.get('new_password')}})
+            # SECURITY UPDATE: Hash new password
+            new_hashed = generate_password_hash(d.get('new_password'))
+            users_col.update_one({"username": d.get('username')}, {"$set": {"password": new_hashed}})
             return jsonify({"status": "success"})
         return jsonify({"error": "Security check failed"}), 403
     except: return jsonify({"error": "Fail"}), 500
@@ -240,7 +241,6 @@ def update_profile():
 
 @app.route('/api/delete_user', methods=['POST'])
 def delete_user():
-    # FIXED: Explicit None check
     if users_col is not None:
         users_col.delete_one({"username": session['user']})
     session.clear(); return jsonify({"status": "success"})
@@ -251,13 +251,19 @@ def login():
     if request.method == 'POST':
         u = request.form.get('username'); p = request.form.get('password')
         
-        # FIXED: Explicit None check
         if users_col is not None:
             user = users_col.find_one({"username": u})
-            if user and user.get('password') == p:
+            
+            # SECURITY UPDATE: Verify Hash
+            if user and check_password_hash(user.get('password', ''), p):
                 session['user'] = u; session.permanent = True
                 return jsonify({"status": "success"})
+            
+            # Fallback for old plain-text users (Optional: Remove this line for strict security)
+            # if user and user.get('password') == p: return jsonify({"error": "Legacy Account. Please Reset Password."}), 401
+
             return jsonify({"error": "Invalid credentials"}), 401
+        
         session['user'] = u; return jsonify({"status": "success"})
     return render_template('auth.html')
 
@@ -274,4 +280,4 @@ def api_trivia(): return jsonify({"trivia": "Stardust."})
 
 if __name__ == '__main__':
     app.run(debug=True)
-        
+    
