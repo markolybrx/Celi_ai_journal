@@ -1,4 +1,4 @@
-import os, json, time, random, uuid
+import os, json, time, random, uuid, ssl
 from flask import Flask, render_template, request, jsonify, session, redirect, url_for
 from datetime import date, timedelta
 import google.generativeai as genai
@@ -10,20 +10,35 @@ from celery import Celery
 app = Flask(__name__)
 
 # --- CONFIGURATION ---
-app.secret_key = "celi_ai_v1.10.00.00_async_core"
+app.secret_key = "celi_ai_v1.10.01.00_async_stable"
 app.permanent_session_lifetime = timedelta(days=30)
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 app.config['SESSION_COOKIE_SECURE'] = True
 app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
 
-# --- CELERY CONFIG ---
-# Use the REDIS_URL from Render Environment, default to localhost for dev
-app.config['CELERY_BROKER_URL'] = os.environ.get('REDIS_URL', 'redis://localhost:6379/0')
-app.config['CELERY_RESULT_BACKEND'] = os.environ.get('REDIS_URL', 'redis://localhost:6379/0')
+# --- REDIS URL CLEANER ---
+# Ensures the URL from Upstash is in the format Celery expects (rediss://)
+raw_redis_url = os.environ.get('REDIS_URL', 'redis://localhost:6379/0')
+if raw_redis_url.startswith('Redis://'):
+    raw_redis_url = raw_redis_url.replace('Redis://', 'rediss://', 1)
+elif raw_redis_url.startswith('redis://') and 'upstash' in raw_redis_url:
+    # Upstash usually requires SSL, so we force rediss://
+    raw_redis_url = raw_redis_url.replace('redis://', 'rediss://', 1)
 
+app.config['CELERY_BROKER_URL'] = raw_redis_url
+app.config['CELERY_RESULT_BACKEND'] = raw_redis_url
+
+# --- CELERY SETUP ---
 def make_celery(app):
-    celery = Celery(app.import_name, broker=app.config['CELERY_BROKER_URL'])
+    celery = Celery(
+        app.import_name, 
+        broker=app.config['CELERY_BROKER_URL'],
+        backend=app.config['CELERY_RESULT_BACKEND']
+    )
     celery.conf.update(app.config)
+    # Fix for some SSL handshake issues with external Redis
+    celery.conf.broker_use_ssl = {"ssl_cert_reqs": ssl.CERT_NONE}
+    celery.conf.redis_backend_use_ssl = {"ssl_cert_reqs": ssl.CERT_NONE}
     return celery
 
 celery_app = make_celery(app)
@@ -43,7 +58,6 @@ if MONGO_URI:
         print(f"❌ MONGO CONNECTION FAILED: {e}")
 
 # --- GEMINI (GLOBAL) ---
-# Used for synchronous chat responses (lightweight)
 GEMINI_KEY = os.environ.get("GEMINI_API_KEY")
 model = None
 if GEMINI_KEY:
@@ -62,14 +76,13 @@ RANK_CONFIG = [
     {"name": "Ethereal", "levels": 5, "stars_per_lvl": 8, "threshold": 116, "phase": "The Singularity"}
 ]
 
-# --- BACKGROUND TASK (HEAVY LIFTING) ---
+# --- BACKGROUND WORKER TASK ---
 @celery_app.task(name='app.background_analyze_soul')
 def background_analyze_soul(username, recent_logs):
     """
-    This runs in the Background Worker.
-    It connects to Gemini and DB independently to avoid timeouts.
+    Executed by the Background Worker.
     """
-    print(f"🔄 Worker: Starting analysis for {username}...")
+    print(f"🔄 Worker: Analyzing {username}...")
     try:
         if not GEMINI_KEY: return
         
@@ -80,8 +93,7 @@ def background_analyze_soul(username, recent_logs):
         response = worker_model.generate_content(prompt)
         analysis_text = json.loads(response.text)['analysis']
         
-        # 2. Database Update
-        # Must create a new connection in the worker thread
+        # 2. Database Update (New Connection for Worker)
         worker_client = MongoClient(MONGO_URI, tlsCAFile=certifi.where())
         worker_db = worker_client.get_database("celi_db")
         worker_db.users.update_one({"username": username}, {"$set": {"celi_analysis": analysis_text}})
@@ -126,7 +138,9 @@ def register():
 def recover():
     try:
         d = request.json
-        q = { "first_name": d.get('fname'), "last_name": d.get('lname'), "birthday": d.get('dob'), "secret_question": d.get('secret_question'), "secret_answer": d.get('secret_answer').lower().strip() }
+        q = { "first_name": d.get('fname'), "last_name": d.get('lname'), 
+              "birthday": d.get('dob'), "secret_question": d.get('secret_question'), 
+              "secret_answer": d.get('secret_answer').lower().strip() }
         if users_col:
             u = users_col.find_one(q)
             if u: return jsonify({"status": "success", "username": u['username']})
@@ -155,8 +169,8 @@ def get_data():
         pts = u.get('points', 0); rank="Observer"; phase=""; prog=0; cum=0
         for r in RANK_CONFIG:
             if pts < r['threshold']:
-                rank = r['name']; phase = r['phase']; diff = pts - cum
-                lvl = diff // r['stars_per_lvl']; rem = diff % r['stars_per_lvl']
+                rank = r['name']; phase = r['phase']
+                diff = pts - cum; lvl = diff // r['stars_per_lvl']; rem = diff % r['stars_per_lvl']
                 roman = {1:"I",2:"II",3:"III",4:"IV",5:"V"}.get(max(1, r['levels'] - int(lvl)), "I")
                 prog = (rem / r['stars_per_lvl']) * 100; break
             cum = r['threshold']
@@ -180,9 +194,9 @@ def process():
         data = request.json
         reply_text="Listening..."; summary_text="User entry."
         
+        # Chat remains synchronous for instant feedback
         if model:
             try:
-                # Chat is still synchronous for instant feedback
                 res = model.generate_content(f"Celi (Friendly AI). User: {data.get('message')} Output JSON: {{ 'reply': '...', 'summary': '...' }}")
                 ai = json.loads(res.text); reply_text=ai['reply']; summary_text=ai['summary']
             except: pass
@@ -211,13 +225,12 @@ def update_profile():
         if 'fav_color' in data: updates['fav_color'] = data['fav_color']
         if 'profile_pic' in data: updates['profile_pic'] = data['profile_pic']
         
-        # --- CELERY TRIGGER ---
-        # Instead of analyzing now, we send it to the worker
+        # --- CELERY ASYNC TRIGGER ---
         hist = u_data.get('history', {})
         if len(hist) >= 3:
             logs = [l.get('summary', '') for l in list(hist.values())[-5:]]
             
-            # This line sends the task to Redis
+            # Send to Queue
             background_analyze_soul.delay(session['user'], logs)
             
             updates['celi_analysis'] = "The stars are aligning... (Analysis in progress)"
@@ -226,8 +239,7 @@ def update_profile():
             
         update_user_data(session['user'], updates)
         return jsonify({"status": "success"})
-    except Exception as e:
-        return jsonify({"status": "error"})
+    except Exception as e: return jsonify({"status": "error"})
 
 @app.route('/api/delete_user', methods=['POST'])
 def delete_user():
@@ -261,4 +273,4 @@ def api_trivia(): return jsonify({"trivia": "Stardust."})
 
 if __name__ == '__main__':
     app.run(debug=True)
-        
+            
