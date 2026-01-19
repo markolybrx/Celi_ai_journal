@@ -3,296 +3,201 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Celi: Access Portal</title>
+    <title>Celi: AI Journal</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        :root { --mood: #00f2fe; }
-        body { background: #000; color: #fff; font-family: sans-serif; height: 100vh; display: flex; align-items: center; justify-content: center; overflow: hidden; position: relative; }
+        :root { --mood: #00f2fe; --bg: #050505; --glass: rgba(20,20,25,0.6); }
+        body { background: var(--bg); color: #fff; font-family: 'Inter', sans-serif; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+        .app-header { padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.05); background: rgba(0,0,0,0.5); backdrop-filter: blur(10px); z-index: 20; }
+        .logo { font-weight: 900; letter-spacing: -1px; font-size: 20px; color: #fff; }
+        .avatar-btn { width: 35px; height: 35px; border-radius: 50%; border: 2px solid var(--mood); overflow: hidden; cursor: pointer; }
+        .chat-zone { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 15px; scroll-behavior: smooth; }
+        .msg { max-width: 85%; padding: 12px 16px; border-radius: 18px; font-size: 14px; line-height: 1.5; word-wrap: break-word; animation: slideIn 0.3s cubic-bezier(0.2, 0.8, 0.2, 1); }
+        .msg-user { align-self: flex-end; background: var(--mood); color: #000; border-bottom-right-radius: 2px; font-weight: 500; }
+        .msg-ai { align-self: flex-start; background: rgba(255,255,255,0.08); color: #e0e0e0; border-bottom-left-radius: 2px; border: 1px solid rgba(255,255,255,0.05); }
+        .msg-ai strong { color: var(--mood); }
+        @keyframes slideIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .input-deck { padding: 15px; background: rgba(10,10,10,0.8); border-top: 1px solid rgba(255,255,255,0.05); backdrop-filter: blur(20px); }
+        .mode-bar { display: flex; gap: 8px; margin-bottom: 12px; overflow-x: auto; padding-bottom: 5px; }
+        .mode-pill { padding: 6px 14px; border-radius: 20px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; cursor: pointer; border: 1px solid rgba(255,255,255,0.1); color: #666; transition: all 0.3s; white-space: nowrap; }
+        .mode-pill.active { background: var(--mood); color: #000; border-color: var(--mood); box-shadow: 0 0 10px var(--mood); }
+        .input-wrapper { display: flex; gap: 10px; align-items: center; position: relative; }
+        .chat-input { flex: 1; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 25px; padding: 12px 20px; color: #fff; outline: none; transition: 0.3s; }
+        .chat-input:focus { border-color: var(--mood); background: rgba(0,0,0,0.5); }
+        .send-btn { width: 45px; height: 45px; border-radius: 50%; background: var(--mood); color: #000; border: none; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: transform 0.2s; }
+        .send-btn:active { transform: scale(0.9); }
+        .drawer-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 40; display: none; backdrop-filter: blur(5px); opacity: 0; transition: opacity 0.3s; }
+        .drawer { position: fixed; top: 0; right: -300px; width: 85%; max-width: 300px; height: 100%; background: #0a0a0a; border-left: 1px solid rgba(255,255,255,0.1); z-index: 50; padding: 30px; transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1); display: flex; flex-direction: column; }
+        .drawer.open { right: 0; }
+        .stat-card { background: rgba(255,255,255,0.05); border-radius: 15px; padding: 20px; text-align: center; margin-bottom: 15px; border: 1px solid rgba(255,255,255,0.05); }
+        .stat-val { font-size: 24px; font-weight: 800; color: var(--mood); }
+        .stat-lbl { font-size: 10px; opacity: 0.5; text-transform: uppercase; letter-spacing: 2px; }
+        .loader-dots div { animation: pulse 0.6s infinite alternate; }
+        .loader-dots div:nth-child(2) { animation-delay: 0.2s; }
+        .loader-dots div:nth-child(3) { animation-delay: 0.4s; }
         
-        /* LAYOUT & PANEL */
-        .glass-panel { width: 90%; max-width: 380px; background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 24px; padding: 30px; box-shadow: 0 20px 50px rgba(0,0,0,0.5); position: relative; overflow: hidden; transition: all 0.4s ease; max-height: 90vh; overflow-y: auto; }
-        
-        /* INPUTS */
-        .input-group { margin-bottom: 15px; position: relative; }
-        .input-field { width: 100%; background: rgba(0, 0, 0, 0.3); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px; padding: 12px 15px; color: #fff; font-size: 13px; outline: none; transition: border-color 0.3s; }
-        .input-field:focus { border-color: var(--mood); }
-        .input-label { font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: rgba(255, 255, 255, 0.5); margin-bottom: 6px; display: block; }
-        .input-error { border-color: #ef4444 !important; }
-        select.input-field { appearance: none; -webkit-appearance: none; }
-
-        /* BUTTONS */
-        .btn-primary { width: 100%; padding: 14px; background: var(--mood); color: #000; border-radius: 12px; font-weight: 900; text-transform: uppercase; font-size: 11px; letter-spacing: 1px; cursor: pointer; transition: transform 0.2s; border: none; margin-top: 10px; display: flex; align-items: center; justify-content: center; }
-        .btn-primary:active { transform: scale(0.98); }
-        .btn-secondary { width: 100%; padding: 14px; background: rgba(255, 255, 255, 0.05); color: #fff; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px; font-weight: bold; text-transform: uppercase; font-size: 10px; cursor: pointer; margin-top: 10px; display: flex; align-items: center; justify-content: center; }
-        
-        /* UTILS */
-        .hidden { display: none !important; }
-        .text-link { color: var(--mood); cursor: pointer; text-decoration: underline; }
-        .text-red-glow { text-shadow: 0 0 10px rgba(239, 68, 68, 0.5); }
-        
-        /* ICONS */
-        .icon-btn { position: absolute; right: 12px; top: 35px; cursor: pointer; opacity: 0.6; transition: opacity 0.2s; }
-        .icon-btn:hover { opacity: 1; }
-        .color-dot { width: 20px; height: 20px; border-radius: 50%; position: absolute; right: 12px; top: 35px; border: 1px solid rgba(255,255,255,0.2); }
-
-        /* MODALS */
-        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 100; display: none; align-items: center; justify-content: center; padding: 20px; }
-        .modal-box { background: #111; border: 1px solid rgba(255,255,255,0.15); padding: 30px; border-radius: 20px; max-width: 400px; width: 100%; text-align: center; box-shadow: 0 10px 40px rgba(0,0,0,0.8); }
-        .modal-title { font-size: 14px; font-weight: 900; text-transform: uppercase; margin-bottom: 10px; color: #fff; letter-spacing: 1px; }
-        .modal-body { font-size: 12px; color: #ccc; line-height: 1.5; margin-bottom: 20px; }
-        .privacy-content { max-height: 60vh; overflow-y: auto; text-align: left; margin-bottom: 20px; }
-        .privacy-content h3 { color: #fff; margin-top: 15px; margin-bottom: 5px; text-transform: uppercase; font-size: 10px; letter-spacing: 1px; }
-
-        /* LOADING */
-        #loading-overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(8px); z-index: 50; display: none; align-items: center; justify-content: center; flex-direction: column; }
-        .spinner { width: 40px; height: 40px; border: 3px solid rgba(255,255,255,0.1); border-top-color: var(--mood); border-radius: 50%; animation: spin 1s infinite linear; margin-bottom: 15px; }
-        @keyframes spin { to { transform: rotate(360deg); } }
+        /* NEW: STARS */
+        .star-track { display: flex; justify-content: center; gap: 4px; margin-top: 5px; }
+        .star { font-size: 14px; color: rgba(255,255,255,0.2); }
+        .star.filled { color: var(--mood); text-shadow: 0 0 5px var(--mood); }
     </style>
 </head>
 <body>
-
-    <div class="glass-panel" id="auth-container">
-        
-        <div id="loading-overlay">
-            <div class="spinner"></div>
-            <p id="loading-text" class="text-xs uppercase tracking-widest text-white/80">Processing...</p>
+    <div class="app-header">
+        <div class="logo">Celi v3.1</div>
+        <div class="avatar-btn" onclick="toggleDrawer(true)">
+            <img id="nav-pfp" class="w-full h-full object-cover" src="">
         </div>
+    </div>
 
-        <div id="view-login">
-            <h1 class="text-3xl font-black text-center mb-8 tracking-tighter text-white">Celi</h1>
-            
-            <form onsubmit="handleLogin(event)">
-                <div class="input-group">
-                    <label class="input-label">Username</label>
-                    <input type="text" id="login-username" name="username" class="input-field" placeholder="Enter username" required>
-                </div>
-                <div class="input-group">
-                    <label class="input-label">Password</label>
-                    <input type="password" name="password" id="login-pass" class="input-field" placeholder="••••••" required>
-                    <div class="icon-btn" onclick="togglePass('login-pass')">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-                    </div>
-                </div>
-                
-                <div class="flex items-center justify-between mb-4 h-6">
-                    <div class="flex items-center gap-2">
-                        <input type="checkbox" id="remember-me" class="rounded bg-white/10 border-white/20 w-3 h-3">
-                        <label for="remember-me" class="text-[9px] text-white/60 uppercase tracking-wide cursor-pointer">Remember Me</label>
-                    </div>
-                    <div id="login-error" class="text-[9px] text-red-500 font-bold uppercase tracking-wide hidden">Incorrect username or password</div>
-                </div>
+    <div id="chat-zone" class="chat-zone">
+        <div class="msg msg-ai">System Online. Select a frequency below.</div>
+    </div>
 
-                <button type="submit" class="btn-primary">Log In</button>
-            </form>
-            
-            <button type="button" onclick="switchView('register')" class="btn-secondary">Register</button>
-            
-            <div class="text-center mt-6">
-                <button type="button" onclick="switchView('recovery')" class="text-[9px] text-white/40 cursor-pointer hover:text-white transition border-b border-transparent hover:border-white/40 inline-block uppercase tracking-widest">Forgot your log in?</button>
+    <div class="input-deck">
+        <div class="mode-bar">
+            <div class="mode-pill active" onclick="setMode('orbit', this)">Orbit (Chat)</div>
+            <div class="mode-pill" onclick="setMode('void', this)">The Void (Vent)</div>
+            <div class="mode-pill" onclick="requestTrivia()">✨ Trivia</div>
+        </div>
+        <div class="input-wrapper">
+            <input type="text" id="msg-input" class="chat-input" placeholder="Broadcast signal..." onkeypress="handleKey(event)">
+            <button class="send-btn" onclick="send()">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+            </button>
+        </div>
+    </div>
+
+    <div id="overlay" class="drawer-overlay" onclick="toggleDrawer(false)"></div>
+    <div id="drawer" class="drawer">
+        <div class="flex justify-between items-center mb-8">
+            <h2 class="text-xl font-bold text-white">Profile</h2>
+            <button onclick="toggleDrawer(false)" class="text-gray-500">✕</button>
+        </div>
+        <div class="flex flex-col items-center mb-8">
+            <div class="w-24 h-24 rounded-full border-4 border-[var(--mood)] overflow-hidden mb-3">
+                <img id="drawer-pfp" class="w-full h-full object-cover">
             </div>
-        </div>
-
-        <div id="view-register" class="hidden">
-            <h1 class="text-xl font-bold text-center mb-6 uppercase tracking-widest text-white/90">Registration</h1>
-            <form onsubmit="handleRegister(event)">
-                <div class="flex gap-2 mb-2">
-                    <div class="w-1/2"><label class="input-label">First Name</label><input type="text" name="fname" class="input-field" required></div>
-                    <div class="w-1/2"><label class="input-label">Last Name</label><input type="text" name="lname" class="input-field" required></div>
-                </div>
-                <div class="input-group"><label class="input-label">Preferred Username</label><input type="text" name="reg_username" class="input-field" required></div>
-                <div class="input-group"><label class="input-label">Date of Birth</label><input type="date" name="dob" class="input-field" required></div>
-                <div class="input-group">
-                    <label class="input-label">Favorite Color</label>
-                    <input type="text" id="color-input" name="fav_color" class="input-field" placeholder="Cyan, Gold..." oninput="updateColorPreview(this.value)">
-                    <div id="color-preview" class="color-dot" style="background-color: #00f2fe;"></div>
-                </div>
-                
-                <div class="input-group">
-                    <label class="input-label">Secret Question</label>
-                    <select name="secret_question" class="input-field" required>
-                        <option value="pet">What was the name of your first pet?</option>
-                        <option value="mother">What is your mother's maiden name?</option>
-                        <option value="school">What elementary school did you attend?</option>
-                        <option value="city">In what city were you born?</option>
-                    </select>
-                </div>
-                <div class="input-group"><label class="input-label">Secret Answer</label><input type="text" name="secret_answer" class="input-field" placeholder="Answer..." required></div>
-
-                <div class="input-group">
-                    <label class="input-label">Password</label>
-                    <input type="password" name="reg_password" id="reg-pass" class="input-field" required>
-                    <div class="icon-btn" onclick="togglePass('reg-pass')"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></div>
-                </div>
-                <div class="input-group">
-                    <label class="input-label">Confirm Password</label>
-                    <input type="password" id="confirm-pass" class="input-field" oninput="checkMatch()" required>
-                    <div class="icon-btn" onclick="togglePass('confirm-pass')"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></div>
-                </div>
-                <div class="flex items-start gap-3 my-4">
-                    <input type="checkbox" id="privacy-check" required class="mt-1 w-3 h-3 bg-white/10 border-white/20 rounded">
-                    <label for="privacy-check" class="text-[10px] opacity-70 leading-tight">I agree to the <span class="text-link" onclick="openModal('privacy')">Data Privacy Disclosure</span>.</label>
-                </div>
-                <button type="submit" class="btn-primary">Register</button>
-            </form>
-            <button type="button" onclick="switchView('login')" class="btn-secondary">Back to Login</button>
-        </div>
-
-        <div id="view-recovery" class="hidden">
-            <h1 class="text-xl font-bold text-center mb-6 uppercase tracking-widest text-white/90">Signal Recovery</h1>
+            <h3 id="u-name" class="text-lg font-bold">User</h3>
+            <span id="u-rank" class="text-xs px-3 py-1 bg-white/10 rounded-full mt-2 text-[var(--mood)] uppercase tracking-widest border border-white/10">Observer I</span>
             
-            <form id="rec-form-1" onsubmit="handleVerify(event)">
-                <p class="text-[10px] text-center mb-4 opacity-50">Verify your identity to retrieve access.</p>
-                <div class="flex gap-2 mb-2"><div class="w-1/2"><label class="input-label">First Name</label><input type="text" name="fname" class="input-field" required></div><div class="w-1/2"><label class="input-label">Last Name</label><input type="text" name="lname" class="input-field" required></div></div>
-                <div class="input-group"><label class="input-label">Date of Birth</label><input type="date" name="dob" class="input-field" required></div>
-                <div class="input-group">
-                    <label class="input-label">Secret Question</label>
-                    <select name="secret_question" class="input-field" required>
-                        <option value="pet">What was the name of your first pet?</option>
-                        <option value="mother">What is your mother's maiden name?</option>
-                        <option value="school">What elementary school did you attend?</option>
-                        <option value="city">In what city were you born?</option>
-                    </select>
-                </div>
-                <div class="input-group"><label class="input-label">Secret Answer</label><input type="text" name="secret_answer" class="input-field" required></div>
-                <button type="submit" class="btn-primary">Verify Identity</button>
-            </form>
-
-            <form id="rec-form-2" class="hidden" onsubmit="handleReset(event)">
-                <div class="input-group">
-                    <label class="input-label">Your Username</label>
-                    <input type="text" id="rec-username" class="input-field" readonly style="color:var(--mood); font-weight:bold;">
-                    <div class="icon-btn" onclick="copyUser()" title="Copy Username">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect></svg>
-                    </div>
-                </div>
-                <div class="input-group">
-                    <label class="input-label">New Password</label>
-                    <input type="password" id="new-pass" class="input-field" required>
-                    <div class="icon-btn" onclick="togglePass('new-pass')"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></div>
-                </div>
-                <div class="input-group">
-                    <label class="input-label">Confirm New Password</label>
-                    <input type="password" id="conf-new-pass" class="input-field" oninput="checkResetMatch()" required>
-                    <div class="icon-btn" onclick="togglePass('conf-new-pass')"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></div>
-                </div>
-                <button type="submit" class="btn-primary">Confirm Reset</button>
-            </form>
-
-            <button type="button" onclick="switchView('login')" class="btn-secondary">Cancel</button>
+            <div id="star-container" class="star-track"></div>
         </div>
-    </div>
-
-    <div class="fixed bottom-4 w-full text-center pointer-events-none opacity-30 text-[9px] font-mono uppercase tracking-widest text-white flex flex-col gap-1">
-        <span>Celi Access v1.6.2</span>
-        <span class="opacity-70">Powered by Gemini AI</span>
-    </div>
-
-    <div id="message-modal" class="modal-overlay">
-        <div class="modal-box">
-            <h3 id="modal-title" class="modal-title">Notification</h3>
-            <p id="modal-body" class="modal-body"></p>
-            <button onclick="closeModal('message-modal')" class="btn-primary">Dismiss</button>
+        <div class="stat-card"><div id="u-points" class="stat-val">0</div><div class="stat-lbl">Stardust Collected</div></div>
+        <div class="bg-white/5 p-4 rounded-xl mb-auto border border-white/5">
+            <h4 class="text-[9px] uppercase tracking-widest text-gray-500 mb-2 font-bold">Soul Resonance</h4>
+            <p id="u-analysis" class="text-xs text-gray-300 italic leading-relaxed">"Calibrating..."</p>
         </div>
-    </div>
-
-    <div id="privacy-modal" class="modal-overlay">
-        <div class="modal-box">
-            <h2 class="modal-title">Data & Privacy Disclosure</h2>
-            <div class="privacy-content">
-                <h3>1. Introduction</h3><p>Welcome to Celi. By registering a "Signal" (User Account), you entrust us with personal thoughts, emotions, and biographical data. We take this responsibility as a sacred duty.</p>
-                <h3>2. Data Storage</h3><p>Celi utilizes <strong>MongoDB Atlas</strong>, an encrypted cloud database provider. Your data resides in an encrypted cluster protected by network firewalls.</p>
-                <h3>3. AI Processing</h3><p>Celi is powered by <strong>Google Gemini</strong>. Journal entries are sent ephemerally to generating responses. <strong>We do not grant rights to train public models with your data.</strong></p>
-                <h3>4. Sovereignty</h3><p>You retain full ownership. You may delete your account and all data permanently via Profile Settings.</p>
-                <h3>5. Security</h3><p>We employ HTTPS encryption and Identity Verification protocols.</p>
-            </div>
-            <button onclick="closeModal('privacy-modal')" class="btn-primary">I Acknowledge</button>
-        </div>
+        <button onclick="window.location.href='/logout'" class="w-full py-3 border border-red-500/30 text-red-400 rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-red-500/10 transition">Sever Link</button>
     </div>
 
     <script>
-        // --- GLOBAL & INIT ---
-        let recoveryData = {};
+        let currentMode = 'orbit';
+        let isBusy = false;
 
-        document.addEventListener('DOMContentLoaded', () => {
-            const savedUser = localStorage.getItem('celi_user');
-            if (savedUser) {
-                document.getElementById('login-username').value = savedUser;
-                document.getElementById('remember-me').checked = true;
+        async function init() {
+            try {
+                const res = await fetch('/api/data');
+                const d = await res.json();
+                if(d.status === 'guest') return window.location.href = '/login';
+
+                document.getElementById('nav-pfp').src = d.profile_pic || "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGZpbGw9Im5vbmUiIHZpZXdCb3g9IjAgMCAyNCAyNCIgc3Ryb2tlPSJ3aGl0ZSIgc3Ryb2tlLXdpZHRoPSIyIj48Y2lyY2xlIGN4PSIxMiIgY3k9IjEyIiByPSIxMCIvPjwvc3ZnPg==";
+                document.getElementById('drawer-pfp').src = document.getElementById('nav-pfp').src;
+                document.getElementById('u-name').innerText = d.username;
+                document.getElementById('u-rank').innerText = d.rank;
+                document.getElementById('u-points').innerText = d.points;
+                if(d.celi_analysis) document.getElementById('u-analysis').innerText = `"${d.celi_analysis}"`;
+                if(d.fav_color) document.documentElement.style.setProperty('--mood', d.fav_color);
+
+                // RENDER STARS
+                const sCon = document.getElementById('star-container');
+                sCon.innerHTML = '';
+                for(let i=0; i<d.stars_total; i++) {
+                    const s = document.createElement('span');
+                    s.className = `star ${i < d.stars_current ? 'filled' : ''}`;
+                    s.innerHTML = '★';
+                    sCon.appendChild(s);
+                }
+
+                if(d.history) {
+                    const box = document.getElementById('chat-zone');
+                    if(box.children.length <= 1) {
+                        const times = Object.keys(d.history).sort((a,b) => a-b).slice(-50);
+                        times.forEach(t => {
+                            const item = d.history[t];
+                            addMsg(item.summary || "Log", 'user');
+                            addMsg(item.reply, 'ai');
+                        });
+                    }
+                }
+            } catch(e) { console.log("Sync Fail"); }
+        }
+
+        function setMode(mode, btn) {
+            currentMode = mode;
+            document.querySelectorAll('.mode-pill').forEach(p => p.classList.remove('active'));
+            if(btn) btn.classList.add('active');
+        }
+
+        // NEW: TRIVIA FUNCTION
+        function requestTrivia() {
+            document.getElementById('msg-input').value = "Give me some trivia!";
+            send();
+        }
+
+        function toggleDrawer(open) {
+            const d = document.getElementById('drawer');
+            const o = document.getElementById('overlay');
+            if(open) { o.style.display='block'; setTimeout(()=>o.style.opacity=1,10); d.classList.add('open'); }
+            else { o.style.opacity=0; d.classList.remove('open'); setTimeout(()=>o.style.display='none',300); }
+        }
+
+        async function send() {
+            if(isBusy) return;
+            const input = document.getElementById('msg-input');
+            const txt = input.value.trim();
+            if(!txt) return;
+
+            addMsg(txt, 'user');
+            input.value = '';
+            isBusy = true;
+
+            const tId = 'typ-' + Date.now();
+            const box = document.getElementById('chat-zone');
+            const tDiv = document.createElement('div');
+            tDiv.id = tId; tDiv.className = 'msg msg-ai loader-dots flex gap-1 px-4 py-3';
+            tDiv.innerHTML = '<div class="w-1.5 h-1.5 bg-gray-400 rounded-full"></div><div class="w-1.5 h-1.5 bg-gray-400 rounded-full"></div><div class="w-1.5 h-1.5 bg-gray-400 rounded-full"></div>';
+            box.appendChild(tDiv); box.scrollTop = box.scrollHeight;
+
+            try {
+                const res = await fetch('/api/process', {
+                    method: 'POST', headers: {'Content-Type':'application/json'},
+                    body: JSON.stringify({message: txt, mode: currentMode})
+                });
+                const d = await res.json();
+                document.getElementById(tId).remove();
+                addMsg(d.reply, 'ai');
+                init();
+            } catch {
+                document.getElementById(tId).remove();
+                addMsg("Signal Lost.", 'ai');
             }
-        });
-
-        // --- NAVIGATION ---
-        function switchView(viewName) {
-            // Hide all
-            document.getElementById('view-login').classList.add('hidden');
-            document.getElementById('view-register').classList.add('hidden');
-            document.getElementById('view-recovery').classList.add('hidden');
-            
-            // Show Target
-            const target = document.getElementById('view-' + viewName);
-            if(target) target.classList.remove('hidden');
-            
-            // Clear errors
-            document.getElementById('login-error').classList.add('hidden');
+            isBusy = false;
         }
 
-        // --- UI UTILS ---
-        function togglePass(id) { 
-            const el = document.getElementById(id); 
-            el.type = el.type === 'password' ? 'text' : 'password'; 
-        }
-        
-        function updateColorPreview(val) { 
-            const s = new Option().style; s.color = val; 
-            if (s.color !== '') document.getElementById('color-preview').style.backgroundColor = val; 
-        }
-
-        function checkMatch() { 
-            const p1 = document.getElementById('reg-pass').value; 
-            const p2 = document.getElementById('confirm-pass'); 
-            p2.classList.toggle('input-error', p2.value !== p1);
+        function addMsg(txt, type) {
+            const div = document.createElement('div');
+            div.className = `msg msg-${type}`;
+            if(type === 'ai') div.innerHTML = parseMD(txt);
+            else div.innerText = txt;
+            const box = document.getElementById('chat-zone');
+            box.appendChild(div);
+            box.scrollTop = box.scrollHeight;
         }
 
-        function checkResetMatch() {
-            const p1 = document.getElementById('new-pass').value;
-            const p2 = document.getElementById('conf-new-pass');
-            p2.classList.toggle('input-error', p2.value !== p1);
-        }
-
-        // --- MODALS ---
-        function openModal(type, title, body) {
-            if (type === 'privacy') {
-                document.getElementById('privacy-modal').style.display = 'flex';
-            } else {
-                document.getElementById('modal-title').innerText = title || 'Notification';
-                document.getElementById('modal-body').innerText = body || '';
-                document.getElementById('message-modal').style.display = 'flex';
-            }
-        }
-        
-        function closeModal(id) {
-            document.getElementById(id).style.display = 'none';
-        }
-
-        function showLoading(msg) {
-            document.getElementById('loading-text').innerText = msg;
-            document.getElementById('loading-overlay').style.display = 'flex';
-        }
-
-        function hideLoading() {
-            document.getElementById('loading-overlay').style.display = 'none';
-        }
-
-        function copyUser() {
-            const u = document.getElementById('rec-username');
-            u.select(); document.execCommand('copy');
-            openModal('msg', 'Success', 'Username copied to clipboard.');
-        }
-
-        // --- HANDLERS ---
-        async function handleLogin(e) {
-            e.preventDefault();
-            document.getElementById('login-error').classList.add('hidden');
-            showLoading("Logging In...");
-            
-            const form = new F
+        function parseMD(txt) { return txt.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\*(.*?)\*/g, '<em>$1</em>'); }
+        function handleKey(e) { if(e.key==='Enter') send(); }
+        window.onload = init;
+    </script>
+</body>
+</html>
