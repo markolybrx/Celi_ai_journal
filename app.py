@@ -153,4 +153,4 @@ def login():
 @app.route('/logout'); def logout(): session.clear(); return redirect(url_for('login'))
 @app.route('/api/trivia'); def api_trivia(): return jsonify({"trivia": "Stardust."})
 if __name__ == '__main__': app.run(debug=True)
-    
+            
