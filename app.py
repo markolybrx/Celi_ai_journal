@@ -10,19 +10,17 @@ from celery import Celery
 app = Flask(__name__)
 
 # --- CONFIGURATION ---
-app.secret_key = "celi_ai_v1.10.01.00_async_stable"
+app.secret_key = "celi_ai_v1.10.04.00_compliance"
 app.permanent_session_lifetime = timedelta(days=30)
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 app.config['SESSION_COOKIE_SECURE'] = True
 app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
 
 # --- REDIS URL CLEANER ---
-# Ensures the URL from Upstash is in the format Celery expects (rediss://)
 raw_redis_url = os.environ.get('REDIS_URL', 'redis://localhost:6379/0')
 if raw_redis_url.startswith('Redis://'):
     raw_redis_url = raw_redis_url.replace('Redis://', 'rediss://', 1)
 elif raw_redis_url.startswith('redis://') and 'upstash' in raw_redis_url:
-    # Upstash usually requires SSL, so we force rediss://
     raw_redis_url = raw_redis_url.replace('redis://', 'rediss://', 1)
 
 app.config['CELERY_BROKER_URL'] = raw_redis_url
@@ -36,7 +34,6 @@ def make_celery(app):
         backend=app.config['CELERY_RESULT_BACKEND']
     )
     celery.conf.update(app.config)
-    # Fix for some SSL handshake issues with external Redis
     celery.conf.broker_use_ssl = {"ssl_cert_reqs": ssl.CERT_NONE}
     celery.conf.redis_backend_use_ssl = {"ssl_cert_reqs": ssl.CERT_NONE}
     return celery
@@ -79,35 +76,30 @@ RANK_CONFIG = [
 # --- BACKGROUND WORKER TASK ---
 @celery_app.task(name='app.background_analyze_soul')
 def background_analyze_soul(username, recent_logs):
-    """
-    Executed by the Background Worker.
-    """
     print(f"🔄 Worker: Analyzing {username}...")
     try:
         if not GEMINI_KEY: return
-        
-        # 1. AI Analysis
         genai.configure(api_key=GEMINI_KEY)
         worker_model = genai.GenerativeModel('gemini-1.5-flash', generation_config={"response_mime_type": "application/json"})
         prompt = f"Analyze user based on journals: {recent_logs}. Output JSON: {{ 'analysis': 'Deep, witty psychological summary (max 30 words).' }}"
         response = worker_model.generate_content(prompt)
         analysis_text = json.loads(response.text)['analysis']
         
-        # 2. Database Update (New Connection for Worker)
         worker_client = MongoClient(MONGO_URI, tlsCAFile=certifi.where())
         worker_db = worker_client.get_database("celi_db")
         worker_db.users.update_one({"username": username}, {"$set": {"celi_analysis": analysis_text}})
         print(f"✅ Worker: Analysis saved for {username}")
-        
     except Exception as e:
         print(f"❌ Worker Error: {e}")
 
 # --- HELPERS ---
 def get_user_data(username):
+    # FIXED: Explicit None check
     if users_col is None: return None
     return users_col.find_one({"username": username})
 
 def update_user_data(username, update_dict):
+    # FIXED: Explicit None check
     if users_col is None: return
     users_col.update_one({"username": username}, {"$set": update_dict})
 
@@ -118,7 +110,9 @@ def register():
     try:
         data = request.json
         u = data.get('reg_username')
-        if users_col and users_col.find_one({"username": u}):
+        
+        # FIXED: Explicit None check
+        if users_col is not None and users_col.find_one({"username": u}):
             return jsonify({"error": "Username taken"}), 400
         
         new_user = {
@@ -130,8 +124,12 @@ def register():
             "points": 0, "void_count": 0, "history": {}, "unlocked_trivias": [],
             "profile_pic": "", "celi_analysis": "New Signal Detected."
         }
-        if users_col: users_col.insert_one(new_user)
-        return jsonify({"status": "success"})
+        
+        # FIXED: Explicit None check
+        if users_col is not None:
+            users_col.insert_one(new_user)
+            return jsonify({"status": "success"})
+        return jsonify({"error": "Database unavailable"}), 500
     except Exception as e: return jsonify({"error": str(e)}), 500
 
 @app.route('/api/recover', methods=['POST'])
@@ -141,7 +139,9 @@ def recover():
         q = { "first_name": d.get('fname'), "last_name": d.get('lname'), 
               "birthday": d.get('dob'), "secret_question": d.get('secret_question'), 
               "secret_answer": d.get('secret_answer').lower().strip() }
-        if users_col:
+        
+        # FIXED: Explicit None check
+        if users_col is not None:
             u = users_col.find_one(q)
             if u: return jsonify({"status": "success", "username": u['username']})
             return jsonify({"error": "Identity verification failed"}), 404
@@ -153,7 +153,9 @@ def reset_password():
     try:
         d = request.json
         q = { "username": d.get('username'), "first_name": d.get('fname'), "last_name": d.get('lname'), "secret_answer": d.get('secret_answer').lower().strip() }
-        if users_col and users_col.find_one(q):
+        
+        # FIXED: Explicit None check
+        if users_col is not None and users_col.find_one(q):
             users_col.update_one({"username": d.get('username')}, {"$set": {"password": d.get('new_password')}})
             return jsonify({"status": "success"})
         return jsonify({"error": "Security check failed"}), 403
@@ -169,8 +171,8 @@ def get_data():
         pts = u.get('points', 0); rank="Observer"; phase=""; prog=0; cum=0
         for r in RANK_CONFIG:
             if pts < r['threshold']:
-                rank = r['name']; phase = r['phase']
-                diff = pts - cum; lvl = diff // r['stars_per_lvl']; rem = diff % r['stars_per_lvl']
+                rank = r['name']; phase = r['phase']; diff = pts - cum
+                lvl = diff // r['stars_per_lvl']; rem = diff % r['stars_per_lvl']
                 roman = {1:"I",2:"II",3:"III",4:"IV",5:"V"}.get(max(1, r['levels'] - int(lvl)), "I")
                 prog = (rem / r['stars_per_lvl']) * 100; break
             cum = r['threshold']
@@ -194,7 +196,6 @@ def process():
         data = request.json
         reply_text="Listening..."; summary_text="User entry."
         
-        # Chat remains synchronous for instant feedback
         if model:
             try:
                 res = model.generate_content(f"Celi (Friendly AI). User: {data.get('message')} Output JSON: {{ 'reply': '...', 'summary': '...' }}")
@@ -225,14 +226,10 @@ def update_profile():
         if 'fav_color' in data: updates['fav_color'] = data['fav_color']
         if 'profile_pic' in data: updates['profile_pic'] = data['profile_pic']
         
-        # --- CELERY ASYNC TRIGGER ---
         hist = u_data.get('history', {})
         if len(hist) >= 3:
             logs = [l.get('summary', '') for l in list(hist.values())[-5:]]
-            
-            # Send to Queue
             background_analyze_soul.delay(session['user'], logs)
-            
             updates['celi_analysis'] = "The stars are aligning... (Analysis in progress)"
         else:
             updates['celi_analysis'] = "More data needed for signal lock."
@@ -243,7 +240,9 @@ def update_profile():
 
 @app.route('/api/delete_user', methods=['POST'])
 def delete_user():
-    if users_col: users_col.delete_one({"username": session['user']})
+    # FIXED: Explicit None check
+    if users_col is not None:
+        users_col.delete_one({"username": session['user']})
     session.clear(); return jsonify({"status": "success"})
 
 # --- PAGES ---
@@ -251,7 +250,9 @@ def delete_user():
 def login():
     if request.method == 'POST':
         u = request.form.get('username'); p = request.form.get('password')
-        if users_col:
+        
+        # FIXED: Explicit None check
+        if users_col is not None:
             user = users_col.find_one({"username": u})
             if user and user.get('password') == p:
                 session['user'] = u; session.permanent = True
@@ -273,4 +274,4 @@ def api_trivia(): return jsonify({"trivia": "Stardust."})
 
 if __name__ == '__main__':
     app.run(debug=True)
-            
+        
