@@ -15,10 +15,13 @@ logger = logging.getLogger(__name__)
 app = Flask(__name__)
 
 # --- CONFIGURATION ---
-app.secret_key = "celi_ai_v2.0.01_anchor_build"
+app.secret_key = "celi_ai_v2.0.03_session_fix"
 app.permanent_session_lifetime = timedelta(days=30)
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
-app.config['SESSION_COOKIE_SECURE'] = True
+
+# !!! CRITICAL FIX: Set to False to ensure cookies work on all networks/devices !!!
+app.config['SESSION_COOKIE_SECURE'] = False 
+
 app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
 
 # --- REDIS URL CLEANER ---
@@ -101,15 +104,11 @@ def update_user_data(username, update_dict):
     if users_col is None: return
     users_col.update_one({"username": username}, {"$set": update_dict})
 
-# --- HELPER: NORMALIZE DATE ---
 def normalize_date(date_str):
-    """Ensures date is YYYY-MM-DD even if browser sends DD/MM/YYYY"""
     if not date_str: return ""
     if '/' in date_str:
         parts = date_str.split('/')
-        if len(parts) == 3:
-            # Assuming format is DD/MM/YYYY, convert to YYYY-MM-DD
-            return f"{parts[2]}-{parts[1]}-{parts[0]}"
+        if len(parts) == 3: return f"{parts[2]}-{parts[1]}-{parts[0]}"
     return date_str
 
 # --- API ROUTES ---
@@ -117,50 +116,28 @@ def normalize_date(date_str):
 @app.route('/health')
 def health(): return "Alive", 200
 
-# STEP 1: FIND USER
 @app.route('/api/find_user', methods=['POST'])
 def find_user():
     try:
         d = request.json
-        # Normalize Date
         clean_dob = normalize_date(d.get('dob'))
-        
-        q = { 
-            "first_name": d.get('fname'), 
-            "last_name": d.get('lname'), 
-            "birthday": clean_dob 
-        }
-        
+        q = { "first_name": d.get('fname'), "last_name": d.get('lname'), "birthday": clean_dob }
         if users_col is not None:
             user = users_col.find_one(q)
-            if user:
-                return jsonify({
-                    "status": "found", 
-                    "question_code": user.get('secret_question', 'pet')
-                })
+            if user: return jsonify({"status": "found", "question_code": user.get('secret_question', 'pet')})
             return jsonify({"error": "No account found."}), 404
         return jsonify({"error": "DB Unavailable"}), 500
     except Exception as e: return jsonify({"error": str(e)}), 500
 
-# STEP 2: VERIFY ANSWER
 @app.route('/api/recover', methods=['POST'])
 def recover():
     try:
         d = request.json
-        # Normalize Date Here Too
         clean_dob = normalize_date(d.get('dob'))
-        
-        q = { 
-            "first_name": d.get('fname'), 
-            "last_name": d.get('lname'), 
-            "birthday": clean_dob,
-            "secret_answer": d.get('secret_answer').lower().strip() 
-        }
-        
+        q = { "first_name": d.get('fname'), "last_name": d.get('lname'), "birthday": clean_dob, "secret_answer": d.get('secret_answer').lower().strip() }
         if users_col is not None:
             u = users_col.find_one(q)
-            if u: 
-                return jsonify({"status": "success", "username": u['username']})
+            if u: return jsonify({"status": "success", "username": u['username']})
             return jsonify({"error": "Incorrect Secret Answer."}), 401
         return jsonify({"error": "Database unavailable"}), 500
     except: return jsonify({"error": "Fail"}), 500
@@ -172,12 +149,7 @@ def register():
         u = data.get('reg_username')
         if users_col is None: return jsonify({"error": "DB Offline"}), 500
         if users_col.find_one({"username": u}): return jsonify({"error": "Username taken"}), 400
-        
         hashed_pw = generate_password_hash(data.get('reg_password'))
-        
-        # We assume registration sends correct YYYY-MM-DD from the date picker
-        # but storing it raw is fine as long as retrieval normalizes to match it.
-        
         new_user = {
             "username": u, "password": hashed_pw,
             "first_name": data.get('fname'), "last_name": data.get('lname'),
@@ -274,15 +246,25 @@ def login():
         u = request.form.get('username'); p = request.form.get('password')
         if users_col is None: return jsonify({"error": "System Offline (DB)"}), 500
         user = users_col.find_one({"username": u})
+        
+        # Verify Password
         if user and check_password_hash(user.get('password', ''), p):
             session['user'] = u; session.permanent = True
+            logger.info(f"✅ Login Success for: {u}")
             return jsonify({"status": "success"})
+            
+        logger.warning(f"❌ Login Failed for: {u}")
         return jsonify({"error": "Invalid credentials"}), 401
     return render_template('auth.html')
 
 @app.route('/')
 def home():
-    if 'user' not in session: return redirect(url_for('login'))
+    # --- DEBUGGING REDIRECT ---
+    if 'user' not in session: 
+        logger.info("Redirecting to Login: No Session Found")
+        return redirect(url_for('login'))
+    
+    logger.info(f"Loading Home for: {session['user']}")
     return render_template('index.html')
 
 @app.route('/logout')
@@ -293,3 +275,4 @@ def api_trivia(): return jsonify({"trivia": "Stardust."})
 
 if __name__ == '__main__':
     app.run(debug=True)
+    
