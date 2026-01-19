@@ -15,52 +15,214 @@
         .input-field { width: 100%; background: rgba(0, 0, 0, 0.3); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px; padding: 12px 15px; color: #fff; font-size: 13px; outline: none; transition: border-color 0.3s; }
         .input-field:focus { border-color: var(--mood); }
         .input-label { font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: rgba(255, 255, 255, 0.5); margin-bottom: 6px; display: block; }
-        .input-error { border-color: #ef4444 !important; }
-        select.input-field { appearance: none; -webkit-appearance: none; }
-
-        .btn-primary { width: 100%; padding: 14px; background: var(--mood); color: #000; border-radius: 12px; font-weight: 900; text-transform: uppercase; font-size: 11px; letter-spacing: 1px; cursor: pointer; transition: transform 0.2s; border: none; margin-top: 10px; display: flex; align-items: center; justify-content: center; }
-        .btn-secondary { width: 100%; padding: 14px; background: rgba(255, 255, 255, 0.05); color: #fff; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px; font-weight: bold; text-transform: uppercase; font-size: 10px; cursor: pointer; margin-top: 10px; display: flex; align-items: center; justify-content: center; }
         
-        .hidden { display: none !important; }
-        .text-link { color: var(--mood); cursor: pointer; text-decoration: underline; }
+        /* Explicit Error Class */
+        .error-border { border-color: #ef4444 !important; }
+        .error-text { color: #ef4444; font-size: 9px; font-weight: bold; text-transform: uppercase; margin-top: 5px; display: none; }
+        
+        .btn-primary { width: 100%; padding: 14px; background: var(--mood); color: #000; border-radius: 12px; font-weight: 900; text-transform: uppercase; font-size: 11px; letter-spacing: 1px; cursor: pointer; transition: transform 0.2s; border: none; margin-top: 10px; }
+        .btn-secondary { width: 100%; padding: 14px; background: rgba(255, 255, 255, 0.05); color: #fff; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px; font-weight: bold; text-transform: uppercase; font-size: 10px; cursor: pointer; margin-top: 10px; }
+        
         .icon-btn { position: absolute; right: 12px; top: 35px; cursor: pointer; opacity: 0.6; }
         .color-dot { width: 20px; height: 20px; border-radius: 50%; position: absolute; right: 12px; top: 35px; border: 1px solid rgba(255,255,255,0.2); }
-
-        /* MODALS - FIXED CENTERING */
-        .modal-overlay { 
-            position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 9999; 
-            display: none; align-items: center; justify-content: center; padding: 20px; 
-        }
-        .modal-box { 
-            background: #111; border: 1px solid rgba(255,255,255,0.15); 
-            padding: 30px; border-radius: 20px; max-width: 450px; width: 100%; 
-            text-align: center; box-shadow: 0 10px 40px rgba(0,0,0,0.8); max-height: 85vh; overflow-y: auto;
-        }
-        .modal-title { font-size: 14px; font-weight: 900; text-transform: uppercase; margin-bottom: 15px; color: #fff; letter-spacing: 1px; }
-        .modal-body { font-size: 12px; color: #ccc; line-height: 1.5; margin-bottom: 20px; }
         
-        /* PRIVACY TEXT */
-        .legal-text { text-align: left; font-size: 11px; color: #aaa; line-height: 1.6; margin-bottom: 20px; height: 300px; overflow-y: auto; padding-right: 10px; border: 1px solid rgba(255,255,255,0.1); padding: 15px; border-radius: 12px; background: rgba(0,0,0,0.3); }
-        .legal-text h3 { color: #fff; margin-top: 15px; margin-bottom: 5px; font-size: 12px; font-weight: bold; text-transform: uppercase; }
-        .legal-text p { margin-bottom: 10px; }
+        /* Modals */
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 9999; display: none; align-items: center; justify-content: center; padding: 20px; }
+        .modal-box { background: #111; border: 1px solid rgba(255,255,255,0.15); padding: 30px; border-radius: 20px; max-width: 400px; width: 100%; text-align: center; }
         
-        #loading-overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.9); backdrop-filter: blur(10px); z-index: 50; display: none; align-items: center; justify-content: center; flex-direction: column; }
+        /* Loading */
+        #loading-overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.9); backdrop-filter: blur(5px); z-index: 50; display: none; align-items: center; justify-content: center; flex-direction: column; }
         .spinner { width: 40px; height: 40px; border: 3px solid rgba(255,255,255,0.1); border-top-color: var(--mood); border-radius: 50%; animation: spin 1s infinite linear; margin-bottom: 15px; }
         @keyframes spin { to { transform: rotate(360deg); } }
     </style>
+    
+    <script>
+        // --- CORE FUNCTIONS (DEFINED IMMEDIATELY) ---
+        
+        function switchView(viewName) {
+            // Hide all views first
+            document.getElementById('view-login').style.display = 'none';
+            document.getElementById('view-register').style.display = 'none';
+            document.getElementById('view-recovery').style.display = 'none';
+            
+            // Show the target view
+            document.getElementById('view-' + viewName).style.display = 'block';
+            
+            // Clear errors
+            document.getElementById('login-error-msg').style.display = 'none';
+        }
+
+        function togglePass(id) {
+            const el = document.getElementById(id);
+            el.type = el.type === 'password' ? 'text' : 'password';
+        }
+
+        function showLoading(msg) {
+            document.getElementById('loading-text').innerText = msg;
+            document.getElementById('loading-overlay').style.display = 'flex';
+        }
+
+        function hideLoading() {
+            document.getElementById('loading-overlay').style.display = 'none';
+        }
+
+        function showModal(title, body) {
+            document.getElementById('modal-title').innerText = title;
+            document.getElementById('modal-body').innerText = body;
+            document.getElementById('message-modal').style.display = 'flex';
+        }
+
+        function hideModal(id) {
+            document.getElementById(id).style.display = 'none';
+        }
+
+        // --- API HANDLERS ---
+
+        async function doLogin(e) {
+            e.preventDefault(); // Stop form reload
+            
+            // Hide previous errors
+            const errorEl = document.getElementById('login-error-msg');
+            errorEl.style.display = 'none';
+            
+            showLoading("Accessing...");
+            
+            // Remember Me Logic
+            if(document.getElementById('remember-me').checked) {
+                localStorage.setItem('celi_user', document.getElementById('login-username').value);
+            } else {
+                localStorage.removeItem('celi_user');
+            }
+
+            try {
+                const form = new FormData(document.getElementById('form-login'));
+                const res = await fetch('/login', { method: 'POST', body: form });
+                const data = await res.json();
+                
+                hideLoading();
+                
+                if (data.status === 'success') {
+                    window.location.href = '/';
+                } else {
+                    // SHOW ERROR MESSAGE MANUALLY
+                    errorEl.style.display = 'block';
+                    errorEl.innerText = "Incorrect username or password.";
+                }
+            } catch (err) {
+                hideLoading();
+                showModal('Error', 'Connection Failed. Please try again.');
+            }
+        }
+
+        async function doRegister(e) {
+            e.preventDefault();
+            const p1 = document.getElementById('reg-pass').value;
+            const p2 = document.getElementById('confirm-pass').value;
+            
+            if (p1 !== p2) { showModal('Error', 'Passwords do not match.'); return; }
+            
+            showLoading("Creating Signal...");
+            const form = new FormData(document.getElementById('form-register'));
+            const data = Object.fromEntries(form.entries());
+            
+            try {
+                const res = await fetch('/api/register', { 
+                    method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(data)
+                });
+                const d = await res.json();
+                hideLoading();
+                
+                if (res.ok) {
+                    showModal('Success', 'Account Created! Please Log In.');
+                    switchView('login');
+                } else {
+                    showModal('Error', d.error || 'Registration Failed');
+                }
+            } catch (err) {
+                hideLoading();
+                showModal('Error', 'Network Error');
+            }
+        }
+
+        async function doVerify(e) {
+            e.preventDefault();
+            showLoading("Verifying...");
+            const form = new FormData(document.getElementById('form-verify'));
+            const data = Object.fromEntries(form.entries());
+            window.recoveryData = data; // Save for step 2
+            
+            try {
+                const res = await fetch('/api/recover', { 
+                    method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(data)
+                });
+                const d = await res.json();
+                hideLoading();
+                
+                if (res.ok) {
+                    document.getElementById('form-verify').style.display = 'none';
+                    document.getElementById('form-reset').style.display = 'block';
+                    document.getElementById('rec-username').value = d.username;
+                    window.recoveryData.username = d.username;
+                } else {
+                    showModal('Error', 'Identity Verification Failed.');
+                }
+            } catch (err) {
+                hideLoading();
+                showModal('Error', 'Network Error');
+            }
+        }
+
+        async function doReset(e) {
+            e.preventDefault();
+            const p1 = document.getElementById('new-pass').value;
+            const p2 = document.getElementById('conf-new-pass').value;
+            if (p1 !== p2) { showModal('Error', 'Passwords do not match'); return; }
+            
+            showLoading("Updating...");
+            const payload = { ...window.recoveryData, new_password: p1 };
+            
+            try {
+                const res = await fetch('/api/reset_password', { 
+                    method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload)
+                });
+                hideLoading();
+                if (res.ok) {
+                    showModal('Success', 'Password Updated.');
+                    switchView('login');
+                } else {
+                    showModal('Error', 'Reset Failed.');
+                }
+            } catch (err) {
+                hideLoading();
+                showModal('Error', 'Network Error');
+            }
+        }
+
+        // Init
+        window.onload = function() {
+            // Restore User
+            const saved = localStorage.getItem('celi_user');
+            if(saved) {
+                document.getElementById('login-username').value = saved;
+                document.getElementById('remember-me').checked = true;
+            }
+            
+            // Kill Service Workers
+            if(navigator.serviceWorker) {
+                navigator.serviceWorker.getRegistrations().then(r => { for(let reg of r) reg.unregister(); });
+            }
+        };
+    </script>
 </head>
 <body>
 
     <div class="glass-panel" id="auth-container">
-        
-        <div id="loading-overlay">
-            <div class="spinner"></div>
-            <p id="loading-text" class="text-xs uppercase tracking-widest text-white/80">Processing...</p>
-        </div>
+        <div id="loading-overlay"><div class="spinner"></div><p id="loading-text" class="text-xs uppercase tracking-widest text-white/80">Processing...</p></div>
 
         <div id="view-login">
             <h1 class="text-3xl font-black text-center mb-8 tracking-tighter text-white">Celi</h1>
-            <form id="form-login">
+            
+            <form id="form-login" onsubmit="doLogin(event)">
                 <div class="input-group">
                     <label class="input-label">Username</label>
                     <input type="text" id="login-username" name="username" class="input-field" placeholder="Enter username" required>
@@ -68,28 +230,32 @@
                 <div class="input-group">
                     <label class="input-label">Password</label>
                     <input type="password" name="password" id="login-pass" class="input-field" placeholder="••••••" required>
-                    <div class="icon-btn" id="toggle-login-pass">
+                    <div class="icon-btn" onclick="togglePass('login-pass')">
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
                     </div>
                 </div>
-                <div class="flex items-center justify-between mb-4 mt-2 h-6">
+                
+                <div class="flex items-center justify-between mb-4 mt-2">
                     <div class="flex items-center gap-2">
                         <input type="checkbox" id="remember-me" class="rounded bg-white/10 border-white/20 w-3 h-3">
                         <label for="remember-me" class="text-[9px] text-white/60 uppercase tracking-wide cursor-pointer">Remember Me</label>
                     </div>
-                    <div id="login-error" class="text-[9px] text-red-500 font-bold uppercase tracking-wide hidden">Incorrect username or password</div>
                 </div>
+                
+                <div id="login-error-msg" class="error-text mb-4">Incorrect username or password</div>
+
                 <button type="submit" class="btn-primary">Log In</button>
             </form>
-            <button type="button" id="btn-goto-register" class="btn-secondary">Register</button>
+            
+            <button type="button" onclick="switchView('register')" class="btn-secondary">Register</button>
             <div class="text-center mt-6">
-                <button type="button" id="btn-goto-recovery" class="text-[9px] text-white/40 cursor-pointer hover:text-white transition border-b border-transparent hover:border-white/40 inline-block uppercase tracking-widest bg-transparent border-none">Forgot your log in?</button>
+                <button type="button" onclick="switchView('recovery')" class="text-[9px] text-white/40 cursor-pointer hover:text-white transition border-b border-transparent hover:border-white/40 bg-transparent border-none uppercase tracking-widest">Forgot your log in?</button>
             </div>
         </div>
 
-        <div id="view-register" class="hidden">
+        <div id="view-register" style="display:none;">
             <h1 class="text-xl font-bold text-center mb-6 uppercase tracking-widest text-white/90">Registration</h1>
-            <form id="form-register">
+            <form id="form-register" onsubmit="doRegister(event)">
                 <div class="flex gap-2 mb-2">
                     <div class="w-1/2"><label class="input-label">First Name</label><input type="text" name="fname" class="input-field" required></div>
                     <div class="w-1/2"><label class="input-label">Last Name</label><input type="text" name="lname" class="input-field" required></div>
@@ -104,13 +270,13 @@
                 <div class="input-group">
                     <label class="input-label">Secret Question</label>
                     <select name="secret_question" class="input-field" required>
-                        <option value="pet">What was the name of your first pet?</option>
-                        <option value="mother">What is your mother's maiden name?</option>
-                        <option value="school">What elementary school did you attend?</option>
-                        <option value="city">In what city were you born?</option>
+                        <option value="pet">Name of your first pet?</option>
+                        <option value="mother">Mother's maiden name?</option>
+                        <option value="school">First elementary school?</option>
+                        <option value="city">City you were born?</option>
                     </select>
                 </div>
-                <div class="input-group"><label class="input-label">Secret Answer</label><input type="text" name="secret_answer" class="input-field" placeholder="Answer..." required></div>
+                <div class="input-group"><label class="input-label">Secret Answer</label><input type="text" name="secret_answer" class="input-field" required></div>
                 <div class="input-group">
                     <label class="input-label">Password</label>
                     <input type="password" name="reg_password" id="reg-pass" class="input-field" required>
@@ -121,39 +287,39 @@
                 </div>
                 <div class="flex items-start gap-3 my-4">
                     <input type="checkbox" id="privacy-check" required class="mt-1 w-3 h-3 bg-white/10 border-white/20 rounded">
-                    <label for="privacy-check" class="text-[10px] opacity-70 leading-tight">I agree to the <span class="text-link" id="btn-open-privacy">Data Privacy Disclosure</span>.</label>
+                    <label for="privacy-check" class="text-[10px] opacity-70 leading-tight">I agree to the <span class="text-link" onclick="document.getElementById('privacy-modal').style.display='flex'">Data Privacy Disclosure</span>.</label>
                 </div>
                 <button type="submit" class="btn-primary">Register</button>
             </form>
-            <button type="button" id="btn-back-login-1" class="btn-secondary">Back to Login</button>
+            <button type="button" onclick="switchView('login')" class="btn-secondary">Back to Login</button>
         </div>
 
-        <div id="view-recovery" class="hidden">
+        <div id="view-recovery" style="display:none;">
             <h1 class="text-xl font-bold text-center mb-6 uppercase tracking-widest text-white/90">Signal Recovery</h1>
-            <form id="form-verify">
-                <p class="text-[10px] text-center mb-4 opacity-50">Verify your identity to retrieve access.</p>
-                <div class="flex gap-2 mb-2"><div class="w-1/2"><label class="input-label">First Name</label><input type="text" name="fname" class="input-field" required></div><div class="w-1/2"><label class="input-label">Last Name</label><input type="text" name="lname" class="input-field" required></div></div>
+            <form id="form-verify" onsubmit="doVerify(event)">
+                <p class="text-[10px] text-center mb-4 opacity-50">Verify identity to retrieve access.</p>
+                <div class="flex gap-2 mb-2">
+                    <div class="w-1/2"><label class="input-label">First Name</label><input type="text" name="fname" class="input-field" required></div>
+                    <div class="w-1/2"><label class="input-label">Last Name</label><input type="text" name="lname" class="input-field" required></div>
+                </div>
                 <div class="input-group"><label class="input-label">Date of Birth</label><input type="date" name="dob" class="input-field" required></div>
                 <div class="input-group">
                     <label class="input-label">Secret Question</label>
                     <select name="secret_question" class="input-field" required>
-                        <option value="pet">What was the name of your first pet?</option>
-                        <option value="mother">What is your mother's maiden name?</option>
-                        <option value="school">What elementary school did you attend?</option>
-                        <option value="city">In what city were you born?</option>
+                        <option value="pet">Name of your first pet?</option>
+                        <option value="mother">Mother's maiden name?</option>
+                        <option value="school">First elementary school?</option>
+                        <option value="city">City you were born?</option>
                     </select>
                 </div>
                 <div class="input-group"><label class="input-label">Secret Answer</label><input type="text" name="secret_answer" class="input-field" required></div>
                 <button type="submit" class="btn-primary">Verify Identity</button>
             </form>
 
-            <form id="form-reset" class="hidden">
+            <form id="form-reset" style="display:none;" onsubmit="doReset(event)">
                 <div class="input-group">
                     <label class="input-label">Your Username</label>
                     <input type="text" id="rec-username" class="input-field" readonly style="color:var(--mood); font-weight:bold;">
-                    <div class="icon-btn" id="btn-copy-user">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect></svg>
-                    </div>
                 </div>
                 <div class="input-group">
                     <label class="input-label">New Password</label>
@@ -165,128 +331,26 @@
                 </div>
                 <button type="submit" class="btn-primary">Confirm Reset</button>
             </form>
-            <button type="button" id="btn-back-login-2" class="btn-secondary">Cancel</button>
+            <button type="button" onclick="switchView('login')" class="btn-secondary">Cancel</button>
         </div>
     </div>
 
     <div class="fixed bottom-4 w-full text-center pointer-events-none opacity-30 text-[9px] font-mono uppercase tracking-widest text-white flex flex-col gap-1">
-        <span>Celi Access v1.9.0</span>
+        <span>Celi Access v1.10.02.00</span>
         <span class="opacity-70">Powered by Gemini AI</span>
     </div>
 
     <div id="message-modal" class="modal-overlay">
         <div class="modal-box">
-            <h3 id="modal-title" class="modal-title">Notification</h3>
-            <p id="modal-body" class="modal-body"></p>
-            <button id="btn-close-msg" class="btn-primary">Dismiss</button>
+            <h3 id="modal-title" class="text-sm font-bold uppercase mb-2 text-white">Notification</h3>
+            <p id="modal-body" class="text-xs mb-6 text-gray-300"></p>
+            <button onclick="hideModal('message-modal')" class="btn-primary">Dismiss</button>
         </div>
     </div>
 
     <div id="privacy-modal" class="modal-overlay">
         <div class="modal-box">
-            <h2 class="modal-title">Data & Privacy Disclosure</h2>
-            <div class="legal-text">
-                <h3>1. Introduction and Scope</h3>
-                <p>Celi ("The Application") is designed as a personal AI journaling companion. We are committed to transparency regarding the collection, storage, and processing of your digital footprint. By creating a "Signal" (Account), you agree to these terms.</p>
-                
-                <h3>2. Data Collection & Sovereignty</h3>
-                <p>We collect only the data necessary for functionality: Username, Hashed Password, Date of Birth (for astrology/profiling), and Journal Entries. <strong>You retain 100% ownership</strong> of your journal entries. We claim no intellectual property rights over your personal thoughts.</p>
-                
-                <h3>3. Storage Infrastructure</h3>
-                <p>Your data is stored in <strong>MongoDB Atlas</strong>, an enterprise-grade cloud database. All data at rest is encrypted using standard AES-256 encryption. Our database clusters are protected by strict IP whitelisting and firewall rules.</p>
-                
-                <h3>4. AI Processing (Google Gemini)</h3>
-                <p>Celi utilizes Google's Gemini API to generate responses and psychological summaries. When you submit an entry, it is transmitted securely (via HTTPS) to Gemini. <br><strong>CRITICAL:</strong> We do not grant Google or any third party the right to use your personal journal entries to train their public AI models. Data usage is "Ephemeral"—it is processed for the response and then discarded from the AI's context window.</p>
-                
-                <h3>5. User Rights</h3>
-                <p>- <strong>Right to Access:</strong> You may view your full history in the Vault.<br>- <strong>Right to Erasure:</strong> You may permanently delete your account and all associated data via the Profile Settings. This action is irreversible and wipes your data from our servers instantly.</p>
-                
-                <h3>6. Contact</h3>
-                <p>For privacy inquiries, please contact the developer via the official repository channels.</p>
-            </div>
-            <button id="btn-close-privacy" class="btn-primary">I Acknowledge & Consent</button>
-        </div>
-    </div>
-
-    <script>
-        // Kill Service Worker to prevent caching of old login pages
-        if(window.navigator && navigator.serviceWorker) {
-            navigator.serviceWorker.getRegistrations().then(r => { for(let reg of r) reg.unregister(); });
-        }
-
-        let recoveryData = {};
-
-        // DOM Elements
-        const get = (id) => document.getElementById(id);
-        const show = (id) => get(id).style.display = 'block'; // Direct style manipulation
-        const showFlex = (id) => get(id).style.display = 'flex'; // For modals
-        const hide = (id) => get(id).style.display = 'none';
-
-        // --- NAVIGATION ---
-        function switchView(view) {
-            hide('view-login'); hide('view-register'); hide('view-recovery');
-            show('view-' + view);
-            hide('login-error');
-        }
-
-        // --- MODALS ---
-        function openModal(title, body) {
-            get('modal-title').innerText = title;
-            get('modal-body').innerText = body;
-            showFlex('message-modal');
-        }
-
-        // --- EVENT LISTENERS (Wait for DOM) ---
-        document.addEventListener('DOMContentLoaded', () => {
-            console.log("Celi Auth v1.9.0 Ready");
-
-            // Buttons
-            get('btn-goto-register').addEventListener('click', () => switchView('register'));
-            get('btn-goto-recovery').addEventListener('click', () => switchView('recovery'));
-            get('btn-back-login-1').addEventListener('click', () => switchView('login'));
-            get('btn-back-login-2').addEventListener('click', () => switchView('login'));
-            
-            // Password Toggles
-            get('toggle-login-pass').addEventListener('click', () => { let el=get('login-pass'); el.type = el.type==='password'?'text':'password'; });
-            
-            // Privacy
-            get('btn-open-privacy').addEventListener('click', () => showFlex('privacy-modal'));
-            get('btn-close-privacy').addEventListener('click', () => hide('privacy-modal'));
-            get('btn-close-msg').addEventListener('click', () => hide('message-modal'));
-
-            // --- LOGIN FORM ---
-            get('form-login').addEventListener('submit', async (e) => {
-                e.preventDefault();
-                hide('login-error');
-                showFlex('loading-overlay');
-                
-                if(get('remember-me').checked) localStorage.setItem('celi_user', get('login-username').value);
-                else localStorage.removeItem('celi_user');
-
-                try {
-                    const res = await fetch('/login', { method: 'POST', body: new FormData(e.target) });
-                    const data = await res.json();
-                    
-                    if(data.status === 'success') {
-                        window.location.href = '/'; // FORCE REDIRECT
-                    } else {
-                        hide('loading-overlay');
-                        show('login-error'); // Show Red Text
-                    }
-                } catch(err) {
-                    hide('loading-overlay');
-                    openModal('Error', 'Connection Failed');
-                }
-            });
-
-            // --- REGISTER FORM ---
-            get('form-register').addEventListener('submit', async (e) => {
-                e.preventDefault();
-                if(get('reg-pass').value !== get('confirm-pass').value) { openModal('Error', 'Passwords do not match'); return; }
-                
-                showFlex('loading-overlay');
-                const data = Object.fromEntries(new FormData(e.target));
-                
-                try {
-                    const res = await fetch('/api/register', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(data) });
-                    const d = await res.json()
+            <h2 class="text-xl font-bold mb-4 uppercase text-white tracking-widest text-center">Data & Privacy</h2>
+            <div style="text-align:left; font-size:11px; color:#aaa; height:300px; overflow-y:auto; padding:10px; background:rgba(255,255,255,0.05); border-radius:10px;">
+                <h3>1. Introduction</h3><p>By registering a "Signal" (Account), you agree to Celi's data practices.</p>
+                <h3>2. Data Collection</h3><p>We store Username, Ha
