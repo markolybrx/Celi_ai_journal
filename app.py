@@ -6,7 +6,7 @@ from pymongo import MongoClient
 import certifi
 
 app = Flask(__name__)
-app.secret_key = "celi_ai_v1.7.0_clean_syntax"
+app.secret_key = "celi_ai_v1.8.0_core_stable"
 
 # --- MONGODB CONNECTION ---
 MONGO_URI = os.environ.get("MONGO_URI")
@@ -15,6 +15,7 @@ users_col = None
 
 if MONGO_URI:
     try:
+        # certifi.where() fixes the SSL Handshake error on Render
         client = MongoClient(MONGO_URI, tlsCAFile=certifi.where())
         db = client.get_database("celi_db")
         users_col = db.users
@@ -47,7 +48,7 @@ RANK_CONFIG = [
     {"name": "Ethereal", "levels": 5, "stars_per_lvl": 8, "threshold": 116, "phase": "The Singularity"}
 ]
 
-# --- HELPERS ---
+# --- DATABASE HELPERS ---
 
 def get_user_data(username):
     if users_col is None:
@@ -84,6 +85,7 @@ def register():
         data = request.json
         username = data.get('reg_username')
         
+        # Explicit check prevents NoneType error
         if users_col is not None and users_col.find_one({"username": username}):
             return jsonify({"error": "Username already exists"}), 400
             
@@ -296,11 +298,11 @@ def login():
             if user and user.get('password') == password:
                 session['user'] = username
                 session.permanent = True
-                # Return JSON for frontend JS to handle
+                # IMPORTANT: Return JSON so the frontend JS can handle the redirect logic
                 return jsonify({"status": "success"})
             return jsonify({"error": "Invalid credentials"}), 401
         
-        # Fallback
+        # Fallback for dev environment without DB
         session['user'] = username
         return jsonify({"status": "success"})
 
@@ -323,4 +325,4 @@ def api_trivia():
 
 if __name__ == '__main__':
     app.run(debug=True)
-                       
+    
