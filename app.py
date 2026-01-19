@@ -6,26 +6,36 @@ from pymongo import MongoClient
 import certifi
 
 app = Flask(__name__)
-app.secret_key = "celi_ai_v1.6.6_json_auth"
+app.secret_key = "celi_ai_v1.7.0_clean_syntax"
 
-# --- MONGODB ---
+# --- MONGODB CONNECTION ---
 MONGO_URI = os.environ.get("MONGO_URI")
-db = None; users_col = None
+db = None
+users_col = None
+
 if MONGO_URI:
     try:
         client = MongoClient(MONGO_URI, tlsCAFile=certifi.where())
-        db = client.get_database("celi_db"); users_col = db.users
-        print("MONGODB CONNECTED")
-    except Exception as e: print(f"MONGO FAIL: {e}")
+        db = client.get_database("celi_db")
+        users_col = db.users
+        print("✅ MONGODB CONNECTED")
+    except Exception as e:
+        print(f"❌ MONGO CONNECTION FAILED: {e}")
+else:
+    print("⚠️ WARNING: MONGO_URI not found.")
 
-# --- AI ---
+# --- GEMINI CONFIGURATION ---
 model = None
 try:
     GEMINI_KEY = os.environ.get("GEMINI_API_KEY")
     if GEMINI_KEY:
         genai.configure(api_key=GEMINI_KEY)
-        model = genai.GenerativeModel('gemini-1.5-flash', generation_config={"response_mime_type": "application/json"})
-except Exception as e: print(f"AI FAIL: {e}")
+        model = genai.GenerativeModel('gemini-1.5-flash', 
+            generation_config={"response_mime_type": "application/json"})
+    else:
+        print("⚠️ GEMINI_API_KEY missing. AI Disabled.")
+except Exception as e:
+    print(f"AI INIT ERROR: {e}")
 
 RANK_CONFIG = [
     {"name": "Observer", "levels": 3, "stars_per_lvl": 2, "threshold": 6, "phase": "The Awakening Phase"},
@@ -38,123 +48,279 @@ RANK_CONFIG = [
 ]
 
 # --- HELPERS ---
-def get_user_data(username): return users_col.find_one({"username": username}) if users_col else None
-def update_user_data(username, data): users_col.update_one({"username": username}, {"$set": data}) if users_col else None
-def analyze_user_soul(user_data):
-    if not model: return "Simulated Mode."
-    hist = user_data.get('history', {})
-    if len(hist) < 3: return "Data insufficient."
-    logs = [l.get('summary','') for l in list(hist.values())[-5:]]
-    try:
-        res = model.generate_content(f"Analyze journals: {logs}. Output JSON: {{ 'analysis': 'Short witty summary.' }}")
-        return json.loads(res.text)['analysis']
-    except: return "Connection unstable."
 
-# --- API ---
+def get_user_data(username):
+    if users_col is None:
+        return None
+    return users_col.find_one({"username": username})
+
+def update_user_data(username, update_dict):
+    if users_col is None:
+        return
+    users_col.update_one({"username": username}, {"$set": update_dict})
+
+def analyze_user_soul(user_data):
+    if not model:
+        return "Simulation Mode."
+    history = user_data.get('history', {})
+    if len(history) < 3:
+        return "Data insufficient."
+    
+    recent_logs = list(history.values())[-5:]
+    summaries = [log.get('summary', '') for log in recent_logs]
+    
+    try:
+        prompt = f"Analyze user based on journals: {summaries}. Output JSON: {{ 'analysis': 'Deep, witty psychological summary (max 30 words).' }}"
+        response = model.generate_content(prompt)
+        return json.loads(response.text)['analysis']
+    except:
+        return "Neural uplink unstable."
+
+# --- API ROUTES ---
+
 @app.route('/api/register', methods=['POST'])
 def register():
     try:
-        data = request.json; username = data.get('reg_username')
-        if users_col and users_col.find_one({"username": username}): return jsonify({"error": "Username taken"}), 400
+        data = request.json
+        username = data.get('reg_username')
+        
+        if users_col is not None and users_col.find_one({"username": username}):
+            return jsonify({"error": "Username already exists"}), 400
+            
         new_user = {
-            "username": username, "password": data.get('reg_password'),
-            "first_name": data.get('fname'), "last_name": data.get('lname'),
-            "birthday": data.get('dob'), "secret_question": data.get('secret_question'),
+            "username": username,
+            "password": data.get('reg_password'),
+            "first_name": data.get('fname'),
+            "last_name": data.get('lname'),
+            "birthday": data.get('dob'),
+            "secret_question": data.get('secret_question'),
             "secret_answer": data.get('secret_answer').lower().strip(),
-            "fav_color": data.get('fav_color', '#00f2fe'), "user_id": str(uuid.uuid4())[:8].upper(),
-            "points": 0, "void_count": 0, "history": {}, "unlocked_trivias": [], "profile_pic": "", "celi_analysis": "New Signal."
+            "fav_color": data.get('fav_color', '#00f2fe'),
+            "user_id": str(uuid.uuid4())[:8].upper(),
+            "points": 0,
+            "void_count": 0,
+            "history": {},
+            "unlocked_trivias": [],
+            "profile_pic": "",
+            "celi_analysis": "New Signal Detected."
         }
-        if users_col: users_col.insert_one(new_user); return jsonify({"status": "success"})
-        return jsonify({"error": "DB Error"}), 500
-    except Exception as e: return jsonify({"error": str(e)}), 500
+        
+        if users_col is not None:
+            users_col.insert_one(new_user)
+            return jsonify({"status": "success"})
+        else:
+            return jsonify({"error": "Database unavailable"}), 500
+            
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 @app.route('/api/recover', methods=['POST'])
 def recover():
     try:
-        d = request.json
-        q = { "first_name": d.get('fname'), "last_name": d.get('lname'), "birthday": d.get('dob'), "secret_question": d.get('secret_question'), "secret_answer": d.get('secret_answer').lower().strip() }
-        if users_col:
-            u = users_col.find_one(q)
-            if u: return jsonify({"status": "success", "username": u['username']})
-            return jsonify({"error": "Identity verification failed"}), 404
-        return jsonify({"error": "DB Error"}), 500
-    except: return jsonify({"error": "Fail"}), 500
+        data = request.json
+        query = {
+            "first_name": data.get('fname'),
+            "last_name": data.get('lname'),
+            "birthday": data.get('dob'),
+            "secret_question": data.get('secret_question'),
+            "secret_answer": data.get('secret_answer').lower().strip()
+        }
+        
+        if users_col is not None:
+            user = users_col.find_one(query)
+            if user:
+                return jsonify({"status": "success", "username": user['username']})
+            else:
+                return jsonify({"error": "Identity verification failed."}), 404
+        return jsonify({"error": "Database unavailable"}), 500
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 @app.route('/api/reset_password', methods=['POST'])
 def reset_password():
     try:
-        d = request.json
-        q = { "username": d.get('username'), "first_name": d.get('fname'), "last_name": d.get('lname'), "secret_answer": d.get('secret_answer').lower().strip() }
-        if users_col:
-            if users_col.find_one(q):
-                users_col.update_one({"username": d.get('username')}, {"$set": {"password": d.get('new_password')}})
+        data = request.json
+        username = data.get('username')
+        new_pass = data.get('new_password')
+        
+        query = {
+            "username": username,
+            "first_name": data.get('fname'),
+            "last_name": data.get('lname'),
+            "secret_answer": data.get('secret_answer').lower().strip()
+        }
+        
+        if users_col is not None:
+            user = users_col.find_one(query)
+            if user:
+                users_col.update_one({"username": username}, {"$set": {"password": new_pass}})
                 return jsonify({"status": "success"})
-            return jsonify({"error": "Security check failed"}), 403
-        return jsonify({"error": "DB Error"}), 500
-    except: return jsonify({"error": "Fail"}), 500
+            else:
+                return jsonify({"error": "Security check failed."}), 403
+        return jsonify({"error": "Database unavailable"}), 500
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 @app.route('/api/data')
 def get_data():
-    if 'user' not in session: return jsonify({"status": "guest"})
-    u = get_user_data(session['user'])
-    if not u: session.clear(); return jsonify({"status": "guest"})
-    pts = u.get('points', 0); rank_name, roman, prog, phase = "Observer", "I", 0, ""
-    cumulative = 0
-    for r in RANK_CONFIG:
-        if pts < r['threshold']:
-            rank_name = r['name']; phase = r['phase']; diff = pts - cumulative
-            lvl = diff // r['stars_per_lvl']; rem = diff % r['stars_per_lvl']
-            roman = {1:"I",2:"II",3:"III",4:"IV",5:"V"}.get(max(1, r['levels'] - lvl), "I")
-            prog = (rem / r['stars_per_lvl']) * 100; break
-        cumulative = r['threshold']
-    else: rank_name = "Ethereal"; phase = "The Singularity"; prog = 100
-    return jsonify({ "status": "ok", "username": u['username'], "points": pts, "rank": f"{rank_name} {roman}", "rank_progress": prog, "phase": phase, "history": u.get('history',{}), "rank_config": RANK_CONFIG, "profile_pic": u.get('profile_pic'), "fav_color": u.get('fav_color'), "birthday": u.get('birthday'), "celi_analysis": u.get('celi_analysis') })
+    try:
+        if 'user' not in session:
+            return jsonify({"status": "guest"})
+        
+        u = get_user_data(session['user'])
+        if not u:
+            session.clear()
+            return jsonify({"status": "guest"})
+        
+        pts = u.get('points', 0)
+        current_rank_name = "Observer"
+        current_roman = "I"
+        current_phase = ""
+        current_prog = 0
+        cumulative = 0
+        
+        for rank in RANK_CONFIG:
+            start_pts = cumulative
+            end_pts = rank['threshold']
+            if pts < end_pts:
+                current_rank_name = rank['name']
+                current_phase = rank['phase']
+                pts_in_rank = pts - start_pts
+                stars_per = rank['stars_per_lvl']
+                level_idx = pts_in_rank // stars_per
+                max_lvl = rank['levels']
+                current_lvl_num = max(1, max_lvl - int(level_idx))
+                roman_map = {1: "I", 2: "II", 3: "III", 4: "IV", 5: "V"}
+                current_roman = roman_map.get(current_lvl_num, "I")
+                pts_in_level = pts_in_rank % stars_per
+                current_prog = (pts_in_level / stars_per) * 100
+                break
+            cumulative = end_pts
+        else:
+            current_rank_name = "Ethereal"
+            current_roman = "I"
+            current_prog = 100
+            current_phase = RANK_CONFIG[-1]['phase']
+
+        return jsonify({
+            "status": "ok",
+            "username": u['username'],
+            "user_id": u.get('user_id'),
+            "birthday": u.get('birthday'),
+            "fav_color": u.get('fav_color'),
+            "profile_pic": u.get('profile_pic'),
+            "points": pts, 
+            "rank": f"{current_rank_name} {current_roman}",
+            "rank_roman": current_roman,
+            "phase": current_phase,
+            "rank_progress": current_prog,
+            "rank_synthesis": "Orbiting...",
+            "history": u.get('history', {}), 
+            "unlocked_trivias": u.get('unlocked_trivias', []),
+            "celi_analysis": u.get('celi_analysis'),
+            "rank_config": RANK_CONFIG
+        })
+    except Exception as e:
+        return jsonify({"status": "error"})
 
 @app.route('/api/process', methods=['POST'])
 def process():
-    u = get_user_data(session['user']); d = request.json
-    reply = "Listening..."; summary = "Entry"
-    if model:
-        try:
-            res = model.generate_content(f"Celi (Friendly AI). User: {d.get('message')}. Output JSON: {{'reply': '...', 'summary': '...'}}")
-            ai = json.loads(res.text); reply = ai['reply']; summary = ai['summary']
-        except: pass
-    hist = u.get('history', {}); hist[str(time.time())] = {"summary": summary, "reply": reply, "date": str(date.today()), "type": d.get('mode')}
-    update_user_data(session['user'], {"history": hist, "points": u.get('points', 0) + (1 if d.get('mode')!='rant' else 0), "void_count": u.get('void_count',0) + (1 if d.get('mode')=='rant' else 0)})
-    return jsonify({"reply": reply})
+    try:
+        u = get_user_data(session['user'])
+        data = request.json
+        reply_text = "I'm listening..."
+        summary_text = "User entry."
+        
+        if model:
+            try:
+                prompt = f"""You are Celi. Empathetic, friendly, witty. User: {data.get('message')} Output JSON: {{ "reply": "Your response", "summary": "Short summary" }}"""
+                res = model.generate_content(prompt)
+                ai_data = json.loads(res.text)
+                reply_text = ai_data['reply']
+                summary_text = ai_data['summary']
+            except:
+                pass
+
+        updates = {}
+        if data.get('mode') != 'rant':
+            updates['points'] = u.get('points', 0) + 1
+        else:
+            updates['void_count'] = u.get('void_count', 0) + 1
+        
+        new_history = u.get('history', {})
+        new_history[str(time.time())] = {
+            "summary": summary_text, 
+            "reply": reply_text, 
+            "date": str(date.today()), 
+            "type": data.get('mode', 'journal')
+        }
+        updates['history'] = new_history
+        update_user_data(session['user'], updates)
+        return jsonify({"reply": reply_text})
+        
+    except Exception as e:
+        return jsonify({"reply": "Static noise..."})
 
 @app.route('/api/update_profile', methods=['POST'])
 def update_profile():
-    d = request.json; u = get_user_data(session['user']); up = {}
-    if 'birthday' in d: up['birthday'] = d['birthday']
-    if 'fav_color' in d: up['fav_color'] = d['fav_color']
-    if 'profile_pic' in d: up['profile_pic'] = d['profile_pic']
-    up['celi_analysis'] = analyze_user_soul(u); update_user_data(session['user'], up)
-    return jsonify({"status": "success"})
+    try:
+        data = request.json
+        u = get_user_data(session['user'])
+        updates = {}
+        if 'birthday' in data: updates['birthday'] = data['birthday']
+        if 'fav_color' in data: updates['fav_color'] = data['fav_color']
+        if 'profile_pic' in data: updates['profile_pic'] = data['profile_pic']
+        updates['celi_analysis'] = analyze_user_soul(u)
+        update_user_data(session['user'], updates)
+        return jsonify({"status": "success"})
+    except:
+        return jsonify({"status": "error"})
 
 @app.route('/api/delete_user', methods=['POST'])
 def delete_user():
-    if users_col: users_col.delete_one({"username": session['user']})
-    session.clear(); return jsonify({"status": "success"})
+    if users_col is not None:
+        users_col.delete_one({"username": session['user']})
+    session.clear()
+    return jsonify({"status": "success"})
 
 # --- PAGE ROUTES ---
+
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        u = request.form.get('username'); p = request.form.get('password')
-        if users_col:
-            user = users_col.find_one({"username": u})
-            if user and user.get('password') == p:
-                session['user'] = u; session.permanent = True
-                # CHANGED: Return JSON instead of redirecting
-                return jsonify({"status": "success"}) 
-            return jsonify({"error": "Invalid"}), 401
-        # Fallback for dev mode
-        session['user'] = u; return jsonify({"status": "success"})
+        username = request.form.get('username')
+        password = request.form.get('password')
+        
+        if users_col is not None:
+            user = users_col.find_one({"username": username})
+            if user and user.get('password') == password:
+                session['user'] = username
+                session.permanent = True
+                # Return JSON for frontend JS to handle
+                return jsonify({"status": "success"})
+            return jsonify({"error": "Invalid credentials"}), 401
+        
+        # Fallback
+        session['user'] = username
+        return jsonify({"status": "success"})
+
     return render_template('auth.html')
 
-@app.route('/'); def home(): return redirect(url_for('login')) if 'user' not in session else render_template('index.html')
-@app.route('/logout'); def logout(): session.clear(); return redirect(url_for('login'))
-@app.route('/api/trivia'); def api_trivia(): return jsonify({"trivia": "Stardust."})
-if __name__ == '__main__': app.run(debug=True)
-    
+@app.route('/')
+def home():
+    if 'user' not in session:
+        return redirect(url_for('login'))
+    return render_template('index.html')
+
+@app.route('/logout')
+def logout():
+    session.clear()
+    return redirect(url_for('login'))
+
+@app.route('/api/trivia')
+def api_trivia():
+    return jsonify({"trivia": "Stardust."})
+
+if __name__ == '__main__':
+    app.run(debug=True)
+                       
