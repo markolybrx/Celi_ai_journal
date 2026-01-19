@@ -291,4 +291,46 @@
                     <li><strong>Username:</strong> Unique identifier.</li>
                     <li><strong>Authentication Credentials:</strong> Hashed passwords (stored using secure cryptographic hashing).</li>
                     <li><strong>Biographical Markers:</strong> Date of Birth for AI context.</li>
-                    <li><strong>System Logs:</strong
+                    <li><strong>System Logs:</strong> Timestamps for organizing entries.</li>
+                </ul>
+
+                <h3>3. Journal and Collected Information</h3>
+                <p><strong>Ownership:</strong> The User retains 100% Intellectual Property ownership of their User Content. Celi claims no ownership rights.</p>
+                <p><strong>Usage:</strong> Content is accessed solely for history display and AI context generation (via ephemeral processing).</p>
+
+                <h3>4. AI Utilisation (Artificial Intelligence)</h3>
+                <p>Celi leverages <strong>Google Gemini</strong> for text generation.</p>
+                <ul>
+                    <li><strong>Data Transmission:</strong> Encrypted via HTTPS (TLS 1.2+).</li>
+                    <li><strong>Ephemeral Processing:</strong> AI processing is stateless. Data is used to generate a response and then discarded.</li>
+                    <li><strong>No Training:</strong> Celi does not grant Google rights to use your data to train public foundation models.</li>
+                </ul>
+
+                <h3>5. Data Storage & Infrastructure</h3>
+                <p>Data is stored in <strong>MongoDB Atlas</strong> using <strong>AES-256 encryption</strong> at rest and TLS in transit. Infrastructure is secured by standard cloud security protocols.</p>
+
+                <h3>6. User Data Rights</h3>
+                <p>In alignment with global privacy standards:</p>
+                <ul>
+                    <li><strong>Right to Access:</strong> View complete history in the Vault.</li>
+                    <li><strong>Right to Erasure:</strong> Permanently delete your account via Profile Settings.</li>
+                </ul>
+                
+                <h3>7. User Data Security</h3>
+                <p>Access is protected by passwords and Identity Verification protocols (Secret Questions). In the event of a breach, we will notify users within 72 hours.</p>
+            </div>
+            
+            <button onclick="hideModal('privacy-modal')" class="btn-primary">I Acknowledge & Consent</button>
+        </div>
+    </div>
+
+    <div id="message-modal" class="modal-overlay">
+        <div class="modal-box">
+            <h3 id="modal-title" class="text-sm font-bold uppercase mb-2 text-white">Notification</h3>
+            <p id="modal-body" class="text-xs mb-6 text-gray-300"></p>
+            <button onclick="hideModal('message-modal')" class="btn-primary">Dismiss</button>
+        </div>
+    </div>
+
+</body>
+</html>
