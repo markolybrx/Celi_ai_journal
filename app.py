@@ -7,19 +7,19 @@ import certifi
 from werkzeug.middleware.proxy_fix import ProxyFix
 from werkzeug.security import generate_password_hash, check_password_hash
 from celery import Celery
-from google.api_core import retry
 
-# --- LOGGING SETUP (New) ---
+# --- LOGGING SETUP ---
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
 
 # --- CONFIGURATION ---
-app.secret_key = "celi_ai_v1.12.00.00_optimized"
+app.secret_key = "celi_ai_v1.12.03.00_logic_fix"
 app.permanent_session_lifetime = timedelta(days=30)
+# Tweak: Set Secure to False temporarily to rule out HTTPS issues during debug
+app.config['SESSION_COOKIE_SECURE'] = True 
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
-app.config['SESSION_COOKIE_SECURE'] = True
 app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
 
 # --- REDIS URL CLEANER ---
@@ -48,12 +48,16 @@ db = None; users_col = None
 
 if MONGO_URI:
     try:
-        client = MongoClient(MONGO_URI, tlsCAFile=certifi.where())
+        # Added serverSelectionTimeoutMS to fail fast if DB is down
+        client = MongoClient(MONGO_URI, tlsCAFile=certifi.where(), serverSelectionTimeoutMS=5000)
         db = client.get_database("celi_db")
         users_col = db.users
+        # Quick check to ensure connection is actually alive
+        client.admin.command('ping')
         logger.info("✅ MONGODB CONNECTED")
     except Exception as e:
         logger.error(f"❌ MONGO CONNECTION FAILED: {e}")
+        users_col = None
 
 # --- GEMINI (GLOBAL) ---
 GEMINI_KEY = os.environ.get("GEMINI_API_KEY")
@@ -74,7 +78,6 @@ RANK_CONFIG = [
     {"name": "Ethereal", "levels": 5, "stars_per_lvl": 8, "threshold": 116, "phase": "The Singularity"}
 ]
 
-# --- BACKGROUND WORKER TASK ---
 @celery_app.task(name='app.background_analyze_soul')
 def background_analyze_soul(username, recent_logs):
     logger.info(f"🔄 Worker: Analyzing {username}...")
@@ -83,8 +86,6 @@ def background_analyze_soul(username, recent_logs):
         genai.configure(api_key=GEMINI_KEY)
         worker_model = genai.GenerativeModel('gemini-1.5-flash', generation_config={"response_mime_type": "application/json"})
         prompt = f"Analyze user based on journals: {recent_logs}. Output JSON: {{ 'analysis': 'Deep, witty psychological summary (max 30 words).' }}"
-        
-        # Timeout added to prevent worker hanging
         response = worker_model.generate_content(prompt, request_options={'timeout': 20})
         analysis_text = json.loads(response.text)['analysis']
         
@@ -95,7 +96,6 @@ def background_analyze_soul(username, recent_logs):
     except Exception as e:
         logger.error(f"❌ Worker Error: {e}")
 
-# --- HELPERS ---
 def get_user_data(username):
     if users_col is None: return None
     return users_col.find_one({"username": username})
@@ -107,16 +107,16 @@ def update_user_data(username, update_dict):
 # --- API ROUTES ---
 
 @app.route('/health')
-def health():
-    """Simple check for Uptime Robots"""
-    return "Alive", 200
+def health(): return "Alive", 200
 
 @app.route('/api/register', methods=['POST'])
 def register():
     try:
         data = request.json
         u = data.get('reg_username')
-        if users_col is not None and users_col.find_one({"username": u}):
+        if users_col is None: return jsonify({"error": "Database Unavailable"}), 500
+        
+        if users_col.find_one({"username": u}):
             return jsonify({"error": "Username taken"}), 400
         
         hashed_pw = generate_password_hash(data.get('reg_password'))
@@ -129,14 +129,9 @@ def register():
             "points": 0, "void_count": 0, "history": {}, "unlocked_trivias": [],
             "profile_pic": "", "celi_analysis": "New Signal Detected."
         }
-        if users_col is not None:
-            users_col.insert_one(new_user)
-            logger.info(f"User Registered: {u}")
-            return jsonify({"status": "success"})
-        return jsonify({"error": "Database unavailable"}), 500
-    except Exception as e:
-        logger.error(f"Reg Error: {e}")
-        return jsonify({"error": str(e)}), 500
+        users_col.insert_one(new_user)
+        return jsonify({"status": "success"})
+    except Exception as e: return jsonify({"error": str(e)}), 500
 
 @app.route('/api/recover', methods=['POST'])
 def recover():
@@ -196,28 +191,19 @@ def process():
         u = get_user_data(session['user'])
         data = request.json
         reply_text="Listening..."; summary_text="User entry."
-        
         if model:
             try:
-                # LATENCY FIX: 10 Second Timeout
-                res = model.generate_content(
-                    f"Celi (Friendly AI). User: {data.get('message')} Output JSON: {{ 'reply': '...', 'summary': '...' }}",
-                    request_options={'timeout': 10}
-                )
+                res = model.generate_content(f"Celi (Friendly AI). User: {data.get('message')} Output JSON: {{ 'reply': '...', 'summary': '...' }}", request_options={'timeout': 10})
                 ai = json.loads(res.text); reply_text=ai['reply']; summary_text=ai['summary']
             except Exception as e:
-                logger.warning(f"Gemini Timeout/Error: {e}")
-                reply_text = "I received your signal, but the connection is static. I've logged it in the vault."
-
+                logger.warning(f"Gemini Timeout: {e}")
+                reply_text = "Signal weak. Entry logged."
+        
         updates = {}
         if data.get('mode') != 'rant': updates['points'] = u.get('points', 0) + 1
         else: updates['void_count'] = u.get('void_count', 0) + 1
-        
         new_history = u.get('history', {})
-        new_history[str(time.time())] = {
-            "summary": summary_text, "reply": reply_text, 
-            "date": str(date.today()), "type": data.get('mode', 'journal')
-        }
+        new_history[str(time.time())] = { "summary": summary_text, "reply": reply_text, "date": str(date.today()), "type": data.get('mode', 'journal') }
         updates['history'] = new_history
         update_user_data(session['user'], updates)
         return jsonify({"reply": reply_text})
@@ -240,28 +226,35 @@ def update_profile():
             updates['celi_analysis'] = "The stars are aligning... (Analysis in progress)"
         else:
             updates['celi_analysis'] = "More data needed for signal lock."
-            
         update_user_data(session['user'], updates)
         return jsonify({"status": "success"})
     except Exception as e: return jsonify({"status": "error"})
 
 @app.route('/api/delete_user', methods=['POST'])
 def delete_user():
-    if users_col is not None:
-        users_col.delete_one({"username": session['user']})
+    if users_col is not None: users_col.delete_one({"username": session['user']})
     session.clear(); return jsonify({"status": "success"})
 
+# --- CRITICAL BUG FIX HERE ---
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
         u = request.form.get('username'); p = request.form.get('password')
-        if users_col is not None:
-            user = users_col.find_one({"username": u})
-            if user and check_password_hash(user.get('password', ''), p):
-                session['user'] = u; session.permanent = True
-                return jsonify({"status": "success"})
-            return jsonify({"error": "Invalid credentials"}), 401
-        session['user'] = u; return jsonify({"status": "success"})
+        
+        # 1. Check if DB is actually connected
+        if users_col is None:
+            logger.error("Login attempted but DB is None")
+            return jsonify({"error": "System Offline (DB)"}), 500
+            
+        # 2. Check User
+        user = users_col.find_one({"username": u})
+        if user and check_password_hash(user.get('password', ''), p):
+            session['user'] = u; session.permanent = True
+            return jsonify({"status": "success"})
+            
+        # 3. Fail if invalid
+        return jsonify({"error": "Invalid credentials"}), 401
+
     return render_template('auth.html')
 
 @app.route('/')
