@@ -8,27 +8,30 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 from werkzeug.security import generate_password_hash, check_password_hash
 from celery import Celery
 
-# --- LOGGING SETUP ---
-logging.basicConfig(level=logging.INFO)
+# --- LOGGING ---
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
 
-# --- CONFIGURATION ---
-app.secret_key = os.environ.get("SECRET_KEY", "fallback_debug_key_999")
+# --- CONFIGURATION (v2.0.11) ---
+app.secret_key = "celi_ai_v2.0.11_dashboard_evo"
 app.permanent_session_lifetime = timedelta(days=30)
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 app.config['SESSION_COOKIE_SECURE'] = False
 app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
 
-# --- REDIS ---
+# --- REDIS URL CLEANER ---
 raw_redis_url = os.environ.get('REDIS_URL', 'redis://localhost:6379/0')
-if raw_redis_url.startswith('Redis://'): raw_redis_url = raw_redis_url.replace('Redis://', 'rediss://', 1)
-elif 'upstash' in raw_redis_url and raw_redis_url.startswith('redis://'): raw_redis_url = raw_redis_url.replace('redis://', 'rediss://', 1)
+if raw_redis_url.startswith('Redis://'):
+    raw_redis_url = raw_redis_url.replace('Redis://', 'rediss://', 1)
+elif raw_redis_url.startswith('redis://') and 'upstash' in raw_redis_url:
+    raw_redis_url = raw_redis_url.replace('redis://', 'rediss://', 1)
 
 app.config['CELERY_BROKER_URL'] = raw_redis_url
 app.config['CELERY_RESULT_BACKEND'] = raw_redis_url
 
+# --- CELERY ---
 def make_celery(app):
     celery = Celery(app.import_name, broker=app.config['CELERY_BROKER_URL'], backend=app.config['CELERY_RESULT_BACKEND'])
     celery.conf.update(app.config)
@@ -38,28 +41,20 @@ def make_celery(app):
 
 celery_app = make_celery(app)
 
-# --- MONGODB CONNECTION ---
+# --- MONGODB ---
 MONGO_URI = os.environ.get("MONGO_URI")
-db = None
-users_col = None
-MONGO_STATUS = "Not Initialized"
+db = None; users_col = None
 
 if MONGO_URI:
     try:
-        # Connect with 5 second timeout
         client = MongoClient(MONGO_URI, tlsCAFile=certifi.where(), serverSelectionTimeoutMS=5000)
         db = client.get_database("celi_db")
         users_col = db.users
-        # Test connection immediately
         client.admin.command('ping')
-        MONGO_STATUS = "Connected ✅"
         logger.info("✅ MONGODB CONNECTED")
     except Exception as e:
-        MONGO_STATUS = f"Failed ❌: {str(e)}"
         logger.error(f"❌ MONGO CONNECTION FAILED: {e}")
         users_col = None
-else:
-    MONGO_STATUS = "Missing MONGO_URI Env Var ❌"
 
 # --- GEMINI ---
 GEMINI_KEY = os.environ.get("GEMINI_API_KEY")
@@ -70,69 +65,217 @@ if GEMINI_KEY:
         model = genai.GenerativeModel('gemini-1.5-flash', generation_config={"response_mime_type": "application/json"})
     except: pass
 
-# --- DEBUG ROUTE (VISIT THIS IN BROWSER) ---
-@app.route('/debug')
-def debug_page():
-    return jsonify({
-        "status": "online",
-        "mongo_status": MONGO_STATUS,
-        "mongo_uri_present": bool(MONGO_URI),
-        "redis_url_present": bool(raw_redis_url),
-        "gemini_key_present": bool(GEMINI_KEY),
-        "secret_key_configured": app.secret_key != "fallback_debug_key_999"
-    })
+RANK_CONFIG = [
+    {"name": "Observer", "levels": 3, "stars_per_lvl": 2, "threshold": 6, "phase": "The Awakening Phase"},
+    {"name": "Moonwalker", "levels": 3, "stars_per_lvl": 2, "threshold": 12, "phase": "The Awakening Phase"},
+    {"name": "Celestial", "levels": 4, "stars_per_lvl": 3, "threshold": 24, "phase": "The Ignition Phase"},
+    {"name": "Stellar", "levels": 4, "stars_per_lvl": 3, "threshold": 36, "phase": "The Ignition Phase"},
+    {"name": "Interstellar", "levels": 5, "stars_per_lvl": 4, "threshold": 56, "phase": "The Expansion Phase"},
+    {"name": "Galactic", "levels": 5, "stars_per_lvl": 4, "threshold": 76, "phase": "The Expansion Phase"},
+    {"name": "Ethereal", "levels": 5, "stars_per_lvl": 8, "threshold": 116, "phase": "The Singularity"}
+]
 
-# --- NORMAL ROUTES ---
+@celery_app.task(name='app.background_analyze_soul')
+def background_analyze_soul(username, recent_logs):
+    logger.info(f"🔄 Worker: Analyzing {username}...")
+    try:
+        if not GEMINI_KEY: return
+        genai.configure(api_key=GEMINI_KEY)
+        worker_model = genai.GenerativeModel('gemini-1.5-flash', generation_config={"response_mime_type": "application/json"})
+        prompt = f"Analyze user based on journals: {recent_logs}. Output JSON: {{ 'analysis': 'Deep, witty psychological summary (max 30 words).' }}"
+        response = worker_model.generate_content(prompt, request_options={'timeout': 20})
+        analysis_text = json.loads(response.text)['analysis']
+        
+        worker_client = MongoClient(MONGO_URI, tlsCAFile=certifi.where())
+        worker_db = worker_client.get_database("celi_db")
+        worker_db.users.update_one({"username": username}, {"$set": {"celi_analysis": analysis_text}})
+        logger.info(f"✅ Worker: Analysis saved for {username}")
+    except Exception as e:
+        logger.error(f"❌ Worker Error: {e}")
+
+def get_user_data(username):
+    if users_col is None: return None
+    return users_col.find_one({"username": username})
+
+def update_user_data(username, update_dict):
+    if users_col is None: return
+    users_col.update_one({"username": username}, {"$set": update_dict})
+
+def normalize_date(date_str):
+    if not date_str: return ""
+    if '/' in date_str:
+        parts = date_str.split('/')
+        if len(parts) == 3: return f"{parts[2]}-{parts[1]}-{parts[0]}"
+    return date_str
+
+# --- API ROUTES ---
+
 @app.route('/health')
 def health(): return "Alive", 200
 
-def normalize_date(d):
-    if not d: return ""
-    if '/' in d: parts = d.split('/'); return f"{parts[2]}-{parts[1]}-{parts[0]}" if len(parts)==3 else d
-    return d
+@app.route('/api/find_user', methods=['POST'])
+def find_user():
+    try:
+        d = request.json
+        clean_dob = normalize_date(d.get('dob'))
+        q = { "first_name": d.get('fname'), "last_name": d.get('lname'), "birthday": clean_dob }
+        if users_col is not None:
+            user = users_col.find_one(q)
+            if user: return jsonify({"status": "found", "question_code": user.get('secret_question', 'pet')})
+            return jsonify({"error": "No account found."}), 404
+        return jsonify({"error": "DB Unavailable"}), 500
+    except Exception as e: return jsonify({"error": str(e)}), 500
 
-@app.route('/login', methods=['GET', 'POST'])
-def login():
-    if request.method == 'POST':
-        u = request.form.get('username')
-        p = request.form.get('password')
-        
-        if users_col is None: 
-            return jsonify({"error": f"DB Error: {MONGO_STATUS}"}), 500
-            
-        user = users_col.find_one({"username": u})
-        if user and check_password_hash(user.get('password', ''), p):
-            session['user'] = u
-            session.permanent = True
-            return jsonify({"status": "success"})
-        return jsonify({"error": "Invalid credentials"}), 401
-    return render_template('auth.html')
+@app.route('/api/recover', methods=['POST'])
+def recover():
+    try:
+        d = request.json
+        clean_dob = normalize_date(d.get('dob'))
+        q = { "first_name": d.get('fname'), "last_name": d.get('lname'), "birthday": clean_dob, "secret_answer": d.get('secret_answer').lower().strip() }
+        if users_col is not None:
+            u = users_col.find_one(q)
+            if u: return jsonify({"status": "success", "username": u['username']})
+            return jsonify({"error": "Incorrect Secret Answer."}), 401
+        return jsonify({"error": "Database unavailable"}), 500
+    except: return jsonify({"error": "Fail"}), 500
 
 @app.route('/api/register', methods=['POST'])
 def register():
     try:
         data = request.json
-        if users_col is None: return jsonify({"error": f"DB Error: {MONGO_STATUS}"}), 500
-        
         u = data.get('reg_username')
-        if users_col.find_one({"username": u}): 
-            return jsonify({"error": "Username taken"}), 400
+        if users_col is None: return jsonify({"error": "DB Offline"}), 500
+        if users_col.find_one({"username": u}): return jsonify({"error": "Username taken"}), 400
         
         hashed_pw = generate_password_hash(data.get('reg_password'))
         new_user = {
             "username": u, "password": hashed_pw,
             "first_name": data.get('fname'), "last_name": data.get('lname'),
-            "birthday": normalize_date(data.get('dob')), "secret_question": data.get('secret_question'),
+            "birthday": data.get('dob'), "secret_question": data.get('secret_question'),
             "secret_answer": data.get('secret_answer').lower().strip(),
             "fav_color": data.get('fav_color', '#00f2fe'), "user_id": str(uuid.uuid4())[:8].upper(),
-            "points": 0, "void_count": 0, "history": {}, "profile_pic": data.get('profile_pic', ""),
-            "celi_analysis": "New Signal Detected."
+            "points": 0, "void_count": 0, "history": {}, "unlocked_trivias": [],
+            "profile_pic": data.get('profile_pic', ""), "celi_analysis": "New Signal Detected."
         }
         users_col.insert_one(new_user)
         return jsonify({"status": "success"})
-    except Exception as e:
-        logger.error(f"Register Error: {e}")
-        return jsonify({"error": str(e)}), 500
+    except Exception as e: return jsonify({"error": str(e)}), 500
+
+@app.route('/api/reset_password', methods=['POST'])
+def reset_password():
+    try:
+        d = request.json
+        q = { "username": d.get('username'), "first_name": d.get('fname'), "last_name": d.get('lname'), "secret_answer": d.get('secret_answer').lower().strip() }
+        if users_col is not None and users_col.find_one(q):
+            new_hashed = generate_password_hash(d.get('new_password'))
+            users_col.update_one({"username": d.get('username')}, {"$set": {"password": new_hashed}})
+            return jsonify({"status": "success"})
+        return jsonify({"error": "Security check failed"}), 403
+    except: return jsonify({"error": "Fail"}), 500
+
+@app.route('/api/data')
+def get_data():
+    try:
+        if 'user' not in session: return jsonify({"status": "guest"})
+        u = get_user_data(session['user'])
+        if not u: session.clear(); return jsonify({"status": "guest"})
+        
+        pts = u.get('points', 0); rank="Observer"; phase=""; prog=0; cum=0
+        
+        # --- RANK CALCULATION ---
+        for r in RANK_CONFIG:
+            if pts < r['threshold']:
+                rank = r['name']; phase = r['phase']; 
+                diff = pts - cum; 
+                lvl = diff // r['stars_per_lvl']; 
+                
+                # Roman Numeral Logic (Decreasing: III -> II -> I)
+                # Levels typically 3 (0,1,2). We want 0->III, 1->II, 2->I
+                roman_idx = max(1, r['levels'] - int(lvl))
+                roman = {1:"I", 2:"II", 3:"III", 4:"IV", 5:"V"}.get(roman_idx, "I")
+                
+                # Progress Percentage Calculation
+                # (Points gathered in this tier / Total points in this tier) * 100
+                tier_span = r['threshold'] - cum
+                points_in_tier = pts - cum
+                prog = (points_in_tier / tier_span) * 100
+                break
+            cum = r['threshold']
+        else: 
+            rank="Ethereal"; roman="I"; prog=100; phase="The Singularity"
+
+        return jsonify({
+            "status": "ok", 
+            "username": u['username'], 
+            "first_name": u.get('first_name', 'Traveler'), # Added First Name
+            "user_id": u.get('user_id'),
+            "birthday": u.get('birthday'), 
+            "fav_color": u.get('fav_color'),
+            "profile_pic": u.get('profile_pic'), 
+            "points": pts, 
+            "rank": f"{rank} {roman}", 
+            "rank_roman": roman, 
+            "phase": phase, 
+            "rank_progress": prog, # Added Progress
+            "history": u.get('history', {}), 
+            "unlocked_trivias": u.get('unlocked_trivias', []),
+            "celi_analysis": u.get('celi_analysis'), 
+            "rank_config": RANK_CONFIG
+        })
+    except: return jsonify({"status": "error"})
+
+@app.route('/api/process', methods=['POST'])
+def process():
+    try:
+        u = get_user_data(session['user'])
+        data = request.json
+        reply_text="Listening..."; summary_text="User entry."
+        if model:
+            try:
+                res = model.generate_content(f"Celi (Friendly AI). User: {data.get('message')} Output JSON: {{ 'reply': '...', 'summary': '...' }}", request_options={'timeout': 10})
+                ai = json.loads(res.text); reply_text=ai['reply']; summary_text=ai['summary']
+            except Exception as e: logger.warning(f"Gemini Timeout: {e}"); reply_text = "Signal weak. Entry logged."
+        updates = {}; updates['points'] = u.get('points', 0) + 1 if data.get('mode') != 'rant' else u.get('points', 0)
+        if data.get('mode') == 'rant': updates['void_count'] = u.get('void_count', 0) + 1
+        new_history = u.get('history', {}); new_history[str(time.time())] = { "summary": summary_text, "reply": reply_text, "date": str(date.today()), "type": data.get('mode', 'journal') }
+        updates['history'] = new_history
+        update_user_data(session['user'], updates)
+        return jsonify({"reply": reply_text})
+    except: return jsonify({"reply": "Static noise..."})
+
+@app.route('/api/update_profile', methods=['POST'])
+def update_profile():
+    try:
+        data = request.json
+        u_data = get_user_data(session['user'])
+        updates = {}
+        for k in ['birthday', 'fav_color', 'profile_pic']: 
+            if k in data: updates[k] = data[k]
+        if len(u_data.get('history', {})) >= 3:
+            logs = [l.get('summary', '') for l in list(u_data['history'].values())[-5:]]
+            background_analyze_soul.delay(session['user'], logs)
+            updates['celi_analysis'] = "The stars are aligning... (Analysis in progress)"
+        else: updates['celi_analysis'] = "More data needed for signal lock."
+        update_user_data(session['user'], updates)
+        return jsonify({"status": "success"})
+    except: return jsonify({"status": "error"})
+
+@app.route('/api/delete_user', methods=['POST'])
+def delete_user():
+    if users_col is not None: users_col.delete_one({"username": session['user']})
+    session.clear(); return jsonify({"status": "success"})
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        u = request.form.get('username'); p = request.form.get('password')
+        if users_col is None: return jsonify({"error": "System Offline (DB)"}), 500
+        user = users_col.find_one({"username": u})
+        if user and check_password_hash(user.get('password', ''), p):
+            session['user'] = u; session.permanent = True
+            return jsonify({"status": "success"})
+        return jsonify({"error": "Invalid credentials"}), 401
+    return render_template('auth.html')
 
 @app.route('/')
 def home():
@@ -142,17 +285,8 @@ def home():
 @app.route('/logout')
 def logout(): session.clear(); return redirect(url_for('login'))
 
-# ... (Include other API routes like find_user, recover, data, process here as usual) ...
-# For brevity, ensuring the core login/register works is priority.
-
-# Minimal required APIs for the frontend to not crash 404
-@app.route('/api/data')
-def get_data():
-    if 'user' not in session: return jsonify({"status": "guest"})
-    if users_col is None: return jsonify({"status": "error"})
-    u = users_col.find_one({"username": session['user']})
-    if not u: session.clear(); return jsonify({"status": "guest"})
-    return jsonify({"status": "ok", "username": u['username'], "points": u.get('points',0), "rank": "Observer I", "history": u.get('history', {})})
+@app.route('/api/trivia')
+def api_trivia(): return jsonify({"trivia": "Stardust."})
 
 if __name__ == '__main__':
     app.run(debug=True)
