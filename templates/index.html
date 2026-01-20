@@ -28,19 +28,45 @@
             -webkit-font-smoothing: antialiased;
         }
         
-        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar { width: 4px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 10px; }
 
-        #main-view { flex: 1; display: flex; flex-direction: column; padding: 20px; overflow-y: auto; position: relative; max-width: 600px; margin: 0 auto; width: 100%; }
+        /* --- LAYOUT --- */
+        #main-view { 
+            flex: 1; display: flex; flex-direction: column; 
+            overflow-y: auto; position: relative; 
+            width: 100%; max-width: 600px; margin: 0 auto;
+            padding: 80px 20px 120px 20px; /* Padding for Header & Dock */
+        }
         
-        /* --- HEADER & CARDS --- */
-        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-        .logo { font-size: 24px; font-weight: 900; letter-spacing: -1px; background: linear-gradient(to right, #fff, #888); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        /* --- GALAXY HEADER (FIXED TOP) --- */
+        .app-header { 
+            position: fixed; top: 0; left: 0; width: 100%; height: 70px;
+            background: radial-gradient(circle at top, #1a1a20 0%, #000000 100%);
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+            display: flex; justify-content: space-between; align-items: center; 
+            padding: 0 25px; z-index: 40; 
+            backdrop-filter: blur(10px);
+        }
         
+        .logo { 
+            font-size: 22px; font-weight: 900; letter-spacing: -0.5px; 
+            background: linear-gradient(to right, #fff, #aaa); 
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent; 
+        }
+        
+        .avatar-btn { 
+            width: 38px; height: 38px; border-radius: 50%; 
+            border: 2px solid var(--mood); overflow: hidden; cursor: pointer; 
+            transition: transform 0.2s;
+        }
+        .avatar-btn:active { transform: scale(0.95); }
+
+        /* --- CARDS & CONTENT --- */
         .rank-card {
             background: var(--glass); border: 1px solid var(--border); 
-            border-radius: 20px; padding: 20px; margin-bottom: 15px; 
+            border-radius: 24px; padding: 20px; margin-bottom: 15px; 
             backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
             box-shadow: 0 10px 30px rgba(0,0,0,0.3);
             display: flex; align-items: center; gap: 15px;
@@ -54,7 +80,7 @@
         }
         
         .rank-details { flex: 1; }
-        .greeting { font-size: 12px; opacity: 0.7; margin-bottom: 2px; }
+        .greeting { font-size: 11px; opacity: 0.6; margin-bottom: 2px; text-transform: uppercase; letter-spacing: 1px; }
         .rank-title { font-size: 18px; font-weight: 800; color: #fff; letter-spacing: 0.5px; margin-bottom: 6px; }
         
         .progress-container { width: 100%; height: 6px; background: rgba(255,255,255,0.1); border-radius: 10px; overflow: hidden; }
@@ -63,27 +89,41 @@
         .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
         .stat-box { background: var(--glass); border: 1px solid var(--border); border-radius: 20px; padding: 20px; text-align: center; backdrop-filter: blur(10px); }
         .stat-num { font-size: 24px; font-weight: 800; color: var(--mood); }
-        .stat-lbl { font-size: 10px; opacity: 0.5; text-transform: uppercase; letter-spacing: 1px; margin-top: 5px; }
+        .stat-lbl { font-size: 9px; opacity: 0.5; text-transform: uppercase; letter-spacing: 1.5px; margin-top: 5px; }
 
-        /* --- NEW: FLOATING COSMIC BUTTON --- */
+        /* --- BOTTOM DOCK (PLACEHOLDER) --- */
+        .bottom-dock {
+            position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+            width: 90%; max-width: 600px; height: 75px;
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 30px;
+            z-index: 30;
+            box-shadow: 0 15px 40px rgba(0,0,0,0.6);
+            display: flex; align-items: center; justify-content: center;
+        }
+        .dock-label { font-size: 10px; color: rgba(255,255,255,0.2); letter-spacing: 2px; text-transform: uppercase; font-weight: bold; }
+
+        /* --- CHAT FAB (REPOSITIONED) --- */
         .fab-container {
-            position: fixed; bottom: 30px; right: 30px; z-index: 40;
+            position: fixed; bottom: 110px; right: 25px; z-index: 40;
         }
         .chat-fab {
-            width: 65px; height: 65px; border-radius: 50%;
+            width: 60px; height: 60px; border-radius: 50%;
             background: radial-gradient(circle at 30% 30%, #d8b4fe, #7e22ce);
-            box-shadow: 0 0 25px rgba(168, 85, 247, 0.6), inset 0 0 10px rgba(255,255,255,0.3);
+            box-shadow: 0 0 25px rgba(168, 85, 247, 0.5), inset 0 0 10px rgba(255,255,255,0.3);
             border: 2px solid rgba(255,255,255,0.2);
             display: flex; align-items: center; justify-content: center;
             cursor: pointer; transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
             animation: float 4s ease-in-out infinite;
         }
         .chat-fab:active { transform: scale(0.9); }
-        @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+        @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
 
-        /* --- CHAT MODAL (WORMHOLE) --- */
+        /* --- CHAT OVERLAY (WORMHOLE) --- */
         .chat-overlay {
-            position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 100;
+            position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 100;
             backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px);
             display: none; flex-direction: column; opacity: 0;
             transition: opacity 0.3s ease;
@@ -104,25 +144,26 @@
         .msg-ai strong { color: var(--mood); }
         .msg-ai em { opacity: 0.8; font-style: italic; }
 
-        .input-area { padding: 15px; background: rgba(0,0,0,0.8); border-top: 1px solid var(--border); display: flex; gap: 10px; }
+        .input-area { padding: 15px; background: rgba(0,0,0,0.8); border-top: 1px solid var(--border); display: flex; gap: 10px; padding-bottom: 25px; /* iOS safe area */ }
         .chat-input { flex: 1; background: rgba(255,255,255,0.05); border: 1px solid var(--border); border-radius: 25px; padding: 12px 20px; color: #fff; outline: none; font-size: 13px; }
         .chat-input:focus { border-color: var(--mood); background: rgba(255,255,255,0.1); }
         
         .send-btn { background: var(--mood); color: #000; width: 44px; height: 44px; border-radius: 50%; font-weight: bold; display: flex; align-items: center; justify-content: center; }
 
-        /* --- OTHER MODALS --- */
-        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 50; display: none; align-items: center; justify-content: center; padding: 20px; backdrop-filter: blur(8px); }
+        /* --- MODALS --- */
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.95); z-index: 110; display: none; align-items: center; justify-content: center; padding: 20px; backdrop-filter: blur(8px); }
         .modal-box { background: #111; border: 1px solid var(--border); border-radius: 30px; width: 100%; max-width: 400px; padding: 30px; display: flex; flex-direction: column; }
         .modal-close { position: absolute; top: 20px; right: 20px; cursor: pointer; opacity: 0.6; }
         
-        .pfp-large { width: 110px; height: 110px; border-radius: 50%; border: 2px dashed var(--mood); margin: 0 auto 20px; padding: 4px; }
+        .pfp-large { width: 110px; height: 110px; border-radius: 50%; border: 2px dashed var(--mood); margin: 0 auto 20px; padding: 4px; display: flex; align-items: center; justify-content: center; }
         .pfp-img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; background: #222; }
+        .profile-info { text-align: center; margin-bottom: 25px; }
         
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         .pulse { animation: pulse 2s infinite; }
         @keyframes pulse { 0% { opacity: 0.4; } 50% { opacity: 1; } 100% { opacity: 0.4; } }
         
-        #loading-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.95); z-index: 100; display: flex; align-items: center; justify-content: center; flex-direction: column; display: none; }
+        #loading-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.95); z-index: 200; display: flex; align-items: center; justify-content: center; flex-direction: column; display: none; }
         .spinner { width: 40px; height: 40px; border: 2px solid rgba(255,255,255,0.1); border-top-color: var(--mood); border-radius: 50%; animation: spin 0.8s infinite linear; }
         @keyframes spin { to { transform: rotate(360deg); } }
     </style>
@@ -131,16 +172,14 @@
 
     <div id="loading-overlay"><div class="spinner"></div><p id="loading-text" class="text-xs uppercase tracking-widest text-white/50 mt-4">Syncing...</p></div>
 
-    <div id="main-view">
-        <div class="header">
-            <div class="logo">Celi</div>
-            <div class="flex gap-4">
-                <button onclick="openModal('profile-modal')" class="opacity-80 hover:opacity-100 transition duration-300 transform hover:scale-105">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                </button>
-            </div>
+    <div class="app-header">
+        <div class="logo">Celi</div>
+        <div class="avatar-btn" onclick="openModal('profile-modal')">
+            <img id="nav-pfp" class="w-full h-full object-cover" src="">
         </div>
+    </div>
 
+    <div id="main-view">
         <div class="rank-card">
             <div class="rank-icon">
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
@@ -157,7 +196,11 @@
             <div class="stat-box"><div id="stat-voids" class="stat-num">0</div><div class="stat-lbl">Void Entries</div></div>
         </div>
         
-        <div class="text-center mt-6 mb-2 opacity-20 text-[9px] uppercase tracking-[3px]">System v2.0.12</div>
+        <div class="text-center mt-6 mb-2 opacity-20 text-[9px] uppercase tracking-[3px]">System v2.0.13</div>
+    </div>
+
+    <div class="bottom-dock">
+        <div class="dock-label">Journal Deck</div>
     </div>
 
     <div class="fab-container" onclick="toggleChat(true)">
@@ -224,18 +267,23 @@
                 document.getElementById('rank-display').innerText = data.rank;
                 document.getElementById('rank-progress-bar').style.width = `${data.rank_progress}%`;
                 document.getElementById('stat-points').innerText = data.points;
-                // Assuming void_count is sent, otherwise default 0
-                document.getElementById('stat-voids').innerText = "∞"; 
+                // Default handling for void_count if not in API yet
+                const voidCount = data.history ? Object.values(data.history).filter(x => x.type === 'rant' || x.type === 'void').length : 0;
+                document.getElementById('stat-voids').innerText = voidCount;
 
                 document.getElementById('profile-username').innerText = data.username;
                 document.getElementById('profile-id').innerText = `ID: ${data.user_id}`;
                 document.getElementById('profile-rank-badge').innerText = data.rank;
                 
                 if(data.celi_analysis) document.getElementById('soul-analysis').innerText = `"${data.celi_analysis}"`;
+                
                 if(data.profile_pic && data.profile_pic.length > 50) {
                     document.getElementById('profile-pfp').src = data.profile_pic;
+                    document.getElementById('nav-pfp').src = data.profile_pic;
                 } else {
-                    document.getElementById('profile-pfp').src = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGZpbGw9Im5vbmUiIHZpZXdCb3g9IjAgMCAyNCAyNCIgc3Ryb2tlPSJ3aGl0ZSIgc3Ryb2tlLXdpZHRoPSIyIj48Y2lyY2xlIGN4PSIxMiIgY3k9IjEyIiByPSIxMCIvPjwvc3ZnPg==";
+                    const def = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGZpbGw9Im5vbmUiIHZpZXdCb3g9IjAgMCAyNCAyNCIgc3Ryb2tlPSJ3aGl0ZSIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiPjxwYXRoIGQ9Ik0yMCAyMXYtMmE0IDQgMCAwIDAtNC00SDhhNCA0IDAgMCAwLTQgNHYyIj48L3BhdGg+PGNpcmNsZSBjeD0iMTIiIGN5PSI3IiByPSI0Ij48L2NpcmNsZT48L3N2Zz4=";
+                    document.getElementById('profile-pfp').src = def;
+                    document.getElementById('nav-pfp').src = def;
                 }
                 
                 if(data.fav_color) document.documentElement.style.setProperty('--mood', data.fav_color);
@@ -253,22 +301,19 @@
                             fragment.appendChild(createMsgEl(entry.reply, 'ai'));
                         });
                         container.appendChild(fragment);
-                        if(recentKeys.length === 0) container.appendChild(createMsgEl("Hello. I am Celi. Tap below to begin.", 'ai'));
+                        if(recentKeys.length === 0) container.appendChild(createMsgEl("Hello. I am Celi. Tap the orb to begin.", 'ai'));
                         requestAnimationFrame(() => container.scrollTop = container.scrollHeight);
                     }
                 }
             } catch(e) { console.log("Sync error", e); }
         }
 
-        // --- NEW: CHAT TOGGLE LOGIC ---
         function toggleChat(show) {
             const overlay = document.getElementById('chat-overlay');
             if(show) {
                 overlay.style.display = 'flex';
-                // Trigger reflow
                 void overlay.offsetWidth; 
                 overlay.style.opacity = '1';
-                // Auto scroll to bottom when opening
                 const c = document.getElementById('chat-history');
                 c.scrollTop = c.scrollHeight;
                 document.getElementById('chat-input').focus();
