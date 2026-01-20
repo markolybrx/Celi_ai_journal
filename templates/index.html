@@ -66,23 +66,25 @@
         }
         .rank-card:active { transform: scale(0.98); background: rgba(255,255,255,0.05); }
         
-        .rank-card::before {
-            content: ''; position: absolute; top: -50%; left: -50%; width: 200%; height: 200%;
-            background: radial-gradient(circle, var(--mood) 0%, transparent 70%);
-            opacity: 0.05; pointer-events: none;
-        }
-        
+        /* --- NEW ICON STYLE: WHITE ICON, COLORED GLOW --- */
         .rank-icon {
             width: 54px; height: 54px; border-radius: 50%;
-            background: rgba(0,0,0,0.4); border: 1px solid var(--border);
+            /* Semi-transparent background */
+            background: rgba(255, 255, 255, 0.03); 
+            /* Colored Border */
+            border: 2px solid var(--mood);
+            /* Colored Glow */
+            box-shadow: 0 0 15px var(--mood), inset 0 0 10px rgba(255,255,255,0.05);
             display: flex; align-items: center; justify-content: center;
-            color: var(--mood); flex-shrink: 0; transition: color 0.5s;
+            /* Icon Color is WHITE */
+            color: #ffffff; 
+            flex-shrink: 0; transition: border-color 0.5s, box-shadow 0.5s;
         }
         
         .rank-details { flex: 1; z-index: 2; }
         .greeting { font-size: 11px; opacity: 0.6; margin-bottom: 2px; text-transform: uppercase; letter-spacing: 1px; }
         .rank-title { font-size: 18px; font-weight: 800; color: #fff; letter-spacing: 0.5px; margin-bottom: 2px; }
-        .tap-hint { font-size: 9px; color: var(--mood); opacity: 0.7; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; display: flex; align-items: center; gap: 4px; }
+        .tap-hint { font-size: 9px; color: var(--mood); opacity: 0.8; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; display: flex; align-items: center; gap: 4px; }
         
         .progress-container { width: 100%; height: 6px; background: rgba(255,255,255,0.1); border-radius: 10px; overflow: hidden; }
         .progress-bar { height: 100%; background: var(--mood); width: 0%; transition: width 1s cubic-bezier(0.4, 0, 0.2, 1), background 0.5s; box-shadow: 0 0 10px var(--mood); }
@@ -131,6 +133,7 @@
             border-bottom: 1px solid var(--border); background: #222831;
         }
         .close-chat { cursor: pointer; opacity: 0.6; padding: 5px; transition: opacity 0.2s; }
+        .close-chat:hover { opacity: 1; }
         .chat-history { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 16px; }
         .msg { max-width: 85%; padding: 14px 18px; border-radius: 20px; font-size: 13.5px; line-height: 1.55; word-wrap: break-word; animation: fadeIn 0.3s ease; }
         .msg-user { align-self: flex-end; background: var(--mood); color: #000; border-bottom-right-radius: 4px; font-weight: 600; transition: background 0.5s; }
@@ -145,11 +148,9 @@
         .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.95); z-index: 110; display: none; align-items: center; justify-content: center; padding: 20px; backdrop-filter: blur(8px); }
         .modal-box { background: #111; border: 1px solid var(--border); border-radius: 30px; width: 100%; max-width: 400px; padding: 30px; display: flex; flex-direction: column; max-height: 85vh; }
         .modal-close { position: absolute; top: 20px; right: 20px; cursor: pointer; opacity: 0.6; }
-        
         .pfp-large { width: 110px; height: 110px; border-radius: 50%; border: 2px dashed var(--mood); margin: 0 auto 20px; padding: 4px; display: flex; align-items: center; justify-content: center; transition: border-color 0.5s; }
         .pfp-img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; background: #222; }
         
-        /* --- RANK LIST MODAL STYLES --- */
         #ranks-grid { padding-right: 5px; }
         #ranks-grid::-webkit-scrollbar { width: 4px; }
         
@@ -188,7 +189,7 @@
             <div class="stat-box"><div id="stat-voids" class="stat-num">0</div><div class="stat-lbl">Void Entries</div></div>
         </div>
         
-        <div class="text-center mt-6 mb-2 opacity-20 text-[9px] uppercase tracking-[3px]">System v2.0.16</div>
+        <div class="text-center mt-6 mb-2 opacity-20 text-[9px] uppercase tracking-[3px]">System v2.0.17</div>
     </div>
 
     <div class="bottom-dock"><div class="dock-label">Journal Deck</div></div>
@@ -238,22 +239,35 @@
         <div class="modal-box" style="max-height: 80vh;">
             <div class="modal-close" onclick="closeModal('ranks-modal')">✕</div>
             <h2 class="text-xl font-bold text-center mb-6 tracking-wide text-white">Constellation Path</h2>
-            <div id="ranks-grid" class="flex flex-col gap-3 overflow-y-auto pr-2">
-                </div>
+            <div id="ranks-grid" class="flex flex-col gap-3 overflow-y-auto pr-2"></div>
         </div>
     </div>
 
     <script>
         let isProcessing = false;
 
+        // --- CELESTIAL ICONS (Space & Mind Themed) ---
         const rankIcons = {
-            "Observer": '<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/></svg>',
+            // Observer: Eye (Self-Observation)
+            "Observer": '<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>',
+            
+            // Moonwalker: Crescent Moon (Subconscious)
             "Moonwalker": '<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>',
-            "Celestial": '<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>',
-            "Stellar": '<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><path d="M12 1v2"/><path d="M12 21v2"/><path d="M4.22 4.22l1.42 1.42"/><path d="M18.36 18.36l1.42 1.42"/><path d="M1 12h2"/><path d="M21 12h2"/><path d="M4.22 19.78l1.42-1.42"/><path d="M18.36 5.64l1.42-1.42"/></svg>',
-            "Interstellar": '<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>',
-            "Galactic": '<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg>',
-            "Ethereal": '<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>'
+            
+            // Celestial: Ringed Planet (Core Identity)
+            "Celestial": '<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="6"/><path d="M2.5 12a10 6 0 0 1 19 0 10 6 0 0 1-19 0"/></svg>',
+            
+            // Stellar: Radiant Star (Illumination)
+            "Stellar": '<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>',
+            
+            // Interstellar: Constellation (Connection)
+            "Interstellar": '<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="5" cy="5" r="2"/><circle cx="19" cy="5" r="2"/><circle cx="12" cy="19" r="2"/><line x1="5" y1="5" x2="19" y2="5"/><line x1="5" y1="5" x2="12" y2="19"/><line x1="19" y1="5" x2="12" y2="19"/></svg>',
+            
+            // Galactic: Spiral Galaxy (Complex Understanding)
+            "Galactic": '<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2c5.52 0 10 4.48 10 10s-4.48 10-10 10S2 17.52 2 12 6.48 2 12 2z"/><path d="M12 12a4 4 0 0 1 4 4"/><path d="M12 12a4 4 0 0 1-4-4"/><path d="M8 8a8 8 0 0 1 12 8"/></svg>',
+            
+            // Ethereal: Singularity (Transcendence)
+            "Ethereal": '<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="1"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="M4.93 4.93l1.41 1.41"/><path d="M17.66 17.66l1.41 1.41"/><path d="M4.93 19.07l1.41-1.41"/><path d="M17.66 6.34l1.41-1.41"/></svg>'
         };
 
         function getRankColor(rankName) {
@@ -264,26 +278,27 @@
             return "#00f2fe";
         }
 
-        // --- NEW FUNCTION: POPULATE RANKS MODAL ---
+        // --- RENDER MODAL ---
         function renderAllRanks() {
             const list = ["Observer", "Moonwalker", "Celestial", "Stellar", "Interstellar", "Galactic", "Ethereal"];
             const container = document.getElementById('ranks-grid');
-            container.innerHTML = ''; // Clear
+            container.innerHTML = ''; 
 
             list.forEach(r => {
                 const color = getRankColor(r);
                 const icon = rankIcons[r];
                 
                 const div = document.createElement('div');
-                div.className = "flex items-center gap-4 p-4 rounded-2xl bg-white/5 border border-white/5";
-                // Add a colored left border to indicate tier
-                div.style.borderLeft = `3px solid ${color}`;
+                div.className = "flex items-center gap-4 p-4 rounded-2xl bg-white/5 border border-white/5 transition hover:bg-white/10";
                 
                 div.innerHTML = `
-                    <div class="w-10 h-10 rounded-full flex items-center justify-center bg-black/40" style="color: ${color}">
+                    <div class="w-12 h-12 rounded-full flex items-center justify-center bg-white/5 border border-[${color}] text-white shadow-[0_0_10px_${color}]" style="border-color:${color}; box-shadow: 0 0 10px ${color}">
                         ${icon}
                     </div>
-                    <div class="text-xs font-bold uppercase tracking-[2px]" style="color: ${color}">${r}</div>
+                    <div>
+                        <div class="text-xs font-bold uppercase tracking-[2px]" style="color: ${color}">${r}</div>
+                        <div class="text-[9px] text-white/40 mt-1 uppercase tracking-wider">Phase Lock</div>
+                    </div>
                 `;
                 container.appendChild(div);
             });
