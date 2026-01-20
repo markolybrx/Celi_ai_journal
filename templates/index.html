@@ -14,7 +14,7 @@
 
     <style>
         :root { 
-            --mood: #00f2fe; /* Default: Observer Cyan */
+            --mood: #00f2fe; /* Default */
             --bg: #000; 
             --glass: rgba(20, 20, 25, 0.6); 
             --border: rgba(255, 255, 255, 0.08); 
@@ -25,7 +25,7 @@
             background: var(--bg); color: #fff; font-family: var(--font-main); 
             height: 100vh; overflow: hidden; display: flex; flex-direction: column; 
             -webkit-font-smoothing: antialiased;
-            transition: --mood 1s ease; /* Smooth color transitions */
+            transition: --mood 1s ease;
         }
         
         ::-webkit-scrollbar { width: 4px; }
@@ -37,33 +37,24 @@
             flex: 1; display: flex; flex-direction: column; 
             overflow-y: auto; position: relative; 
             width: 100%; max-width: 600px; margin: 0 auto;
-            padding: 80px 20px 120px 20px;
+            padding: 90px 20px 120px 20px;
         }
         
         /* --- GALAXY HEADER --- */
         .app-header { 
             position: fixed; top: 0; left: 0; width: 100%; height: 70px;
-            background: radial-gradient(circle at top, #1a1a20 0%, #000000 100%);
+            background: #222831;
             border-bottom: 1px solid rgba(255,255,255,0.08);
             display: flex; justify-content: space-between; align-items: center; 
             padding: 0 25px; z-index: 40; 
-            backdrop-filter: blur(10px);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
         }
         
-        .logo { 
-            font-size: 22px; font-weight: 900; letter-spacing: -0.5px; 
-            background: linear-gradient(to right, #fff, #aaa); 
-            -webkit-background-clip: text; -webkit-text-fill-color: transparent; 
-        }
-        
-        .avatar-btn { 
-            width: 38px; height: 38px; border-radius: 50%; 
-            border: 2px solid var(--mood); overflow: hidden; cursor: pointer; 
-            transition: transform 0.2s, border-color 0.5s;
-        }
+        .logo { font-size: 22px; font-weight: 900; letter-spacing: -0.5px; color: #fff; }
+        .avatar-btn { width: 38px; height: 38px; border-radius: 50%; border: 2px solid var(--mood); overflow: hidden; cursor: pointer; transition: transform 0.2s; }
         .avatar-btn:active { transform: scale(0.95); }
 
-        /* --- RANK CARD --- */
+        /* --- RANK CARD (INTERACTIVE) --- */
         .rank-card {
             background: var(--glass); border: 1px solid var(--border); 
             border-radius: 24px; padding: 20px; margin-bottom: 15px; 
@@ -71,9 +62,10 @@
             box-shadow: 0 10px 30px rgba(0,0,0,0.3);
             display: flex; align-items: center; gap: 15px;
             position: relative; overflow: hidden;
+            cursor: pointer; transition: transform 0.2s, background 0.2s;
         }
+        .rank-card:active { transform: scale(0.98); background: rgba(255,255,255,0.05); }
         
-        /* Subtle glow based on rank color */
         .rank-card::before {
             content: ''; position: absolute; top: -50%; left: -50%; width: 200%; height: 200%;
             background: radial-gradient(circle, var(--mood) 0%, transparent 70%);
@@ -84,13 +76,13 @@
             width: 54px; height: 54px; border-radius: 50%;
             background: rgba(0,0,0,0.4); border: 1px solid var(--border);
             display: flex; align-items: center; justify-content: center;
-            color: var(--mood); flex-shrink: 0;
-            transition: color 0.5s;
+            color: var(--mood); flex-shrink: 0; transition: color 0.5s;
         }
         
         .rank-details { flex: 1; z-index: 2; }
         .greeting { font-size: 11px; opacity: 0.6; margin-bottom: 2px; text-transform: uppercase; letter-spacing: 1px; }
-        .rank-title { font-size: 18px; font-weight: 800; color: #fff; letter-spacing: 0.5px; margin-bottom: 6px; }
+        .rank-title { font-size: 18px; font-weight: 800; color: #fff; letter-spacing: 0.5px; margin-bottom: 2px; }
+        .tap-hint { font-size: 9px; color: var(--mood); opacity: 0.7; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; display: flex; align-items: center; gap: 4px; }
         
         .progress-container { width: 100%; height: 6px; background: rgba(255,255,255,0.1); border-radius: 10px; overflow: hidden; }
         .progress-bar { height: 100%; background: var(--mood); width: 0%; transition: width 1s cubic-bezier(0.4, 0, 0.2, 1), background 0.5s; box-shadow: 0 0 10px var(--mood); }
@@ -107,8 +99,7 @@
             background: rgba(255, 255, 255, 0.03);
             backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px);
             border: 1px solid rgba(255, 255, 255, 0.08);
-            border-radius: 30px;
-            z-index: 30;
+            border-radius: 30px; z-index: 30;
             box-shadow: 0 15px 40px rgba(0,0,0,0.6);
             display: flex; align-items: center; justify-content: center;
         }
@@ -118,7 +109,6 @@
         .fab-container { position: fixed; bottom: 110px; right: 25px; z-index: 40; }
         .chat-fab {
             width: 60px; height: 60px; border-radius: 50%;
-            /* FAB keeps its own purple cosmic identity regardless of rank, or can sync if desired */
             background: radial-gradient(circle at 30% 30%, #2a2a35, #000);
             box-shadow: 0 0 20px var(--mood), inset 0 0 10px rgba(255,255,255,0.1);
             border: 1px solid var(--mood);
@@ -136,41 +126,36 @@
             backdrop-filter: blur(15px); display: none; flex-direction: column; opacity: 0;
             transition: opacity 0.3s ease;
         }
-        
         .chat-header {
             padding: 20px; display: flex; justify-content: space-between; align-items: center;
-            border-bottom: 1px solid var(--border); background: rgba(0,0,0,0.4);
+            border-bottom: 1px solid var(--border); background: #222831;
         }
         .close-chat { cursor: pointer; opacity: 0.6; padding: 5px; transition: opacity 0.2s; }
-        .close-chat:hover { opacity: 1; }
-
-        .chat-history { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 16px; scroll-behavior: smooth; }
-        
+        .chat-history { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 16px; }
         .msg { max-width: 85%; padding: 14px 18px; border-radius: 20px; font-size: 13.5px; line-height: 1.55; word-wrap: break-word; animation: fadeIn 0.3s ease; }
         .msg-user { align-self: flex-end; background: var(--mood); color: #000; border-bottom-right-radius: 4px; font-weight: 600; transition: background 0.5s; }
         .msg-ai { align-self: flex-start; background: rgba(255,255,255,0.08); color: #eee; border-bottom-left-radius: 4px; border: 1px solid rgba(255,255,255,0.05); }
         .msg-ai strong { color: var(--mood); transition: color 0.5s; }
         .msg-ai em { opacity: 0.8; font-style: italic; }
-
         .input-area { padding: 15px; background: rgba(0,0,0,0.8); border-top: 1px solid var(--border); display: flex; gap: 10px; padding-bottom: 25px; }
         .chat-input { flex: 1; background: rgba(255,255,255,0.05); border: 1px solid var(--border); border-radius: 25px; padding: 12px 20px; color: #fff; outline: none; font-size: 13px; }
-        .chat-input:focus { border-color: var(--mood); background: rgba(255,255,255,0.1); }
-        
         .send-btn { background: var(--mood); color: #000; width: 44px; height: 44px; border-radius: 50%; font-weight: bold; display: flex; align-items: center; justify-content: center; transition: background 0.5s; }
 
         /* --- MODALS --- */
         .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.95); z-index: 110; display: none; align-items: center; justify-content: center; padding: 20px; backdrop-filter: blur(8px); }
-        .modal-box { background: #111; border: 1px solid var(--border); border-radius: 30px; width: 100%; max-width: 400px; padding: 30px; display: flex; flex-direction: column; }
+        .modal-box { background: #111; border: 1px solid var(--border); border-radius: 30px; width: 100%; max-width: 400px; padding: 30px; display: flex; flex-direction: column; max-height: 85vh; }
         .modal-close { position: absolute; top: 20px; right: 20px; cursor: pointer; opacity: 0.6; }
         
         .pfp-large { width: 110px; height: 110px; border-radius: 50%; border: 2px dashed var(--mood); margin: 0 auto 20px; padding: 4px; display: flex; align-items: center; justify-content: center; transition: border-color 0.5s; }
         .pfp-img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; background: #222; }
-        .profile-info { text-align: center; margin-bottom: 25px; }
+        
+        /* --- RANK LIST MODAL STYLES --- */
+        #ranks-grid { padding-right: 5px; }
+        #ranks-grid::-webkit-scrollbar { width: 4px; }
         
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         .pulse { animation: pulse 2s infinite; }
         @keyframes pulse { 0% { opacity: 0.4; } 50% { opacity: 1; } 100% { opacity: 0.4; } }
-        
         #loading-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.95); z-index: 200; display: flex; align-items: center; justify-content: center; flex-direction: column; display: none; }
         .spinner { width: 40px; height: 40px; border: 2px solid rgba(255,255,255,0.1); border-top-color: var(--mood); border-radius: 50%; animation: spin 0.8s infinite linear; }
         @keyframes spin { to { transform: rotate(360deg); } }
@@ -188,12 +173,12 @@
     </div>
 
     <div id="main-view">
-        <div class="rank-card">
+        <div class="rank-card" onclick="openModal('ranks-modal'); renderAllRanks();">
             <div class="rank-icon" id="rank-icon-slot"></div>
-            
             <div class="rank-details">
                 <div id="greeting-text" class="greeting">Good Morning</div>
                 <div id="rank-display" class="rank-title">Observer I</div>
+                <div class="tap-hint">Tap to view path <span>➜</span></div>
                 <div class="progress-container"><div id="rank-progress-bar" class="progress-bar"></div></div>
             </div>
         </div>
@@ -203,12 +188,10 @@
             <div class="stat-box"><div id="stat-voids" class="stat-num">0</div><div class="stat-lbl">Void Entries</div></div>
         </div>
         
-        <div class="text-center mt-6 mb-2 opacity-20 text-[9px] uppercase tracking-[3px]">System v2.0.14</div>
+        <div class="text-center mt-6 mb-2 opacity-20 text-[9px] uppercase tracking-[3px]">System v2.0.16</div>
     </div>
 
-    <div class="bottom-dock">
-        <div class="dock-label">Journal Deck</div>
-    </div>
+    <div class="bottom-dock"><div class="dock-label">Journal Deck</div></div>
 
     <div class="fab-container" onclick="toggleChat(true)">
         <div class="chat-fab">
@@ -227,16 +210,10 @@
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
             </div>
         </div>
-        
-        <div id="chat-history" class="chat-history">
-            <div class="msg msg-ai">Hello. I am Celi. Tap the void to begin.</div>
-        </div>
-        
+        <div id="chat-history" class="chat-history"><div class="msg msg-ai">Hello. I am Celi. Tap the void to begin.</div></div>
         <div class="input-area">
             <input type="text" id="chat-input" class="chat-input" placeholder="Transmit signal..." onkeypress="handleEnter(event)">
-            <button onclick="sendMessage()" class="send-btn">
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-            </button>
+            <button onclick="sendMessage()" class="send-btn"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg></button>
         </div>
     </div>
 
@@ -257,10 +234,18 @@
         </div>
     </div>
 
+    <div id="ranks-modal" class="modal-overlay">
+        <div class="modal-box" style="max-height: 80vh;">
+            <div class="modal-close" onclick="closeModal('ranks-modal')">✕</div>
+            <h2 class="text-xl font-bold text-center mb-6 tracking-wide text-white">Constellation Path</h2>
+            <div id="ranks-grid" class="flex flex-col gap-3 overflow-y-auto pr-2">
+                </div>
+        </div>
+    </div>
+
     <script>
         let isProcessing = false;
 
-        // --- ICON LIBRARY ---
         const rankIcons = {
             "Observer": '<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/></svg>',
             "Moonwalker": '<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>',
@@ -271,13 +256,37 @@
             "Ethereal": '<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>'
         };
 
-        // --- COLOR MAPPING ---
         function getRankColor(rankName) {
             if(rankName.includes("Observer") || rankName.includes("Moonwalker")) return "#00f2fe"; // Cyan
             if(rankName.includes("Celestial") || rankName.includes("Stellar")) return "#facc15"; // Gold
             if(rankName.includes("Interstellar") || rankName.includes("Galactic")) return "#a855f7"; // Purple
             if(rankName.includes("Ethereal")) return "#ffffff"; // White
             return "#00f2fe";
+        }
+
+        // --- NEW FUNCTION: POPULATE RANKS MODAL ---
+        function renderAllRanks() {
+            const list = ["Observer", "Moonwalker", "Celestial", "Stellar", "Interstellar", "Galactic", "Ethereal"];
+            const container = document.getElementById('ranks-grid');
+            container.innerHTML = ''; // Clear
+
+            list.forEach(r => {
+                const color = getRankColor(r);
+                const icon = rankIcons[r];
+                
+                const div = document.createElement('div');
+                div.className = "flex items-center gap-4 p-4 rounded-2xl bg-white/5 border border-white/5";
+                // Add a colored left border to indicate tier
+                div.style.borderLeft = `3px solid ${color}`;
+                
+                div.innerHTML = `
+                    <div class="w-10 h-10 rounded-full flex items-center justify-center bg-black/40" style="color: ${color}">
+                        ${icon}
+                    </div>
+                    <div class="text-xs font-bold uppercase tracking-[2px]" style="color: ${color}">${r}</div>
+                `;
+                container.appendChild(div);
+            });
         }
 
         async function loadData() {
@@ -291,16 +300,12 @@
                 const timeStr = hr < 12 ? "Good Morning" : hr < 18 ? "Good Afternoon" : "Good Evening";
                 document.getElementById('greeting-text').innerText = `${timeStr}, ${data.first_name || 'Traveler'}!`;
 
-                // Rank Logic
                 document.getElementById('rank-display').innerText = data.rank;
                 document.getElementById('rank-progress-bar').style.width = `${data.rank_progress}%`;
                 
-                // --- APPLY COLOR THEME ---
-                const baseRank = data.rank.split(' ')[0]; // Extract "Observer" from "Observer I"
+                const baseRank = data.rank.split(' ')[0];
                 const themeColor = getRankColor(baseRank);
                 document.documentElement.style.setProperty('--mood', themeColor);
-                
-                // --- INJECT SVG ---
                 document.getElementById('rank-icon-slot').innerHTML = rankIcons[baseRank] || rankIcons["Observer"];
 
                 document.getElementById('stat-points').innerText = data.points;
