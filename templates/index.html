@@ -14,7 +14,7 @@
 
     <style>
         :root { 
-            --mood: #00f2fe; /* Default */
+            --mood: #00f2fe; 
             --bg: #000; 
             --glass: rgba(20, 20, 25, 0.6); 
             --border: rgba(255, 255, 255, 0.08); 
@@ -40,16 +40,48 @@
             padding: 60px 20px 100px 20px;
         }
         
-        /* --- HEADER --- */
+        /* --- HEADER (UPDATED) --- */
         .app-header { 
             position: fixed; top: 0; left: 0; width: 100%; height: 45px;
             background: rgba(0,0,0,0.3); backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px);
             border-bottom: 1px solid rgba(255,255,255,0.05);
-            display: flex; justify-content: flex-start; align-items: center; 
-            padding: 0 20px; z-index: 40; gap: 8px;
+            display: flex; justify-content: space-between; align-items: center; 
+            padding: 0 20px; z-index: 40;
         }
+        .header-left { display: flex; align-items: center; gap: 8px; }
         .logo { font-size: 24px; font-weight: 900; letter-spacing: -1px; color: #fff; line-height: 1; }
-        .version-tag { font-size: 11px; opacity: 0.5; font-family: monospace; letter-spacing: 0.5px; white-space: nowrap; }
+        .version-tag { font-size: 11px; opacity: 0.5; font-family: monospace; letter-spacing: 0.5px; }
+
+        /* Header Right Controls */
+        .header-right { display: flex; align-items: center; gap: 15px; position: relative; }
+        
+        /* Profile Icon (Clean, No Glow) */
+        .header-pfp { 
+            width: 32px; height: 32px; border-radius: 50%; 
+            background: #222; overflow: hidden; cursor: pointer;
+            border: 1px solid rgba(255,255,255,0.3); /* Subtle border only */
+        }
+        .header-pfp img { width: 100%; height: 100%; object-fit: cover; }
+
+        /* Search System */
+        .search-trigger { cursor: pointer; opacity: 0.7; transition: opacity 0.2s; }
+        .search-trigger:hover { opacity: 1; }
+        
+        .search-bar-container {
+            position: absolute; right: 40px; /* Left of profile */
+            top: 50%; transform: translateY(-50%);
+            width: 0; overflow: hidden;
+            transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            display: flex; align-items: center;
+        }
+        .search-bar-container.active { width: 200px; border: 1px solid rgba(255,255,255,0.2); }
+        .search-input {
+            width: 100%; bg: transparent; border: none; outline: none;
+            color: #fff; font-size: 12px; padding: 5px 15px; background: transparent;
+        }
 
         @media (max-width: 380px) {
             .logo { font-size: 20px; }
@@ -73,7 +105,7 @@
             background: rgba(255, 255, 255, 0.03); border: 2px solid var(--mood);
             box-shadow: 0 0 15px var(--mood), inset 0 0 5px rgba(255,255,255,0.1);
             display: flex; align-items: center; justify-content: center;
-            color: #ffffff; flex-shrink: 0; transition: border-color 0.5s, box-shadow 0.5s;
+            color: #ffffff; flex-shrink: 0;
         }
         
         .rank-details { flex: 1; z-index: 2; }
@@ -82,7 +114,7 @@
         .progress-container { width: 100%; height: 3px; background: rgba(255,255,255,0.1); border-radius: 10px; overflow: hidden; }
         .progress-bar { height: 100%; background: var(--mood); width: 0%; transition: width 1s cubic-bezier(0.4, 0, 0.2, 1), background 0.5s; box-shadow: 0 0 5px var(--mood); }
 
-        /* --- CALENDAR CARD --- */
+        /* --- CALENDAR --- */
         .calendar-card {
             background: var(--glass); border: 1px solid var(--border);
             border-radius: 20px; padding: 15px; margin-bottom: 15px;
@@ -110,7 +142,6 @@
             content: ''; position: absolute; bottom: 3px; width: 3px; height: 3px; 
             background: var(--mood); border-radius: 50%; box-shadow: 0 0 4px var(--mood);
         }
-        .cal-day.has-entry:active { transform: scale(0.9); background: var(--mood); color: black; }
 
         /* --- BOTTOM DOCK --- */
         .bottom-dock {
@@ -119,13 +150,12 @@
             background: rgba(20, 20, 25, 0.8); backdrop-filter: blur(25px); 
             border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 30px; z-index: 30;
             box-shadow: 0 15px 40px rgba(0,0,0,0.8);
-            display: flex; align-items: center; justify-content: space-between; padding: 0 25px;
+            display: flex; align-items: center; justify-content: center; /* Centered Label Only */
+            padding: 0 25px;
         }
         .dock-label { font-size: 10px; color: rgba(255,255,255,0.3); letter-spacing: 2px; text-transform: uppercase; font-weight: bold; }
-        .avatar-btn { width: 42px; height: 42px; border-radius: 50%; border: 2px solid var(--mood); overflow: hidden; cursor: pointer; transition: transform 0.2s; }
-        .avatar-btn:active { transform: scale(0.95); }
 
-        /* --- FABS --- */
+        /* --- RIGHT: AI CHAT FAB --- */
         .fab-container { position: fixed; bottom: 110px; right: 25px; z-index: 40; }
         .chat-fab {
             width: 60px; height: 60px; border-radius: 50%;
@@ -137,13 +167,13 @@
         }
         .chat-fab:active { transform: scale(0.9); }
         .chat-fab svg { filter: drop-shadow(0 2px 3px rgba(0,0,0,0.2)); }
-        
         @keyframes pinkPulse {
             0% { box-shadow: 0 0 0 0 rgba(244, 114, 182, 0.7); }
             70% { box-shadow: 0 0 0 15px rgba(244, 114, 182, 0); }
             100% { box-shadow: 0 0 0 0 rgba(244, 114, 182, 0); }
         }
 
+        /* --- LEFT: VOID FAB --- */
         .void-container { position: fixed; bottom: 110px; left: 25px; z-index: 40; }
         .void-fab {
             width: 60px; height: 60px; border-radius: 50%;
@@ -153,54 +183,46 @@
             cursor: pointer; transition: transform 0.3s; overflow: hidden;
         }
         .void-fab:active { transform: scale(0.9); }
-        
         .spin-ccw { animation: spinCCW 3s linear infinite; transform-origin: center; }
         @keyframes spinCCW { from { transform: rotate(360deg); } to { transform: rotate(0deg); } }
 
-        /* --- MODALS --- */
-        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.95); z-index: 110; display: none; align-items: center; justify-content: center; padding: 20px; backdrop-filter: blur(8px); }
-        .modal-box { background: #111; border: 1px solid var(--border); border-radius: 30px; width: 100%; max-width: 400px; padding: 30px; display: flex; flex-direction: column; max-height: 85vh; }
-        .modal-close { position: absolute; top: 20px; right: 20px; cursor: pointer; opacity: 0.6; }
-        .pfp-large { width: 110px; height: 110px; border-radius: 50%; border: 2px dashed var(--mood); margin: 0 auto 20px; padding: 4px; display: flex; align-items: center; justify-content: center; transition: border-color 0.5s; }
-        .pfp-img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; background: #222; }
-        
-        /* --- CHAT UI (UPDATED FOR KEYBOARD) --- */
+        /* --- CHAT OVERLAY (SHARED FOR AI & VOID) --- */
         .chat-overlay {
-            /* FIXED: Use Flex column + 100% height to adapt to keyboard resize */
-            position: fixed; inset: 0; 
-            height: 100%; /* Adapts to viewport height changes (keyboard) */
-            width: 100%;
-            background: rgba(0,0,0,0.9); z-index: 100;
+            position: fixed; inset: 0; height: 100%; width: 100%;
+            background: rgba(0,0,0,0.95); z-index: 100;
             backdrop-filter: blur(15px); display: none; flex-direction: column; 
             opacity: 0; transition: opacity 0.3s ease;
         }
-        /* Header stays at top, does not shrink */
         .chat-header { 
             padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; 
-            border-bottom: 1px solid var(--border); background: #222831;
-            flex-shrink: 0; /* Prevents squishing */
+            border-bottom: 1px solid var(--border); background: #222831; flex-shrink: 0;
         }
-        /* History fills space and scrolls */
         .chat-history { 
-            flex: 1; /* Takes all available space */
-            overflow-y: auto; padding: 20px; 
-            display: flex; flex-direction: column; gap: 16px; 
-            min-height: 0; /* Important for flex scrolling */
-            overscroll-behavior: contain; /* Prevents body scroll */
+            flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 16px; 
+            min-height: 0; overscroll-behavior: contain;
         }
         .msg { max-width: 85%; padding: 14px 18px; border-radius: 20px; font-size: 13.5px; line-height: 1.55; word-wrap: break-word; animation: fadeIn 0.3s ease; }
         .msg-user { align-self: flex-end; background: var(--mood); color: #000; border-bottom-right-radius: 4px; font-weight: 600; }
         .msg-ai { align-self: flex-start; background: rgba(255,255,255,0.08); color: #eee; border-bottom-left-radius: 4px; border: 1px solid rgba(255,255,255,0.05); }
         
-        /* Input stays at bottom, does not shrink */
         .input-area { 
-            padding: 15px; background: rgba(0,0,0,0.95); /* Solid bg to cover content behind */
-            border-top: 1px solid var(--border); display: flex; gap: 10px; 
-            padding-bottom: max(15px, env(safe-area-inset-bottom)); /* Safe area for iOS */
-            flex-shrink: 0; /* Stays fixed size */
+            padding: 15px; background: rgba(0,0,0,0.95); border-top: 1px solid var(--border); 
+            display: flex; gap: 10px; padding-bottom: max(15px, env(safe-area-inset-bottom)); flex-shrink: 0;
         }
-        .chat-input { flex: 1; background: rgba(255,255,255,0.05); border: 1px solid var(--border); border-radius: 25px; padding: 12px 20px; color: #fff; outline: none; font-size: 16px; /* 16px prevents iOS zoom */ }
+        .chat-input { flex: 1; background: rgba(255,255,255,0.05); border: 1px solid var(--border); border-radius: 25px; padding: 12px 20px; color: #fff; outline: none; font-size: 16px; }
         .send-btn { background: var(--mood); color: #000; width: 44px; height: 44px; border-radius: 50%; font-weight: bold; display: flex; align-items: center; justify-content: center; }
+
+        /* --- VOID MODE STYLES (Overrides) --- */
+        .chat-overlay.void-mode .chat-header { background: #000; border-bottom: 1px solid rgba(255,255,255,0.1); }
+        .chat-overlay.void-mode .msg-user { background: #333; color: #fff; border: 1px solid #555; }
+        .chat-overlay.void-mode .input-area { border-top: 1px solid rgba(255,255,255,0.1); }
+        .chat-overlay.void-mode .send-btn { background: #333; color: #fff; border: 1px solid #555; box-shadow: 0 0 10px rgba(255,255,255,0.1); }
+        .chat-overlay.void-mode .chat-history { background: radial-gradient(circle at center, #111, #000); }
+
+        /* --- MODALS --- */
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.95); z-index: 110; display: none; align-items: center; justify-content: center; padding: 20px; backdrop-filter: blur(8px); }
+        .modal-box { background: #111; border: 1px solid var(--border); border-radius: 30px; width: 100%; max-width: 400px; padding: 30px; display: flex; flex-direction: column; max-height: 85vh; }
+        .modal-close { position: absolute; top: 20px; right: 20px; cursor: pointer; opacity: 0.6; }
         
         #ranks-grid { padding-right: 5px; }
         #ranks-grid::-webkit-scrollbar { width: 4px; }
@@ -208,12 +230,6 @@
         .spinner { width: 40px; height: 40px; border: 2px solid rgba(255,255,255,0.1); border-top-color: var(--mood); border-radius: 50%; animation: spin 0.8s infinite linear; }
         @keyframes spin { to { transform: rotate(360deg); } }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-
-        .void-suck { animation: suckIntoVoid 1s forwards cubic-bezier(0.6, -0.28, 0.735, 0.045); opacity: 0; }
-        @keyframes suckIntoVoid {
-            0% { transform: scale(1) rotate(0deg); opacity: 1; filter: blur(0px); }
-            100% { transform: scale(0) rotate(720deg); opacity: 0; filter: blur(10px); }
-        }
     </style>
 </head>
 <body>
@@ -221,8 +237,22 @@
     <div id="loading-overlay"><div class="spinner"></div><p id="loading-text" class="text-xs uppercase tracking-widest text-white/50 mt-4">Syncing...</p></div>
 
     <div class="app-header">
-        <div class="logo">Celi</div>
-        <div class="version-tag">v2.0.33</div>
+        <div class="header-left">
+            <div class="logo">Celi</div>
+            <div class="version-tag">v2.0.34</div>
+        </div>
+        <div class="header-right">
+            <div class="search-trigger" onclick="toggleSearch()">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+            </div>
+            <div class="search-bar-container" id="search-container">
+                <input type="text" id="search-input" class="search-input" placeholder="Search journal..." onkeyup="handleSearch()">
+            </div>
+            
+            <div class="header-pfp" onclick="openModal('profile-modal')">
+                <img id="nav-pfp" src="">
+            </div>
+        </div>
     </div>
 
     <div id="main-view">
@@ -247,12 +277,9 @@
 
     <div class="bottom-dock" onclick="resetChatFilter()">
         <div class="dock-label">Journal Deck</div>
-        <div class="avatar-btn" onclick="event.stopPropagation(); openModal('profile-modal')">
-            <img id="nav-pfp" class="w-full h-full object-cover" src="">
-        </div>
     </div>
 
-    <div class="void-container" onclick="openModal('void-modal')">
+    <div class="void-container" onclick="openChat('void')">
         <div class="void-fab">
             <svg width="40" height="40" viewBox="0 0 24 24" fill="none">
                 <circle cx="12" cy="12" r="4" fill="black" />
@@ -262,7 +289,7 @@
         </div>
     </div>
 
-    <div class="fab-container" onclick="toggleChat(true)">
+    <div class="fab-container" onclick="openChat('ai')">
         <div class="chat-fab">
             <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path d="M12 2C7.029 2 3 5.58 3 10C3 12.62 4.41 14.94 6.6 16.32L6 19L9.33 17.5C10.18 17.82 11.08 18 12 18C16.97 18 21 14.42 21 10C21 5.58 16.97 2 12 2Z" fill="white" fill-opacity="0.2"/>
@@ -274,9 +301,11 @@
     <div id="chat-overlay" class="chat-overlay">
         <div class="chat-header">
             <span id="chat-header-title" class="font-bold tracking-widest text-sm uppercase">Celi Neural Link</span>
-            <div class="close-chat" onclick="toggleChat(false)"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></div>
+            <div class="close-chat" onclick="closeChat()">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            </div>
         </div>
-        <div id="chat-history" class="chat-history"><div class="msg msg-ai">Hello. I am Celi. Tap the void to begin.</div></div>
+        <div id="chat-history" class="chat-history"></div>
         <div class="input-area">
             <input type="text" id="chat-input" class="chat-input" placeholder="Transmit signal..." onkeypress="handleEnter(event)">
             <button onclick="sendMessage()" class="send-btn"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg></button>
@@ -300,22 +329,6 @@
         </div>
     </div>
 
-    <div id="void-modal" class="modal-overlay">
-        <div class="modal-box text-center">
-            <div class="modal-close" onclick="closeModal('void-modal')">✕</div>
-            <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-black border border-white/20 flex items-center justify-center shadow-[0_0_30px_#a855f7]">
-                <svg width="40" height="40" viewBox="0 0 24 24" fill="none">
-                    <circle cx="12" cy="12" r="4" fill="black" />
-                    <circle cx="12" cy="12" r="8" stroke="url(#voidRing)" stroke-width="2.5" class="spin-ccw" />
-                </svg>
-            </div>
-            <h2 class="text-xl font-bold mb-2">The Singularity</h2>
-            <p class="text-sm opacity-60 mb-6">Type your burdens here. They will be consumed by the void, never to be seen again.</p>
-            <input type="text" id="void-input" class="w-full bg-white/5 border border-purple-500/30 rounded-full py-3 px-6 text-white text-center mb-4 focus:outline-none focus:border-purple-500 transition" placeholder="Release your thought...">
-            <button onclick="consumeByVoid()" class="w-full py-3 bg-purple-600/20 hover:bg-purple-600/40 text-purple-300 rounded-full font-bold uppercase tracking-widest text-xs transition">Release</button>
-        </div>
-    </div>
-
     <div id="ranks-modal" class="modal-overlay">
         <div class="modal-box" style="max-height: 80vh;">
             <div class="modal-close" onclick="closeModal('ranks-modal')">✕</div>
@@ -329,6 +342,7 @@
         let currentCalendarDate = new Date();
         let fullChatHistory = {}; 
         let userHistoryDates = []; 
+        let currentMode = 'journal'; // 'journal' (AI) or 'rant' (Void)
 
         const rankIcons = {
             "Observer": '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="32" height="32"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>',
@@ -348,70 +362,70 @@
             return "#00f2fe";
         }
 
-        function renderCalendar() {
-            const grid = document.getElementById('cal-grid');
-            if(!grid) return;
-            grid.innerHTML = '';
-            
-            const year = currentCalendarDate.getFullYear();
-            const month = currentCalendarDate.getMonth();
-            const monthNames = ["January","February","March","April","May","June","July","August","September","October","November","December"];
-            document.getElementById('cal-month-year').innerText = `${monthNames[month]} ${year}`;
-            
-            const days = ["S","M","T","W","T","F","S"];
-            days.forEach(d => {
-                const el = document.createElement('div');
-                el.className = 'cal-day-label'; el.innerText = d; grid.appendChild(el);
-            });
-            
-            const firstDay = new Date(year, month, 1).getDay();
-            const daysInMonth = new Date(year, month + 1, 0).getDate();
-            
-            for(let i=0; i<firstDay; i++) { grid.appendChild(document.createElement('div')); }
-            
-            const today = new Date();
-            for(let i=1; i<=daysInMonth; i++) {
-                const el = document.createElement('div');
-                el.className = 'cal-day'; el.innerText = i;
-                if(i === today.getDate() && month === today.getMonth() && year === today.getFullYear()) el.classList.add('today');
-                
-                const checkDate = `${year}-${String(month+1).padStart(2,'0')}-${String(i).padStart(2,'0')}`;
-                if(userHistoryDates.includes(checkDate)) {
-                    el.classList.add('has-entry');
-                    el.onclick = () => filterChatByDate(checkDate);
-                }
-                grid.appendChild(el);
-            }
+        // --- SEARCH LOGIC ---
+        function toggleSearch() {
+            const container = document.getElementById('search-container');
+            const input = document.getElementById('search-input');
+            container.classList.toggle('active');
+            if(container.classList.contains('active')) input.focus();
+            else { input.value = ''; resetChatFilter(); }
         }
 
-        function changeMonth(dir) { currentCalendarDate.setMonth(currentCalendarDate.getMonth() + dir); renderCalendar(); }
-
-        function filterChatByDate(dateStr) {
-            const container = document.getElementById('chat-history');
-            container.innerHTML = `<div class="text-center opacity-50 text-xs my-4 uppercase tracking-widest">--- Archives: ${dateStr} ---</div>`;
-            const fragment = document.createDocumentFragment();
-            const sortedKeys = Object.keys(fullChatHistory).sort((a, b) => parseFloat(a) - parseFloat(b));
-            let found = false;
+        function handleSearch() {
+            const query = document.getElementById('search-input').value.toLowerCase();
+            if(query.length < 2) { resetChatFilter(); return; }
             
-            sortedKeys.forEach(timestamp => {
-                const entry = fullChatHistory[timestamp];
-                if(entry.date === dateStr) {
-                    fragment.appendChild(createMsgEl(entry.summary || "Journal Entry", 'user'));
-                    fragment.appendChild(createMsgEl(entry.reply, 'ai'));
+            const filtered = {};
+            let found = false;
+            Object.keys(fullChatHistory).forEach(key => {
+                const entry = fullChatHistory[key];
+                if((entry.summary && entry.summary.toLowerCase().includes(query)) || 
+                   (entry.reply && entry.reply.toLowerCase().includes(query))) {
+                    filtered[key] = entry;
                     found = true;
                 }
             });
             
-            if(!found) container.appendChild(createMsgEl("No entries found for this star date.", 'ai'));
-            else container.appendChild(fragment);
-            
-            document.getElementById('chat-header-title').innerText = "ARCHIVE MODE";
-            toggleChat(true);
+            if(found) {
+                renderChatHistory(filtered);
+                // Temporarily open chat to show results
+                if(document.getElementById('chat-overlay').style.display !== 'flex') openChat('ai');
+                document.getElementById('chat-header-title').innerText = "SEARCH RESULTS";
+            }
         }
 
         function resetChatFilter() {
             renderChatHistory(fullChatHistory);
-            document.getElementById('chat-header-title').innerText = "CELI NEURAL LINK";
+            document.getElementById('chat-header-title').innerText = currentMode === 'rant' ? "THE VOID" : "CELI NEURAL LINK";
+        }
+
+        // --- CHAT & VOID ---
+        function openChat(mode) {
+            currentMode = mode;
+            const overlay = document.getElementById('chat-overlay');
+            const title = document.getElementById('chat-header-title');
+            
+            if(mode === 'rant') {
+                overlay.classList.add('void-mode');
+                title.innerText = "THE VOID";
+            } else {
+                overlay.classList.remove('void-mode');
+                title.innerText = "CELI NEURAL LINK";
+            }
+            
+            overlay.style.display = 'flex';
+            void overlay.offsetWidth; overlay.style.opacity = '1';
+            
+            // Filter history based on mode (if we wanted to separate them, but currently we show all)
+            // Ideally we could filter only 'rant' types for void, but user said "Chat Window"
+            const c = document.getElementById('chat-history'); c.scrollTop = c.scrollHeight;
+            document.getElementById('chat-input').focus();
+        }
+
+        function closeChat() {
+            const overlay = document.getElementById('chat-overlay');
+            overlay.style.opacity = '0';
+            setTimeout(() => { overlay.style.display = 'none'; }, 300);
         }
 
         function renderChatHistory(historyData) {
@@ -422,7 +436,8 @@
             const fragment = document.createDocumentFragment();
             recentKeys.forEach(timestamp => {
                 const entry = historyData[timestamp];
-                fragment.appendChild(createMsgEl(entry.summary || "Journal Entry", 'user'));
+                // Optional: Filter visual style based on entry.type === 'rant'
+                fragment.appendChild(createMsgEl(entry.summary || "Entry", 'user'));
                 fragment.appendChild(createMsgEl(entry.reply, 'ai'));
             });
             container.appendChild(fragment);
@@ -430,18 +445,51 @@
             requestAnimationFrame(() => container.scrollTop = container.scrollHeight);
         }
 
-        function consumeByVoid() {
-            const input = document.getElementById('void-input');
-            const val = input.value.trim();
-            if(!val) return;
-            input.classList.add('void-suck');
-            setTimeout(() => {
-                input.value = '';
-                input.classList.remove('void-suck');
-                closeModal('void-modal');
-            }, 800);
+        // --- CALENDAR ---
+        function renderCalendar() {
+            const grid = document.getElementById('cal-grid'); if(!grid) return;
+            grid.innerHTML = '';
+            const year = currentCalendarDate.getFullYear();
+            const month = currentCalendarDate.getMonth();
+            const monthNames = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+            document.getElementById('cal-month-year').innerText = `${monthNames[month]} ${year}`;
+            
+            ["S","M","T","W","T","F","S"].forEach(d => {
+                const el = document.createElement('div'); el.className = 'cal-day-label'; el.innerText = d; grid.appendChild(el);
+            });
+            
+            const firstDay = new Date(year, month, 1).getDay();
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+            
+            for(let i=0; i<firstDay; i++) { grid.appendChild(document.createElement('div')); }
+            
+            const today = new Date();
+            for(let i=1; i<=daysInMonth; i++) {
+                const el = document.createElement('div'); el.className = 'cal-day'; el.innerText = i;
+                if(i === today.getDate() && month === today.getMonth() && year === today.getFullYear()) el.classList.add('today');
+                const checkDate = `${year}-${String(month+1).padStart(2,'0')}-${String(i).padStart(2,'0')}`;
+                if(userHistoryDates.includes(checkDate)) {
+                    el.classList.add('has-entry');
+                    el.onclick = () => filterChatByDate(checkDate);
+                }
+                grid.appendChild(el);
+            }
+        }
+        function changeMonth(dir) { currentCalendarDate.setMonth(currentCalendarDate.getMonth() + dir); renderCalendar(); }
+
+        // --- FILTERING ---
+        function filterChatByDate(dateStr) {
+            const filtered = {};
+            let found = false;
+            Object.keys(fullChatHistory).forEach(key => {
+                if(fullChatHistory[key].date === dateStr) { filtered[key] = fullChatHistory[key]; found = true; }
+            });
+            renderChatHistory(filtered);
+            openChat('ai'); // Open chat to show results
+            document.getElementById('chat-header-title').innerText = `ARCHIVE: ${dateStr}`;
         }
 
+        // --- MAIN FUNCTIONS ---
         function renderAllRanks() {
             const list = ["Observer", "Moonwalker", "Celestial", "Stellar", "Interstellar", "Galactic", "Ethereal"];
             const container = document.getElementById('ranks-grid');
@@ -483,7 +531,8 @@
                 
                 if(data.profile_pic && data.profile_pic.length > 50) {
                     const pic = data.profile_pic;
-                    document.getElementById('profile-pfp').src = pic; document.getElementById('nav-pfp').src = pic;
+                    document.getElementById('profile-pfp').src = pic;
+                    document.getElementById('nav-pfp').src = pic;
                 } else {
                     const def = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGZpbGw9Im5vbmUiIHZpZXdCb3g9IjAgMCAyNCAyNCIgc3Ryb2tlPSJ3aGl0ZSIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiPjxwYXRoIGQ9Ik0yMCAyMXYtMmE0IDQgMCAwIDAtNC00SDhhNCA0IDAgMCAwLTQgNHYyIj48L3BhdGg+PGNpcmNsZSBjeD0iMTIiIGN5PSI3IiByPSI0Ij48L2NpcmNsZT48L3N2Zz4=";
                     document.getElementById('profile-pfp').src = def; document.getElementById('nav-pfp').src = def;
@@ -498,17 +547,6 @@
             } catch(e) { console.log("Sync error", e); renderCalendar(); }
         }
 
-        function toggleChat(show) {
-            const overlay = document.getElementById('chat-overlay');
-            if(show) {
-                overlay.style.display = 'flex'; void overlay.offsetWidth; overlay.style.opacity = '1';
-                const c = document.getElementById('chat-history'); c.scrollTop = c.scrollHeight;
-                document.getElementById('chat-input').focus();
-            } else {
-                overlay.style.opacity = '0'; setTimeout(() => { overlay.style.display = 'none'; }, 300);
-            }
-        }
-
         async function sendMessage() {
             if(isProcessing) return;
             const input = document.getElementById('chat-input');
@@ -520,8 +558,11 @@
             const typingId = 'typing-' + Date.now();
             appendTyping(typingId);
 
+            // SEND MODE: 'rant' if Void, 'journal' if AI
+            const mode = currentMode === 'rant' ? 'rant' : 'journal';
+
             try {
-                const res = await fetch('/api/process', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ message: msg, mode: 'journal' }) });
+                const res = await fetch('/api/process', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ message: msg, mode: mode }) });
                 removeMsg(typingId);
                 const data = await res.json();
                 appendMsg(data.reply, 'ai');
