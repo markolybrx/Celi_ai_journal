@@ -14,8 +14,7 @@
 
     <style>
         :root { 
-            --mood: #00f2fe; 
-            --purple-glow: #a855f7;
+            --mood: #00f2fe; /* Default: Observer Cyan */
             --bg: #000; 
             --glass: rgba(20, 20, 25, 0.6); 
             --border: rgba(255, 255, 255, 0.08); 
@@ -26,6 +25,7 @@
             background: var(--bg); color: #fff; font-family: var(--font-main); 
             height: 100vh; overflow: hidden; display: flex; flex-direction: column; 
             -webkit-font-smoothing: antialiased;
+            transition: --mood 1s ease; /* Smooth color transitions */
         }
         
         ::-webkit-scrollbar { width: 4px; }
@@ -37,10 +37,10 @@
             flex: 1; display: flex; flex-direction: column; 
             overflow-y: auto; position: relative; 
             width: 100%; max-width: 600px; margin: 0 auto;
-            padding: 80px 20px 120px 20px; /* Padding for Header & Dock */
+            padding: 80px 20px 120px 20px;
         }
         
-        /* --- GALAXY HEADER (FIXED TOP) --- */
+        /* --- GALAXY HEADER --- */
         .app-header { 
             position: fixed; top: 0; left: 0; width: 100%; height: 70px;
             background: radial-gradient(circle at top, #1a1a20 0%, #000000 100%);
@@ -59,39 +59,48 @@
         .avatar-btn { 
             width: 38px; height: 38px; border-radius: 50%; 
             border: 2px solid var(--mood); overflow: hidden; cursor: pointer; 
-            transition: transform 0.2s;
+            transition: transform 0.2s, border-color 0.5s;
         }
         .avatar-btn:active { transform: scale(0.95); }
 
-        /* --- CARDS & CONTENT --- */
+        /* --- RANK CARD --- */
         .rank-card {
             background: var(--glass); border: 1px solid var(--border); 
             border-radius: 24px; padding: 20px; margin-bottom: 15px; 
             backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
             box-shadow: 0 10px 30px rgba(0,0,0,0.3);
             display: flex; align-items: center; gap: 15px;
+            position: relative; overflow: hidden;
+        }
+        
+        /* Subtle glow based on rank color */
+        .rank-card::before {
+            content: ''; position: absolute; top: -50%; left: -50%; width: 200%; height: 200%;
+            background: radial-gradient(circle, var(--mood) 0%, transparent 70%);
+            opacity: 0.05; pointer-events: none;
         }
         
         .rank-icon {
-            width: 50px; height: 50px; border-radius: 50%;
+            width: 54px; height: 54px; border-radius: 50%;
             background: rgba(0,0,0,0.4); border: 1px solid var(--border);
             display: flex; align-items: center; justify-content: center;
             color: var(--mood); flex-shrink: 0;
+            transition: color 0.5s;
         }
         
-        .rank-details { flex: 1; }
+        .rank-details { flex: 1; z-index: 2; }
         .greeting { font-size: 11px; opacity: 0.6; margin-bottom: 2px; text-transform: uppercase; letter-spacing: 1px; }
         .rank-title { font-size: 18px; font-weight: 800; color: #fff; letter-spacing: 0.5px; margin-bottom: 6px; }
         
         .progress-container { width: 100%; height: 6px; background: rgba(255,255,255,0.1); border-radius: 10px; overflow: hidden; }
-        .progress-bar { height: 100%; background: var(--mood); width: 0%; transition: width 1s cubic-bezier(0.4, 0, 0.2, 1); box-shadow: 0 0 10px var(--mood); }
+        .progress-bar { height: 100%; background: var(--mood); width: 0%; transition: width 1s cubic-bezier(0.4, 0, 0.2, 1), background 0.5s; box-shadow: 0 0 10px var(--mood); }
 
         .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
         .stat-box { background: var(--glass); border: 1px solid var(--border); border-radius: 20px; padding: 20px; text-align: center; backdrop-filter: blur(10px); }
-        .stat-num { font-size: 24px; font-weight: 800; color: var(--mood); }
+        .stat-num { font-size: 24px; font-weight: 800; color: var(--mood); transition: color 0.5s; }
         .stat-lbl { font-size: 9px; opacity: 0.5; text-transform: uppercase; letter-spacing: 1.5px; margin-top: 5px; }
 
-        /* --- BOTTOM DOCK (PLACEHOLDER) --- */
+        /* --- BOTTOM DOCK --- */
         .bottom-dock {
             position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
             width: 90%; max-width: 600px; height: 75px;
@@ -105,27 +114,26 @@
         }
         .dock-label { font-size: 10px; color: rgba(255,255,255,0.2); letter-spacing: 2px; text-transform: uppercase; font-weight: bold; }
 
-        /* --- CHAT FAB (REPOSITIONED) --- */
-        .fab-container {
-            position: fixed; bottom: 110px; right: 25px; z-index: 40;
-        }
+        /* --- CHAT FAB --- */
+        .fab-container { position: fixed; bottom: 110px; right: 25px; z-index: 40; }
         .chat-fab {
             width: 60px; height: 60px; border-radius: 50%;
-            background: radial-gradient(circle at 30% 30%, #d8b4fe, #7e22ce);
-            box-shadow: 0 0 25px rgba(168, 85, 247, 0.5), inset 0 0 10px rgba(255,255,255,0.3);
-            border: 2px solid rgba(255,255,255,0.2);
+            /* FAB keeps its own purple cosmic identity regardless of rank, or can sync if desired */
+            background: radial-gradient(circle at 30% 30%, #2a2a35, #000);
+            box-shadow: 0 0 20px var(--mood), inset 0 0 10px rgba(255,255,255,0.1);
+            border: 1px solid var(--mood);
             display: flex; align-items: center; justify-content: center;
-            cursor: pointer; transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+            cursor: pointer; transition: transform 0.3s, box-shadow 0.5s;
             animation: float 4s ease-in-out infinite;
         }
         .chat-fab:active { transform: scale(0.9); }
+        .chat-fab svg { fill: var(--mood); transition: fill 0.5s; }
         @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
 
-        /* --- CHAT OVERLAY (WORMHOLE) --- */
+        /* --- CHAT OVERLAY --- */
         .chat-overlay {
             position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 100;
-            backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px);
-            display: none; flex-direction: column; opacity: 0;
+            backdrop-filter: blur(15px); display: none; flex-direction: column; opacity: 0;
             transition: opacity 0.3s ease;
         }
         
@@ -139,23 +147,23 @@
         .chat-history { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 16px; scroll-behavior: smooth; }
         
         .msg { max-width: 85%; padding: 14px 18px; border-radius: 20px; font-size: 13.5px; line-height: 1.55; word-wrap: break-word; animation: fadeIn 0.3s ease; }
-        .msg-user { align-self: flex-end; background: var(--mood); color: #000; border-bottom-right-radius: 4px; font-weight: 600; }
+        .msg-user { align-self: flex-end; background: var(--mood); color: #000; border-bottom-right-radius: 4px; font-weight: 600; transition: background 0.5s; }
         .msg-ai { align-self: flex-start; background: rgba(255,255,255,0.08); color: #eee; border-bottom-left-radius: 4px; border: 1px solid rgba(255,255,255,0.05); }
-        .msg-ai strong { color: var(--mood); }
+        .msg-ai strong { color: var(--mood); transition: color 0.5s; }
         .msg-ai em { opacity: 0.8; font-style: italic; }
 
-        .input-area { padding: 15px; background: rgba(0,0,0,0.8); border-top: 1px solid var(--border); display: flex; gap: 10px; padding-bottom: 25px; /* iOS safe area */ }
+        .input-area { padding: 15px; background: rgba(0,0,0,0.8); border-top: 1px solid var(--border); display: flex; gap: 10px; padding-bottom: 25px; }
         .chat-input { flex: 1; background: rgba(255,255,255,0.05); border: 1px solid var(--border); border-radius: 25px; padding: 12px 20px; color: #fff; outline: none; font-size: 13px; }
         .chat-input:focus { border-color: var(--mood); background: rgba(255,255,255,0.1); }
         
-        .send-btn { background: var(--mood); color: #000; width: 44px; height: 44px; border-radius: 50%; font-weight: bold; display: flex; align-items: center; justify-content: center; }
+        .send-btn { background: var(--mood); color: #000; width: 44px; height: 44px; border-radius: 50%; font-weight: bold; display: flex; align-items: center; justify-content: center; transition: background 0.5s; }
 
         /* --- MODALS --- */
         .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.95); z-index: 110; display: none; align-items: center; justify-content: center; padding: 20px; backdrop-filter: blur(8px); }
         .modal-box { background: #111; border: 1px solid var(--border); border-radius: 30px; width: 100%; max-width: 400px; padding: 30px; display: flex; flex-direction: column; }
         .modal-close { position: absolute; top: 20px; right: 20px; cursor: pointer; opacity: 0.6; }
         
-        .pfp-large { width: 110px; height: 110px; border-radius: 50%; border: 2px dashed var(--mood); margin: 0 auto 20px; padding: 4px; display: flex; align-items: center; justify-content: center; }
+        .pfp-large { width: 110px; height: 110px; border-radius: 50%; border: 2px dashed var(--mood); margin: 0 auto 20px; padding: 4px; display: flex; align-items: center; justify-content: center; transition: border-color 0.5s; }
         .pfp-img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; background: #222; }
         .profile-info { text-align: center; margin-bottom: 25px; }
         
@@ -181,9 +189,8 @@
 
     <div id="main-view">
         <div class="rank-card">
-            <div class="rank-icon">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
-            </div>
+            <div class="rank-icon" id="rank-icon-slot"></div>
+            
             <div class="rank-details">
                 <div id="greeting-text" class="greeting">Good Morning</div>
                 <div id="rank-display" class="rank-title">Observer I</div>
@@ -196,7 +203,7 @@
             <div class="stat-box"><div id="stat-voids" class="stat-num">0</div><div class="stat-lbl">Void Entries</div></div>
         </div>
         
-        <div class="text-center mt-6 mb-2 opacity-20 text-[9px] uppercase tracking-[3px]">System v2.0.13</div>
+        <div class="text-center mt-6 mb-2 opacity-20 text-[9px] uppercase tracking-[3px]">System v2.0.14</div>
     </div>
 
     <div class="bottom-dock">
@@ -206,9 +213,9 @@
     <div class="fab-container" onclick="toggleChat(true)">
         <div class="chat-fab">
             <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M12 2C7.029 2 3 5.58 3 10C3 12.62 4.41 14.94 6.6 16.32L6 19L9.33 17.5C10.18 17.82 11.08 18 12 18C16.97 18 21 14.42 21 10C21 5.58 16.97 2 12 2Z" fill="white" fill-opacity="0.9"/>
-                <ellipse cx="12" cy="10" rx="9" ry="3" stroke="#a855f7" stroke-width="1.5" transform="rotate(-15 12 10)"/>
-                <path d="M15 6L15.5 7.5L17 8L15.5 8.5L15 10L14.5 8.5L13 8L14.5 7.5L15 6Z" fill="#00f2fe"/>
+                <path d="M12 2C7.029 2 3 5.58 3 10C3 12.62 4.41 14.94 6.6 16.32L6 19L9.33 17.5C10.18 17.82 11.08 18 12 18C16.97 18 21 14.42 21 10C21 5.58 16.97 2 12 2Z" fill="white" fill-opacity="0.2"/>
+                <ellipse cx="12" cy="10" rx="9" ry="3" stroke="currentColor" stroke-width="1.5" transform="rotate(-15 12 10)"/>
+                <path d="M15 6L15.5 7.5L17 8L15.5 8.5L15 10L14.5 8.5L13 8L14.5 7.5L15 6Z" fill="currentColor"/>
             </svg>
         </div>
     </div>
@@ -253,6 +260,26 @@
     <script>
         let isProcessing = false;
 
+        // --- ICON LIBRARY ---
+        const rankIcons = {
+            "Observer": '<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/></svg>',
+            "Moonwalker": '<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>',
+            "Celestial": '<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>',
+            "Stellar": '<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><path d="M12 1v2"/><path d="M12 21v2"/><path d="M4.22 4.22l1.42 1.42"/><path d="M18.36 18.36l1.42 1.42"/><path d="M1 12h2"/><path d="M21 12h2"/><path d="M4.22 19.78l1.42-1.42"/><path d="M18.36 5.64l1.42-1.42"/></svg>',
+            "Interstellar": '<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>',
+            "Galactic": '<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg>',
+            "Ethereal": '<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>'
+        };
+
+        // --- COLOR MAPPING ---
+        function getRankColor(rankName) {
+            if(rankName.includes("Observer") || rankName.includes("Moonwalker")) return "#00f2fe"; // Cyan
+            if(rankName.includes("Celestial") || rankName.includes("Stellar")) return "#facc15"; // Gold
+            if(rankName.includes("Interstellar") || rankName.includes("Galactic")) return "#a855f7"; // Purple
+            if(rankName.includes("Ethereal")) return "#ffffff"; // White
+            return "#00f2fe";
+        }
+
         async function loadData() {
             try {
                 const res = await fetch('/api/data');
@@ -264,10 +291,19 @@
                 const timeStr = hr < 12 ? "Good Morning" : hr < 18 ? "Good Afternoon" : "Good Evening";
                 document.getElementById('greeting-text').innerText = `${timeStr}, ${data.first_name || 'Traveler'}!`;
 
+                // Rank Logic
                 document.getElementById('rank-display').innerText = data.rank;
                 document.getElementById('rank-progress-bar').style.width = `${data.rank_progress}%`;
+                
+                // --- APPLY COLOR THEME ---
+                const baseRank = data.rank.split(' ')[0]; // Extract "Observer" from "Observer I"
+                const themeColor = getRankColor(baseRank);
+                document.documentElement.style.setProperty('--mood', themeColor);
+                
+                // --- INJECT SVG ---
+                document.getElementById('rank-icon-slot').innerHTML = rankIcons[baseRank] || rankIcons["Observer"];
+
                 document.getElementById('stat-points').innerText = data.points;
-                // Default handling for void_count if not in API yet
                 const voidCount = data.history ? Object.values(data.history).filter(x => x.type === 'rant' || x.type === 'void').length : 0;
                 document.getElementById('stat-voids').innerText = voidCount;
 
@@ -285,8 +321,6 @@
                     document.getElementById('profile-pfp').src = def;
                     document.getElementById('nav-pfp').src = def;
                 }
-                
-                if(data.fav_color) document.documentElement.style.setProperty('--mood', data.fav_color);
 
                 if (data.history) {
                     const container = document.getElementById('chat-history');
@@ -301,7 +335,7 @@
                             fragment.appendChild(createMsgEl(entry.reply, 'ai'));
                         });
                         container.appendChild(fragment);
-                        if(recentKeys.length === 0) container.appendChild(createMsgEl("Hello. I am Celi. Tap the orb to begin.", 'ai'));
+                        if(recentKeys.length === 0) container.appendChild(createMsgEl("Hello. I am Celi. Tap the void to begin.", 'ai'));
                         requestAnimationFrame(() => container.scrollTop = container.scrollHeight);
                     }
                 }
