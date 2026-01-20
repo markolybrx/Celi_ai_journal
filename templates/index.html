@@ -114,7 +114,7 @@
         .chat-fab svg { fill: var(--mood); transition: fill 0.5s; }
         @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
 
-        /* --- MODALS --- */
+        /* --- CHAT MODAL --- */
         .chat-overlay {
             position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 100;
             backdrop-filter: blur(15px); display: none; flex-direction: column; opacity: 0;
@@ -122,7 +122,6 @@
         }
         .chat-header { padding: 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); background: #222831; }
         .close-chat { cursor: pointer; opacity: 0.6; padding: 5px; transition: opacity 0.2s; }
-        .close-chat:hover { opacity: 1; }
         .chat-history { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 16px; }
         .msg { max-width: 85%; padding: 14px 18px; border-radius: 20px; font-size: 13.5px; line-height: 1.55; word-wrap: break-word; animation: fadeIn 0.3s ease; }
         .msg-user { align-self: flex-end; background: var(--mood); color: #000; border-bottom-right-radius: 4px; font-weight: 600; transition: background 0.5s; }
@@ -133,6 +132,7 @@
         .chat-input { flex: 1; background: rgba(255,255,255,0.05); border: 1px solid var(--border); border-radius: 25px; padding: 12px 20px; color: #fff; outline: none; font-size: 13px; }
         .send-btn { background: var(--mood); color: #000; width: 44px; height: 44px; border-radius: 50%; font-weight: bold; display: flex; align-items: center; justify-content: center; transition: background 0.5s; }
 
+        /* --- MODALS --- */
         .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.95); z-index: 110; display: none; align-items: center; justify-content: center; padding: 20px; backdrop-filter: blur(8px); }
         .modal-box { background: #111; border: 1px solid var(--border); border-radius: 30px; width: 100%; max-width: 400px; padding: 30px; display: flex; flex-direction: column; max-height: 85vh; }
         .modal-close { position: absolute; top: 20px; right: 20px; cursor: pointer; opacity: 0.6; }
@@ -177,7 +177,7 @@
             <div class="stat-box"><div id="stat-voids" class="stat-num">0</div><div class="stat-lbl">Void Entries</div></div>
         </div>
         
-        <div class="text-center mt-6 mb-2 opacity-20 text-[9px] uppercase tracking-[3px]">System v2.0.18</div>
+        <div class="text-center mt-6 mb-2 opacity-20 text-[9px] uppercase tracking-[3px]">System v2.0.19</div>
     </div>
 
     <div class="bottom-dock"><div class="dock-label">Journal Deck</div></div>
@@ -234,28 +234,28 @@
     <script>
         let isProcessing = false;
 
-        // --- THE "LEAGUE OF COSMOS" ICON LIBRARY (High Complexity SVGs) ---
+        // --- APEX COSMOS ICONS (Complex Vector Paths) ---
         const rankIcons = {
-            // Observer: The Seeing Eye (Base Tier)
-            "Observer": '<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>',
+            // Observer: "The All-Seeing Lens" - An eye aperture opening
+            "Observer": '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="32" height="32"><path d="M12 4C7 4 2.73 7.11 1 11.5 2.73 15.89 7 19 12 19s9.27-3.11 11-7.5C21.27 7.11 17 4 12 4zm0 12.5c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>',
             
-            // Moonwalker: The Ascent (Bronze Tier vibe) - Moon + Rising Star
-            "Moonwalker": '<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/><path d="M12 16l1.5 1.5L16 12l-2.5 1.5L12 16z"/></svg>',
+            // Moonwalker: "Cratered Ascent" - Moon surface with rising motion
+            "Moonwalker": '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="32" height="32"><path d="M12 2C9.5 2 7.2 3 5.5 4.5L7 6C8.2 5 10 4.2 12 4.2c4.4 0 8 3.6 8 8 0 2-.8 3.8-2 5.2l1.5 1.5C21 17.3 22 14.8 22 12c0-5.5-4.5-10-10-10z"/><path d="M9 12c0 1.66 1.34 3 3 3s3-1.34 3-3-1.34-3-3-3-3 1.34-3 3zm-2 7.5L5.5 21C7.2 22.2 9.5 23 12 23c2.5 0 4.8-.8 6.5-2l-1.5-1.5c-1.3 1-3 1.5-5 1.5-2 0-3.7-.5-5-1.5z"/></svg>',
             
-            // Celestial: The Planet (Silver Tier vibe) - Ringed + Symmetry
-            "Celestial": '<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="6"/><path d="M12 2v4"/><path d="M12 18v4"/><path d="M2.5 12a10 6 0 0 1 19 0 10 6 0 0 1-19 0"/></svg>',
+            // Celestial: "Gas Giant Ring" - Heavy planetary weight
+            "Celestial": '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="32" height="32"><path d="M12 2C6.48 2 2 6.48 2 12c0 5.52 4.48 10 10 10s10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8 0-4.41 3.59-8 8-8 4.41 0 8 3.59 8 8 0 4.41-3.59 8-8 8z"/><path d="M19.07 13c-.42-2.35-2.08-4.37-4.28-5.32l-1.12 1.95c1.47.66 2.58 2.03 2.87 3.68H19.07zM4.93 11c.42 2.35 2.08 4.37 4.28 5.32l1.12-1.95c-1.47-.66-2.58-2.03-2.87-3.68H4.93z"/></svg>',
             
-            // Stellar: The Radiant Star (Gold Tier vibe) - Diamond shape
-            "Stellar": '<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/><rect x="9" y="9" width="6" height="6" transform="rotate(45 12 12)"/></svg>',
+            // Stellar: "Solar Flare Compass" - Sharp, burning direction
+            "Stellar": '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="32" height="32"><path d="M12 2L9.1 8.6 2 12l7.1 3.4L12 22l2.9-6.6L22 12l-7.1-3.4L12 2zM12 10c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/></svg>',
             
-            // Interstellar: The Web (Platinum Tier vibe) - Hexagon Network
-            "Interstellar": '<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l8.5 5v10L12 22 3.5 17V7L12 2z"/><circle cx="12" cy="12" r="3"/><line x1="12" y1="2" x2="12" y2="9"/><line x1="12" y1="15" x2="12" y2="22"/><line x1="3.5" y1="7" x2="9.5" y2="10.5"/><line x1="20.5" y1="7" x2="14.5" y2="10.5"/></svg>',
+            // Interstellar: "Warp Comet" - Speed and Connection
+            "Interstellar": '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="32" height="32"><path d="M14.5 12c0 1.38-1.12 2.5-2.5 2.5S9.5 13.38 9.5 12s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5z"/><path d="M22 12c0-5.52-4.48-10-10-10S2 6.48 2 12s4.48 10 10 10 10-4.48 10-10zm-2 0h-3c0-2.76-2.24-5-5-5V4c4.42 0 8 3.58 8 8zM7 12H4c0 4.42 3.58 8 8 8v-3c-2.76 0-5-2.24-5-5z"/></svg>',
             
-            // Galactic: The Spiral (Master Tier vibe) - Winged/Spiral
-            "Galactic": '<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 12c2.5 0 4-2 4-4s-1.5-4-4-4-4 2-4 4 1.5 4 4 4z"/><path d="M8 16c-3 0-5-2-5-5S5 6 8 6"/><path d="M16 8c3 0 5 2 5 5s-2 5-5 5"/><path d="M12 16v6"/><path d="M8 19l4-3 4 3"/></svg>',
+            // Galactic: "Quasar Vortex" - Massive Spiral Arms
+            "Galactic": '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="32" height="32"><path d="M12 4c-4.41 0-8 3.59-8 8s3.59 8 8 8 8-3.59 8-8-3.59-8-8-8zm0 14c-3.31 0-6-2.69-6-6s2.69-6 6-6 6 2.69 6 6-2.69 6-6 6z"/><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/><path d="M12 8c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm0 6c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2z"/></svg>',
             
-            // Ethereal: The Singularity Crown (Challenger Tier vibe)
-            "Ethereal": '<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l3 6h6l-5 4 2 6-6-4-6 4 2-6-5-4h6z"/><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="M4.93 4.93l1.41 1.41"/><path d="M17.66 17.66l1.41 1.41"/><path d="M4.93 19.07l1.41-1.41"/><path d="M17.66 6.34l1.41-1.41"/></svg>'
+            // Ethereal: "Singularity Crown" - God-Tier Spikes & Rays
+            "Ethereal": '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="32" height="32"><path d="M12 2L9 7h6l-3-5zm-5 6l-3 5 5 1-2-6zm10 0l-2 6 5-1-3-5zM4 22h16v-2H4v2zm8-10c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>'
         };
 
         function getRankColor(rankName) {
