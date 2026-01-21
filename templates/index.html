@@ -167,7 +167,6 @@
         }
         .chat-fab:active { transform: scale(0.9); }
         .chat-fab svg { filter: drop-shadow(0 2px 3px rgba(0,0,0,0.1)); }
-        
         @keyframes pastelPulse {
             0% { box-shadow: 0 0 0 0 rgba(192, 132, 252, 0.6); }
             70% { box-shadow: 0 0 0 15px rgba(192, 132, 252, 0); }
@@ -176,54 +175,73 @@
 
         .void-container { position: fixed; bottom: 110px; left: 25px; z-index: 40; transition: all 0.5s ease; }
         .void-fab {
-            width: 60px; height: 60px; border-radius: 50%; background: #000; 
+            width: 60px; height: 60px; border-radius: 50%;
+            background: #000; 
             display: flex; align-items: center; justify-content: center;
-            cursor: pointer; transition: transform 0.3s; animation: voidGlow 3s infinite alternate;
+            cursor: pointer; transition: transform 0.3s; 
+            animation: voidGlow 3s infinite alternate;
         }
         .void-fab:active { transform: scale(0.9); }
         .spin-ccw { animation: spinCCW 8s linear infinite; transform-origin: center; }
         @keyframes spinCCW { from { transform: rotate(360deg); } to { transform: rotate(0deg); } }
         @keyframes voidGlow { from { box-shadow: 0 0 10px rgba(245, 158, 11, 0.3); } to { box-shadow: 0 0 25px rgba(99, 102, 241, 0.6); } }
 
-        /* --- CHAT MODAL (HOLO-PROJECTION) --- */
+        /* --- CHAT MODAL OVERLAY --- */
         .chat-overlay {
-            position: fixed; inset: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.95); z-index: 2000; /* SUPER HIGH Z-INDEX */
-            display: none; /* HARD HIDDEN by default */
-            flex-direction: column; overflow: hidden;
+            position: fixed; inset: 0; 
+            background: rgba(0,0,0,0.6); /* Dimmed backdrop */
+            z-index: 2000; display: none; 
+            align-items: center; justify-content: center;
+            opacity: 0; transition: opacity 0.4s ease;
+            backdrop-filter: blur(5px);
         }
-        
-        /* ACTIVE STATE with ANIMATION */
-        .chat-overlay.active { 
-            display: flex; /* Turn on */
-            animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        .chat-overlay.active { display: flex; opacity: 1; }
+
+        /* --- THE FLOATING MODAL WINDOW --- */
+        .chat-modal-window {
+            width: 90%; max-width: 500px; 
+            height: 80vh; max-height: 800px;
+            background: #111; /* Default dark bg */
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 25px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.9);
+            display: flex; flex-direction: column; overflow: hidden;
+            transform: translateY(50px) scale(0.95);
+            transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
         }
-        
-        @keyframes slideUp {
-            from { opacity: 0; transform: translateY(20px) scale(0.98); }
-            to { opacity: 1; transform: translateY(0) scale(1); }
+        .chat-overlay.active .chat-modal-window { transform: translateY(0) scale(1); }
+
+        /* Specific Mode Styling */
+        .chat-overlay.void-mode .chat-modal-window {
+            background: #000; border: 1px solid rgba(147, 51, 234, 0.2);
+            box-shadow: 0 0 40px rgba(0,0,0,1), inset 0 0 20px rgba(0,0,0,1);
+        }
+        .chat-overlay.ai-mode .chat-modal-window {
+            background: #222831;
         }
 
-        /* Fixed Header inside Modal */
+        /* Fixed Header Inside Modal */
         .chat-header { 
-            flex-shrink: 0; height: 60px; padding: 0 20px; display: flex; 
-            justify-content: space-between; align-items: center; 
-            border-bottom: 1px solid var(--border); background: #222831; 
+            flex-shrink: 0; height: 60px; padding: 0 20px; 
+            display: flex; justify-content: space-between; align-items: center; 
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            background: rgba(255,255,255,0.02);
         }
 
-        /* Fixed Footer inside Modal */
-        .input-area { 
-            flex-shrink: 0; padding: 15px; background: rgba(0,0,0,0.95); 
-            border-top: 1px solid var(--border); display: flex; gap: 10px; 
-            padding-bottom: max(15px, env(safe-area-inset-bottom));
-        }
-
-        /* Middle Scrollable Area */
+        /* Scrollable Area */
         .chat-history { 
             flex: 1; overflow-y: auto; padding: 20px; 
             display: flex; flex-direction: column; 
-            justify-content: flex-end; /* Anchor to bottom */
+            justify-content: flex-end; /* Gravity Anchor */
             gap: 16px; -webkit-overflow-scrolling: touch;
+        }
+
+        /* Fixed Footer Inside Modal */
+        .input-area { 
+            flex-shrink: 0; padding: 15px; 
+            background: rgba(0,0,0,0.3); 
+            border-top: 1px solid rgba(255,255,255,0.05); 
+            display: flex; gap: 10px;
         }
 
         .msg { 
@@ -239,10 +257,8 @@
         .chat-input { flex: 1; background: rgba(255,255,255,0.05); border: 1px solid var(--border); border-radius: 25px; padding: 12px 20px; color: #fff; outline: none; font-size: 16px; }
         .send-btn { background: var(--mood); color: #000; width: 44px; height: 44px; border-radius: 50%; font-weight: bold; display: flex; align-items: center; justify-content: center; }
 
-        /* VOID MODE STYLES */
-        .chat-overlay.void-mode .chat-header { background: transparent; border-bottom: 1px solid rgba(255,255,255,0.1); }
+        /* Void Text Fade */
         .chat-overlay.void-mode .chat-history { 
-            background: transparent; 
             -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 15%);
             mask-image: linear-gradient(to bottom, transparent 0%, black 15%);
         }
@@ -268,7 +284,7 @@
     <div class="app-header">
         <div class="header-left">
             <div class="logo">Celi</div>
-            <div class="version-tag">v2.0.44</div>
+            <div class="version-tag">v2.0.45</div>
         </div>
         <div class="header-right">
             <div class="search-trigger" id="search-trigger">
@@ -331,15 +347,17 @@
         </div>
     </div>
 
-    <div id="chat-overlay" class="chat-overlay">
-        <div class="chat-header">
-            <span id="chat-header-title" class="font-bold tracking-widest text-sm uppercase">Celi Neural Link</span>
-            <div class="close-chat" onclick="closeChat()"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></div>
-        </div>
-        <div id="chat-history" class="chat-history"></div>
-        <div class="input-area">
-            <input type="text" id="chat-input" class="chat-input" placeholder="Transmit signal..." onkeypress="handleEnter(event)">
-            <button onclick="sendMessage()" class="send-btn"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg></button>
+    <div id="chat-overlay" class="chat-overlay" onclick="handleOutsideClick(event)">
+        <div class="chat-modal-window" onclick="event.stopPropagation()">
+            <div class="chat-header">
+                <span id="chat-header-title" class="font-bold tracking-widest text-sm uppercase">Celi Neural Link</span>
+                <div class="close-chat" onclick="closeChat()"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></div>
+            </div>
+            <div id="chat-history" class="chat-history"></div>
+            <div class="input-area">
+                <input type="text" id="chat-input" class="chat-input" placeholder="Transmit signal..." onkeypress="handleEnter(event)">
+                <button onclick="sendMessage()" class="send-btn"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg></button>
+            </div>
         </div>
     </div>
 
@@ -433,20 +451,23 @@
             document.getElementById('chat-header-title').innerText = currentMode === 'rant' ? "THE VOID" : "CELI NEURAL LINK";
         }
 
+        // --- NEW CHAT LOGIC ---
         function openChat(mode) {
             currentMode = mode;
             const overlay = document.getElementById('chat-overlay');
             const title = document.getElementById('chat-header-title');
+            
             if(mode === 'rant') { 
-                overlay.classList.add('void-mode'); 
+                overlay.classList.add('void-mode'); overlay.classList.remove('ai-mode');
                 title.innerText = "THE VOID"; 
                 document.body.classList.add('void-active');
             } else { 
-                overlay.classList.remove('void-mode'); 
+                overlay.classList.remove('void-mode'); overlay.classList.add('ai-mode');
                 title.innerText = "CELI NEURAL LINK"; 
                 document.body.classList.remove('void-active');
             }
-            overlay.classList.add('active'); 
+            
+            overlay.classList.add('active'); // Shows modal
             const c = document.getElementById('chat-history'); c.scrollTop = c.scrollHeight;
             document.getElementById('chat-input').focus();
         }
@@ -455,6 +476,10 @@
             const overlay = document.getElementById('chat-overlay');
             overlay.classList.remove('active');
             document.body.classList.remove('void-active'); 
+        }
+        
+        function handleOutsideClick(e) {
+            if(e.target.id === 'chat-overlay') closeChat();
         }
 
         function renderChatHistory(historyData) {
