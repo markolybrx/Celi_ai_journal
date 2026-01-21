@@ -25,7 +25,7 @@
         /* --- VIEWPORT LOCK --- */
         html, body {
             margin: 0; padding: 0; width: 100%; height: 100%;
-            background: var(--bg); color: #fff; font-family: var(--font-main);
+            background: #000; color: #fff; font-family: var(--font-main);
             overflow: hidden; -webkit-font-smoothing: antialiased; position: fixed;
             transition: background 1s ease;
         }
@@ -54,7 +54,9 @@
         /* --- SCROLLABLE CONTAINER --- */
         #main-view { 
             position: absolute; top: 60px; bottom: 0; left: 0; right: 0;
-            overflow-y: auto; overflow-x: hidden; padding: 20px 20px 0 20px; /* Removed bottom padding to let galaxy touch edge */
+            /* Padding only on sides and top. Bottom is 0 to let galaxy hit edge. */
+            padding: 20px 20px 0 20px; 
+            overflow-y: auto; overflow-x: hidden;
             -webkit-overflow-scrolling: touch; transition: all 0.5s ease;
             z-index: 10; display: flex; flex-direction: column;
         }
@@ -99,44 +101,77 @@
             flex: 1; display: flex; flex-direction: column; min-height: 100%;
         }
 
-        /* --- GALAXY ELEMENTS --- */
-        /* Preview Patch (Stretches to bottom) */
+        /* --- GALAXY ELEMENTS (INFINITE HORIZON) --- */
         .galaxy-patch {
-            margin-top: 20px; flex: 1; /* Fills remaining space */
-            width: 100%; min-height: 200px;
-            border-top-left-radius: 20px; border-top-right-radius: 20px;
-            /* Milky Way Effect */
-            background: radial-gradient(ellipse at bottom, #1e1b4b 0%, #020617 80%),
-                        radial-gradient(circle at 50% 100%, rgba(124, 58, 237, 0.15) 0%, transparent 60%);
-            border-top: 1px solid rgba(255,255,255,0.05);
+            /* Force full width despite parent padding */
+            margin-left: -20px; 
+            margin-right: -20px;
+            width: calc(100% + 40px);
+            
+            /* Fill remaining height */
+            flex: 1; 
+            min-height: 250px;
+            
+            /* Top Curve Only */
+            border-top-left-radius: 25px; 
+            border-top-right-radius: 25px;
+            border-bottom-left-radius: 0;
+            border-bottom-right-radius: 0;
+            
+            /* DEEP SPACE BACKGROUND */
+            background: radial-gradient(ellipse at bottom, #1e1b4b 0%, #020617 60%, #000000 100%),
+                        linear-gradient(to top, rgba(88, 28, 135, 0.2) 0%, transparent 40%);
+            
+            border-top: 1px solid rgba(255,255,255,0.08);
             position: relative; overflow: hidden;
-            display: flex; align-items: flex-end; justify-content: center; padding-bottom: 90px;
+            display: flex; align-items: flex-end; justify-content: center;
+            
+            /* Connect visually to calendar */
+            margin-top: 0px; 
+            box-shadow: inset 0 10px 20px -10px rgba(0,0,0,0.8);
         }
-        /* Dusted Stars */
-        .stars-bg {
-            position: absolute; width: 100%; height: 100%; background: transparent;
-            box-shadow: 10px 10px #fff, 50px 80px #fff, 120px 30px #fff, 200px 90px #fff,
-                        40px 110px #fff, 180px 20px #fff, 250px 60px #fff, 300px 100px #fff,
-                        150px 110px rgba(255,255,255,0.5), 80px 40px rgba(255,255,255,0.5);
-            opacity: 0.6; animation: starDrift 50s linear infinite;
+
+        /* MILKY WAY STAR DUST (Generated via box-shadow for performance/style) */
+        .stars-dust {
+            position: absolute; width: 1px; height: 1px; background: transparent;
+            /* Layer 1: Small Distant Dust */
+            box-shadow: 
+                10vw 10vh #fff, 20vw 80vh #fff, 50vw 30vh #fff, 80vw 60vh #fff,
+                15vw 40vh rgba(255,255,255,0.5), 60vw 20vh rgba(255,255,255,0.5),
+                90vw 90vh rgba(255,255,255,0.3), 30vw 50vh rgba(255,255,255,0.4),
+                40vw 10vh #fff, 70vw 70vh #fff, 5vw 95vh #fff, 95vw 5vh #fff;
+            opacity: 0.4; animation: driftSlow 100s linear infinite;
         }
-        @keyframes starDrift { from { transform: translateY(0); } to { transform: translateY(-50px); } }
-        .galaxy-label { font-size: 10px; text-transform: uppercase; letter-spacing: 2px; opacity: 0.3; }
+        .stars-med {
+            position: absolute; width: 2px; height: 2px; background: transparent;
+            /* Layer 2: Medium Stars */
+            box-shadow: 
+                25vw 25vh #fff, 75vw 75vh #fff, 10vw 90vh #fff, 90vw 10vh #fff,
+                45vw 45vh rgba(200,200,255,0.8), 55vw 85vh rgba(200,200,255,0.6);
+            opacity: 0.6; animation: driftMid 120s linear infinite;
+        }
+        
+        @keyframes driftSlow { from { transform: translateY(0); } to { transform: translateY(-100px); } }
+        @keyframes driftMid { from { transform: translateY(0); } to { transform: translateY(-150px); } }
 
         /* Full Screen Galaxy View */
         #galaxy-view {
             position: fixed; inset: 0; z-index: 45; /* Below Header, Above Main */
             background: #000;
             background-image: 
-                radial-gradient(circle at 50% 50%, rgba(76, 29, 149, 0.2), transparent 70%),
-                radial-gradient(circle at 80% 20%, rgba(56, 189, 248, 0.15), transparent 50%);
+                radial-gradient(circle at 50% 100%, rgba(76, 29, 149, 0.3), transparent 60%),
+                radial-gradient(circle at 80% 20%, rgba(56, 189, 248, 0.15), transparent 50%),
+                radial-gradient(circle at 20% 60%, rgba(236, 72, 153, 0.15), transparent 40%);
             display: flex; flex-direction: column;
             opacity: 0; pointer-events: none; transition: opacity 0.8s ease;
             overflow-y: auto; padding-top: 80px; padding-bottom: 100px;
         }
+        /* Add dust to full view too */
+        #galaxy-view .stars-dust { opacity: 0.6; }
+
         .galaxy-grid {
             display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-            gap: 30px 20px; padding: 20px; width: 100%; max-width: 1000px; margin: 0 auto;
+            gap: 30px 20px; padding: 20px; width: 100%; max-width: 1000px; margin: 0 auto; z-index: 2;
         }
 
         /* Constellation Item */
@@ -178,7 +213,7 @@
         /* --- CALENDAR --- */
         .calendar-card {
             background: var(--glass); border: 1px solid var(--border);
-            border-radius: 20px; padding: 15px; margin-bottom: 0; /* Removing margin to connect with galaxy */
+            border-radius: 20px; padding: 15px; margin-bottom: 0; /* FLUSH WITH GALAXY */
             backdrop-filter: blur(20px); min-height: 260px;
             box-shadow: 0 15px 40px -10px rgba(0,0,0,0.5); z-index: 2; position: relative;
         }
@@ -196,9 +231,10 @@
         .bottom-dock {
             position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
             width: 90%; max-width: 600px; height: 75px;
-            background: rgba(20, 20, 25, 0.8); backdrop-filter: blur(25px); 
+            /* Translucent Glass */
+            background: rgba(20, 20, 25, 0.6); backdrop-filter: blur(25px); 
             border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 30px; z-index: 60;
-            box-shadow: 0 15px 40px rgba(0,0,0,0.8);
+            box-shadow: 0 15px 40px rgba(0,0,0,0.5);
             display: flex; align-items: center; justify-content: space-between; padding: 0 25px;
             transition: all 0.3s ease;
         }
@@ -210,7 +246,6 @@
         .fab-container { position: fixed; bottom: 110px; right: 25px; z-index: 40; transition: all 0.3s ease; }
         .chat-fab { width: 60px; height: 60px; border-radius: 50%; background: linear-gradient(135deg, #f9a8d4, #c084fc); border: none; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: transform 0.3s; color: #fff; animation: pastelPulse 3s infinite; box-shadow: 0 4px 20px rgba(192, 132, 252, 0.4); }
         .chat-fab:active { transform: scale(0.9); }
-        .chat-fab svg { filter: drop-shadow(0 2px 3px rgba(0,0,0,0.1)); }
         @keyframes pastelPulse { 0% { box-shadow: 0 0 0 0 rgba(192, 132, 252, 0.6); } 70% { box-shadow: 0 0 0 15px rgba(192, 132, 252, 0); } 100% { box-shadow: 0 0 0 0 rgba(192, 132, 252, 0); } }
 
         .void-container { position: fixed; bottom: 110px; left: 25px; z-index: 40; transition: all 0.3s ease; }
@@ -263,6 +298,8 @@
     <div id="void-vignette"></div>
     
     <div id="galaxy-view">
+        <div class="stars-dust"></div>
+        <div class="stars-med"></div>
         <div class="galaxy-grid" id="galaxy-grid-container">
             </div>
         <div style="height: 100px;"></div>
@@ -271,7 +308,7 @@
     <div class="app-header">
         <div class="header-left">
             <div class="logo">Celi</div>
-            <div class="version-tag">v2.0.52</div>
+            <div class="version-tag">v2.0.53</div>
         </div>
         <div class="header-right">
             <div class="search-trigger" id="search-trigger"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg></div>
@@ -301,8 +338,8 @@
             </div>
             
             <div class="galaxy-patch">
-                <div class="stars-bg"></div>
-                <div class="galaxy-label">Milky Way Sector</div>
+                <div class="stars-dust"></div>
+                <div class="stars-med"></div>
             </div>
         </div>
     </div>
@@ -361,7 +398,7 @@
     </div>
 
     <script>
-        // --- CORE VARIABLES ---
+        // --- VARIABLES ---
         let isProcessing = false;
         let currentCalendarDate = new Date();
         let fullChatHistory = {}; 
@@ -422,50 +459,31 @@
             if(galaxyMode) {
                 document.body.classList.add('galaxy-mode');
                 btn.innerText = "Close Galaxy";
-                // INIT CONSTELLATIONS IF FIRST TIME
-                if (!constellationsInitialized) {
-                    initConstellations();
-                    constellationsInitialized = true;
-                }
+                if (!constellationsInitialized) { initConstellations(); constellationsInitialized = true; }
             } else {
                 document.body.classList.remove('galaxy-mode');
                 btn.innerText = "View Galaxy";
             }
         }
 
-        // --- CONSTELLATION DRAWING ---
         function initConstellations() {
             const container = document.getElementById('galaxy-grid-container');
             container.innerHTML = '';
-            
             constellationData.forEach((con, index) => {
                 const item = document.createElement('div');
                 item.className = 'constellation-item';
-                item.innerHTML = `
-                    <div class="star-circle">
-                        <canvas id="con-canvas-${index}"></canvas>
-                    </div>
-                    <div class="con-name">${con.name}</div>
-                    <div class="star-count">${con.stars} Stars</div>
-                `;
+                item.innerHTML = `<div class="star-circle"><canvas id="con-canvas-${index}"></canvas></div><div class="con-name">${con.name}</div><div class="star-count">${con.stars} Stars</div>`;
                 container.appendChild(item);
-                
-                // Draw after layout
-                requestAnimationFrame(() => {
-                    const canvas = document.getElementById(`con-canvas-${index}`);
-                    drawDetailedConstellation(canvas, con);
-                });
+                requestAnimationFrame(() => { const canvas = document.getElementById(`con-canvas-${index}`); drawDetailedConstellation(canvas, con); });
             });
         }
 
         function drawDetailedConstellation(canvas, data) {
             const rect = canvas.parentNode.getBoundingClientRect();
             canvas.width = rect.width * 2; canvas.height = rect.height * 2;
-            const ctx = canvas.getContext('2d');
-            ctx.scale(2, 2);
+            const ctx = canvas.getContext('2d'); ctx.scale(2, 2);
             const w = rect.width; const h = rect.height;
 
-            // 1. Draw Detailed Vector Origin Layers
             if (data.figureLayers) {
                 data.figureLayers.forEach(layer => {
                     ctx.beginPath();
@@ -477,20 +495,11 @@
                         else if (cmd.op === 'C') ctx.bezierCurveTo(args[0], args[1], args[2], args[3], args[4], args[5]);
                         else if (cmd.op === 'Z') ctx.closePath();
                     });
-
-                    if (layer.type === 'fill') {
-                        ctx.fillStyle = layer.color;
-                        ctx.fill();
-                        ctx.shadowBlur = 10; ctx.shadowColor = layer.color; ctx.fill(); ctx.shadowBlur = 0;
-                    } else if (layer.type === 'stroke') {
-                        ctx.strokeStyle = layer.color;
-                        ctx.lineWidth = layer.width;
-                        ctx.stroke();
-                    }
+                    if (layer.type === 'fill') { ctx.fillStyle = layer.color; ctx.fill(); ctx.shadowBlur = 10; ctx.shadowColor = layer.color; ctx.fill(); ctx.shadowBlur = 0; }
+                    else if (layer.type === 'stroke') { ctx.strokeStyle = layer.color; ctx.lineWidth = layer.width; ctx.stroke(); }
                 });
             }
 
-            // 2. Connection Lines
             ctx.strokeStyle = "rgba(255, 255, 255, 0.5)"; ctx.lineWidth = 1;
             ctx.beginPath();
             data.lines.forEach(pair => {
@@ -499,13 +508,10 @@
             });
             ctx.stroke();
 
-            // 3. Stars
             data.points.forEach(p => {
                 const px = p.x * w; const py = p.y * h;
                 const glow = ctx.createRadialGradient(px, py, 0.5, px, py, 6);
-                glow.addColorStop(0, "rgba(255, 255, 255, 1)");
-                glow.addColorStop(0.4, "rgba(200, 220, 255, 0.5)");
-                glow.addColorStop(1, "rgba(255, 255, 255, 0)");
+                glow.addColorStop(0, "rgba(255, 255, 255, 1)"); glow.addColorStop(0.4, "rgba(200, 220, 255, 0.5)"); glow.addColorStop(1, "rgba(255, 255, 255, 0)");
                 ctx.beginPath(); ctx.arc(px, py, 6, 0, Math.PI * 2); ctx.fillStyle = glow; ctx.fill();
                 ctx.beginPath(); ctx.arc(px, py, 1.5, 0, Math.PI * 2); ctx.fillStyle = "#fff"; ctx.fill();
             });
@@ -520,13 +526,6 @@
             return "#00f2fe";
         }
         
-        // ... (Remaining Logic for Chat, Calendar, Rank, same as before) ...
-        const rankIcons = { "Observer": '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="32" height="32"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>' }; // ... (Truncated for space, full list in previous msg)
-
-        // Standard listeners & functions (openChat, closeChat, etc...) would remain here as in previous iteration.
-        // For brevity, I assume they are preserved or I can paste them if needed. 
-        // Just keeping the new Galaxy logic focused.
-        
         function handleOutsideClick(e) { if(e.target.id === 'chat-overlay') closeChat(); }
         function handleWindowClick(e) { e.stopPropagation(); if(isDocked) toggleDock(e); }
         function closeChat(e) { if(e) e.stopPropagation(); document.getElementById('chat-overlay').classList.remove('active'); document.getElementById('chat-overlay').classList.remove('docked'); isDocked=false; document.body.classList.remove('void-active'); document.body.classList.remove('chat-open'); }
@@ -536,11 +535,8 @@
         function openModal(id) { document.getElementById(id).style.display = 'flex'; }
         function closeModal(id) { document.getElementById(id).style.display = 'none'; }
         
-        window.onload = loadData; // Assuming loadData is defined as before
-        function loadData() {
-             // Mock data load to init calendar
-             renderCalendar();
-        }
+        window.onload = loadData; 
+        function loadData() { renderCalendar(); }
         function renderCalendar() {
             const grid = document.getElementById('cal-grid'); if(!grid) return; grid.innerHTML='';
             const now = new Date(); document.getElementById('cal-month-year').innerText = "JANUARY 2026";
