@@ -21,31 +21,50 @@
             --font-main: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
         }
 
-        /* --- VIEWPORT LOCK (App Shell) --- */
+        /* --- VIEWPORT LOCK --- */
         html, body {
             margin: 0; padding: 0; width: 100%; height: 100%;
             background: var(--bg); color: #fff; font-family: var(--font-main);
             overflow: hidden; -webkit-font-smoothing: antialiased; position: fixed;
+            transition: background 1s ease;
         }
         
         ::-webkit-scrollbar { width: 4px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 10px; }
 
+        /* --- VOID VIGNETTE --- */
+        #void-vignette {
+            position: fixed; inset: 0; pointer-events: none; z-index: 90;
+            background: radial-gradient(circle at center, transparent 30%, #000 100%);
+            opacity: 0; transition: opacity 0.8s ease;
+        }
+        
+        body.void-active #main-view, 
+        body.void-active .app-header, 
+        body.void-active .bottom-dock,
+        body.void-active .fab-container,
+        body.void-active .void-container {
+            filter: grayscale(100%) blur(3px) brightness(0.5);
+            transform: scale(0.95);
+            transition: all 0.8s cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
+        body.void-active #void-vignette { opacity: 1; }
+
         /* --- SCROLLABLE CONTAINER --- */
         #main-view { 
             position: absolute; top: 60px; bottom: 0; left: 0; right: 0;
             overflow-y: auto; overflow-x: hidden; padding: 20px 20px 120px 20px;
-            -webkit-overflow-scrolling: touch;
+            -webkit-overflow-scrolling: touch; transition: all 0.5s ease;
         }
         
-        /* --- HEADER (60px) --- */
+        /* --- HEADER --- */
         .app-header { 
             position: absolute; top: 0; left: 0; width: 100%; height: 60px;
             background: rgba(0,0,0,0.3); backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px);
             border-bottom: 1px solid rgba(255,255,255,0.05);
             display: flex; justify-content: space-between; align-items: center; 
-            padding: 0 20px; z-index: 50;
+            padding: 0 20px; z-index: 50; transition: all 0.5s ease;
         }
         .header-left { display: flex; align-items: center; gap: 8px; }
         .logo { font-size: 22px; font-weight: 900; letter-spacing: -1px; color: #fff; line-height: 1; }
@@ -133,45 +152,62 @@
             border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 30px; z-index: 30;
             box-shadow: 0 15px 40px rgba(0,0,0,0.8);
             display: flex; align-items: center; justify-content: center; padding: 0 25px;
+            transition: all 0.5s ease;
         }
         .dock-label { font-size: 10px; color: rgba(255,255,255,0.3); letter-spacing: 2px; text-transform: uppercase; font-weight: bold; }
 
-        /* --- FABS --- */
-        .fab-container { position: fixed; bottom: 110px; right: 25px; z-index: 40; }
+        /* --- AI CHAT FAB (UPDATED) --- */
+        .fab-container { position: fixed; bottom: 110px; right: 25px; z-index: 40; transition: all 0.5s ease; }
         .chat-fab {
             width: 60px; height: 60px; border-radius: 50%;
-            background: #f472b6; border: 2px solid rgba(255,255,255,0.5);
+            /* Matte Pastel Pink/Purple Gradient */
+            background: linear-gradient(135deg, #f9a8d4, #c084fc);
+            border: none; /* Removed white border */
             display: flex; align-items: center; justify-content: center;
-            cursor: pointer; transition: transform 0.3s; color: #fff; animation: pinkPulse 2s infinite;
+            cursor: pointer; transition: transform 0.3s; color: #fff; 
+            /* Soft Pulse */
+            animation: pastelPulse 3s infinite;
+            box-shadow: 0 4px 20px rgba(192, 132, 252, 0.4);
         }
         .chat-fab:active { transform: scale(0.9); }
-        .chat-fab svg { filter: drop-shadow(0 2px 3px rgba(0,0,0,0.2)); }
+        .chat-fab svg { filter: drop-shadow(0 2px 3px rgba(0,0,0,0.1)); }
         
-        @keyframes pinkPulse {
-            0% { box-shadow: 0 0 0 0 rgba(244, 114, 182, 0.7); }
-            70% { box-shadow: 0 0 0 15px rgba(244, 114, 182, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(244, 114, 182, 0); }
+        @keyframes pastelPulse {
+            0% { box-shadow: 0 0 0 0 rgba(192, 132, 252, 0.6); }
+            70% { box-shadow: 0 0 0 15px rgba(192, 132, 252, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(192, 132, 252, 0); }
         }
 
-        .void-container { position: fixed; bottom: 110px; left: 25px; z-index: 40; }
+        /* --- VOID FAB --- */
+        .void-container { position: fixed; bottom: 110px; left: 25px; z-index: 40; transition: all 0.5s ease; }
         .void-fab {
             width: 60px; height: 60px; border-radius: 50%;
-            background: #000; border: 1px solid rgba(255,255,255,0.1);
-            box-shadow: 0 0 30px rgba(168, 85, 247, 0.4);
+            background: #000; 
             display: flex; align-items: center; justify-content: center;
-            cursor: pointer; transition: transform 0.3s; overflow: hidden;
+            cursor: pointer; transition: transform 0.3s; 
+            animation: voidGlow 3s infinite alternate;
         }
         .void-fab:active { transform: scale(0.9); }
-        .spin-ccw { animation: spinCCW 3s linear infinite; transform-origin: center; }
+        
+        .spin-ccw { animation: spinCCW 8s linear infinite; transform-origin: center; }
         @keyframes spinCCW { from { transform: rotate(360deg); } to { transform: rotate(0deg); } }
+        @keyframes voidGlow {
+            from { box-shadow: 0 0 10px rgba(245, 158, 11, 0.3); }
+            to { box-shadow: 0 0 25px rgba(99, 102, 241, 0.6); }
+        }
 
         /* --- CHAT --- */
         .chat-overlay {
             position: fixed; inset: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.95); z-index: 100;
-            backdrop-filter: blur(15px); display: none; flex-direction: column; 
-            opacity: 0; transition: opacity 0.3s ease; overflow: hidden;
+            background: rgba(0,0,0,0.0);
+            z-index: 100; pointer-events: none;
+            display: flex; flex-direction: column; 
+            opacity: 0; transition: opacity 0.5s ease, background 0.5s ease; 
+            overflow: hidden;
         }
+        .chat-overlay.active { opacity: 1; pointer-events: all; background: rgba(0,0,0,0.95); }
+        .chat-overlay.void-mode.active { background: rgba(0,0,0,0.95); } 
+
         .chat-header { 
             flex-shrink: 0; height: 60px; padding: 0 20px; display: flex; 
             justify-content: space-between; align-items: center; 
@@ -193,8 +229,16 @@
         .chat-input { flex: 1; background: rgba(255,255,255,0.05); border: 1px solid var(--border); border-radius: 25px; padding: 12px 20px; color: #fff; outline: none; font-size: 16px; }
         .send-btn { background: var(--mood); color: #000; width: 44px; height: 44px; border-radius: 50%; font-weight: bold; display: flex; align-items: center; justify-content: center; }
 
-        .chat-overlay.void-mode .chat-header { background: #000; border-bottom: 1px solid rgba(255,255,255,0.1); }
-        .chat-overlay.void-mode .chat-history { background: radial-gradient(circle at center, #111, #000); }
+        /* VOID MODE STYLES */
+        .chat-overlay.void-mode .chat-header { background: transparent; border-bottom: 1px solid rgba(255,255,255,0.1); }
+        
+        /* GRAVITATIONAL TEXT FALLOFF (Void Only) */
+        .chat-overlay.void-mode .chat-history { 
+            background: transparent; 
+            /* Fade out top messages */
+            -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 15%);
+            mask-image: linear-gradient(to bottom, transparent 0%, black 15%);
+        }
 
         /* --- MODALS --- */
         .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.95); z-index: 110; display: none; align-items: center; justify-content: center; padding: 20px; backdrop-filter: blur(8px); }
@@ -212,11 +256,13 @@
 <body>
 
     <div id="loading-overlay"><div class="spinner"></div><p id="loading-text" class="text-xs uppercase tracking-widest text-white/50 mt-4">Syncing...</p></div>
+    
+    <div id="void-vignette"></div>
 
     <div class="app-header">
         <div class="header-left">
             <div class="logo">Celi</div>
-            <div class="version-tag">v2.0.38</div>
+            <div class="version-tag">v2.0.41</div>
         </div>
         <div class="header-right">
             <div class="search-trigger" id="search-trigger">
@@ -257,10 +303,14 @@
 
     <div class="void-container" onclick="openChat('void')">
         <div class="void-fab">
-            <svg width="40" height="40" viewBox="0 0 24 24" fill="none">
-                <circle cx="12" cy="12" r="4" fill="black" />
-                <defs><linearGradient id="voidRing" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#facc15" /><stop offset="50%" stop-color="#f97316" /><stop offset="100%" stop-color="#9333ea" /></linearGradient></defs>
-                <circle cx="12" cy="12" r="8" stroke="url(#voidRing)" stroke-width="2.5" class="spin-ccw" />
+            <svg width="60" height="60" viewBox="0 0 100 100" fill="none">
+                <defs><linearGradient id="accretionGrad" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#f59e0b" /><stop offset="50%" stop-color="#d946ef" /><stop offset="100%" stop-color="#6366f1" /></linearGradient></defs>
+                <g class="spin-ccw" style="transform-origin: 50px 50px;">
+                    <circle cx="50" cy="50" r="46" stroke="url(#accretionGrad)" stroke-width="4" fill="none" opacity="0.9" />
+                    <circle cx="50" cy="50" r="40" stroke="white" stroke-width="1" stroke-dasharray="20 60" opacity="0.6" />
+                    <circle cx="50" cy="50" r="32" stroke="white" stroke-width="0.5" stroke-dasharray="50 40" opacity="0.4" />
+                </g>
+                <circle cx="50" cy="50" r="25" fill="black" />
             </svg>
         </div>
     </div>
@@ -268,7 +318,8 @@
     <div class="fab-container" onclick="openChat('ai')">
         <div class="chat-fab">
             <svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <g transform="rotate(-90 12 12)"> <path d="M12 19l7-7 3 3-7 7-3-3z" />
+              <g transform="rotate(-90 12 12)">
+                <path d="M12 19l7-7 3 3-7 7-3-3z" />
                 <path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z" />
                 <path d="M2 2l7.586 7.586" />
                 <circle cx="11" cy="11" r="2" fill="white" stroke="none" opacity="0.6"/>
@@ -370,7 +421,7 @@
             });
             if(found) {
                 renderChatHistory(filtered);
-                if(document.getElementById('chat-overlay').style.display !== 'flex') openChat('ai');
+                if(document.getElementById('chat-overlay').style.opacity === '0') openChat('ai');
                 document.getElementById('chat-header-title').innerText = "SEARCH RESULTS";
             }
         }
@@ -384,16 +435,24 @@
             currentMode = mode;
             const overlay = document.getElementById('chat-overlay');
             const title = document.getElementById('chat-header-title');
-            if(mode === 'rant') { overlay.classList.add('void-mode'); title.innerText = "THE VOID"; } 
-            else { overlay.classList.remove('void-mode'); title.innerText = "CELI NEURAL LINK"; }
-            overlay.style.display = 'flex'; void overlay.offsetWidth; overlay.style.opacity = '1';
+            if(mode === 'rant') { 
+                overlay.classList.add('void-mode'); 
+                title.innerText = "THE VOID"; 
+                document.body.classList.add('void-active');
+            } else { 
+                overlay.classList.remove('void-mode'); 
+                title.innerText = "CELI NEURAL LINK"; 
+                document.body.classList.remove('void-active');
+            }
+            overlay.classList.add('active'); 
             const c = document.getElementById('chat-history'); c.scrollTop = c.scrollHeight;
             document.getElementById('chat-input').focus();
         }
 
         function closeChat() {
             const overlay = document.getElementById('chat-overlay');
-            overlay.style.opacity = '0'; setTimeout(() => { overlay.style.display = 'none'; }, 300);
+            overlay.classList.remove('active');
+            document.body.classList.remove('void-active'); 
         }
 
         function renderChatHistory(historyData) {
