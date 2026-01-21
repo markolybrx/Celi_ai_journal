@@ -156,29 +156,26 @@
         }
         .dock-label { font-size: 10px; color: rgba(255,255,255,0.3); letter-spacing: 2px; text-transform: uppercase; font-weight: bold; }
 
-        /* --- AI CHAT FAB (UPDATED) --- */
+        /* --- AI CHAT FAB (Matte Pastel + Glow) --- */
         .fab-container { position: fixed; bottom: 110px; right: 25px; z-index: 40; transition: all 0.5s ease; }
         .chat-fab {
             width: 60px; height: 60px; border-radius: 50%;
-            /* Matte Pastel Pink/Purple Gradient */
             background: linear-gradient(135deg, #f9a8d4, #c084fc);
-            border: none; /* Removed white border */
+            border: none; 
             display: flex; align-items: center; justify-content: center;
             cursor: pointer; transition: transform 0.3s; color: #fff; 
-            /* Soft Pulse */
             animation: pastelPulse 3s infinite;
             box-shadow: 0 4px 20px rgba(192, 132, 252, 0.4);
         }
         .chat-fab:active { transform: scale(0.9); }
         .chat-fab svg { filter: drop-shadow(0 2px 3px rgba(0,0,0,0.1)); }
-        
         @keyframes pastelPulse {
             0% { box-shadow: 0 0 0 0 rgba(192, 132, 252, 0.6); }
             70% { box-shadow: 0 0 0 15px rgba(192, 132, 252, 0); }
             100% { box-shadow: 0 0 0 0 rgba(192, 132, 252, 0); }
         }
 
-        /* --- VOID FAB --- */
+        /* --- VOID FAB (Interstellar) --- */
         .void-container { position: fixed; bottom: 110px; left: 25px; z-index: 40; transition: all 0.5s ease; }
         .void-fab {
             width: 60px; height: 60px; border-radius: 50%;
@@ -188,7 +185,6 @@
             animation: voidGlow 3s infinite alternate;
         }
         .void-fab:active { transform: scale(0.9); }
-        
         .spin-ccw { animation: spinCCW 8s linear infinite; transform-origin: center; }
         @keyframes spinCCW { from { transform: rotate(360deg); } to { transform: rotate(0deg); } }
         @keyframes voidGlow {
@@ -196,7 +192,7 @@
             to { box-shadow: 0 0 25px rgba(99, 102, 241, 0.6); }
         }
 
-        /* --- CHAT --- */
+        /* --- CHAT MODAL (GRAVITY ANCHOR) --- */
         .chat-overlay {
             position: fixed; inset: 0; width: 100%; height: 100%;
             background: rgba(0,0,0,0.0);
@@ -208,19 +204,40 @@
         .chat-overlay.active { opacity: 1; pointer-events: all; background: rgba(0,0,0,0.95); }
         .chat-overlay.void-mode.active { background: rgba(0,0,0,0.95); } 
 
+        /* FIXED HEADER */
         .chat-header { 
             flex-shrink: 0; height: 60px; padding: 0 20px; display: flex; 
             justify-content: space-between; align-items: center; 
             border-bottom: 1px solid var(--border); background: #222831; 
         }
+
+        /* SCROLLABLE MESSAGES (GRAVITY ANCHORED) */
         .chat-history { 
-            flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 16px; 
+            flex: 1; 
+            overflow-y: auto; 
+            padding: 20px; 
+            display: flex; 
+            flex-direction: column; 
+            justify-content: flex-end; /* CRITICAL: Anchors content to bottom */
+            gap: 16px; 
             -webkit-overflow-scrolling: touch;
         }
-        .msg { max-width: 85%; padding: 14px 18px; border-radius: 20px; font-size: 13.5px; line-height: 1.55; word-wrap: break-word; animation: fadeIn 0.3s ease; }
+
+        /* Message Bubbles */
+        .msg { 
+            max-width: 85%; padding: 14px 18px; border-radius: 20px; 
+            font-size: 13.5px; line-height: 1.55; word-wrap: break-word; 
+            animation: bubblePop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; /* Spring pop */
+            opacity: 0; transform: scale(0.9);
+        }
+        @keyframes bubblePop {
+            to { opacity: 1; transform: scale(1); }
+        }
+
         .msg-user { align-self: flex-end; background: var(--mood); color: #000; border-bottom-right-radius: 4px; font-weight: 600; }
         .msg-ai { align-self: flex-start; background: rgba(255,255,255,0.08); color: #eee; border-bottom-left-radius: 4px; border: 1px solid rgba(255,255,255,0.05); }
         
+        /* FIXED FOOTER */
         .input-area { 
             flex-shrink: 0; padding: 15px; background: rgba(0,0,0,0.95); 
             border-top: 1px solid var(--border); display: flex; gap: 10px; 
@@ -231,11 +248,8 @@
 
         /* VOID MODE STYLES */
         .chat-overlay.void-mode .chat-header { background: transparent; border-bottom: 1px solid rgba(255,255,255,0.1); }
-        
-        /* GRAVITATIONAL TEXT FALLOFF (Void Only) */
         .chat-overlay.void-mode .chat-history { 
             background: transparent; 
-            /* Fade out top messages */
             -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 15%);
             mask-image: linear-gradient(to bottom, transparent 0%, black 15%);
         }
@@ -250,7 +264,6 @@
         #loading-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.95); z-index: 200; display: flex; align-items: center; justify-content: center; flex-direction: column; display: none; }
         .spinner { width: 40px; height: 40px; border: 2px solid rgba(255,255,255,0.1); border-top-color: var(--mood); border-radius: 50%; animation: spin 0.8s infinite linear; }
         @keyframes spin { to { transform: rotate(360deg); } }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
 <body>
@@ -262,7 +275,7 @@
     <div class="app-header">
         <div class="header-left">
             <div class="logo">Celi</div>
-            <div class="version-tag">v2.0.41</div>
+            <div class="version-tag">v2.0.42</div>
         </div>
         <div class="header-right">
             <div class="search-trigger" id="search-trigger">
@@ -468,6 +481,7 @@
             });
             container.appendChild(fragment);
             if(recentKeys.length === 0) container.appendChild(createMsgEl("Hello. I am Celi. Tap the void to begin.", 'ai'));
+            // With justify-content: flex-end, we don't strictly need scrollTop but good to keep
             requestAnimationFrame(() => container.scrollTop = container.scrollHeight);
         }
 
