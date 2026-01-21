@@ -156,7 +156,7 @@
         }
         .dock-label { font-size: 10px; color: rgba(255,255,255,0.3); letter-spacing: 2px; text-transform: uppercase; font-weight: bold; }
 
-        /* --- AI CHAT FAB (Matte Pastel + Glow) --- */
+        /* --- AI CHAT FAB --- */
         .fab-container { position: fixed; bottom: 110px; right: 25px; z-index: 40; transition: all 0.5s ease; }
         .chat-fab {
             width: 60px; height: 60px; border-radius: 50%;
@@ -175,7 +175,7 @@
             100% { box-shadow: 0 0 0 0 rgba(192, 132, 252, 0); }
         }
 
-        /* --- VOID FAB (Interstellar) --- */
+        /* --- VOID FAB (UPDATED) --- */
         .void-container { position: fixed; bottom: 110px; left: 25px; z-index: 40; transition: all 0.5s ease; }
         .void-fab {
             width: 60px; height: 60px; border-radius: 50%;
@@ -185,14 +185,15 @@
             animation: voidGlow 3s infinite alternate;
         }
         .void-fab:active { transform: scale(0.9); }
-        .spin-ccw { animation: spinCCW 8s linear infinite; transform-origin: center; }
+        
+        .spin-ccw { animation: spinCCW 3s linear infinite; transform-origin: center; }
         @keyframes spinCCW { from { transform: rotate(360deg); } to { transform: rotate(0deg); } }
         @keyframes voidGlow {
             from { box-shadow: 0 0 10px rgba(245, 158, 11, 0.3); }
             to { box-shadow: 0 0 25px rgba(99, 102, 241, 0.6); }
         }
 
-        /* --- CHAT MODAL (GRAVITY ANCHOR) --- */
+        /* --- CHAT MODAL --- */
         .chat-overlay {
             position: fixed; inset: 0; width: 100%; height: 100%;
             background: rgba(0,0,0,0.0);
@@ -211,28 +212,20 @@
             border-bottom: 1px solid var(--border); background: #222831; 
         }
 
-        /* SCROLLABLE MESSAGES (GRAVITY ANCHORED) */
+        /* SCROLLABLE MESSAGES */
         .chat-history { 
-            flex: 1; 
-            overflow-y: auto; 
-            padding: 20px; 
-            display: flex; 
-            flex-direction: column; 
-            justify-content: flex-end; /* CRITICAL: Anchors content to bottom */
-            gap: 16px; 
-            -webkit-overflow-scrolling: touch;
+            flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; 
+            justify-content: flex-end; gap: 16px; -webkit-overflow-scrolling: touch;
         }
 
         /* Message Bubbles */
         .msg { 
             max-width: 85%; padding: 14px 18px; border-radius: 20px; 
             font-size: 13.5px; line-height: 1.55; word-wrap: break-word; 
-            animation: bubblePop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; /* Spring pop */
+            animation: bubblePop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
             opacity: 0; transform: scale(0.9);
         }
-        @keyframes bubblePop {
-            to { opacity: 1; transform: scale(1); }
-        }
+        @keyframes bubblePop { to { opacity: 1; transform: scale(1); } }
 
         .msg-user { align-self: flex-end; background: var(--mood); color: #000; border-bottom-right-radius: 4px; font-weight: 600; }
         .msg-ai { align-self: flex-start; background: rgba(255,255,255,0.08); color: #eee; border-bottom-left-radius: 4px; border: 1px solid rgba(255,255,255,0.05); }
@@ -275,7 +268,7 @@
     <div class="app-header">
         <div class="header-left">
             <div class="logo">Celi</div>
-            <div class="version-tag">v2.0.42</div>
+            <div class="version-tag">v2.0.43</div>
         </div>
         <div class="header-right">
             <div class="search-trigger" id="search-trigger">
@@ -316,14 +309,16 @@
 
     <div class="void-container" onclick="openChat('void')">
         <div class="void-fab">
-            <svg width="60" height="60" viewBox="0 0 100 100" fill="none">
-                <defs><linearGradient id="accretionGrad" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#f59e0b" /><stop offset="50%" stop-color="#d946ef" /><stop offset="100%" stop-color="#6366f1" /></linearGradient></defs>
-                <g class="spin-ccw" style="transform-origin: 50px 50px;">
-                    <circle cx="50" cy="50" r="46" stroke="url(#accretionGrad)" stroke-width="4" fill="none" opacity="0.9" />
-                    <circle cx="50" cy="50" r="40" stroke="white" stroke-width="1" stroke-dasharray="20 60" opacity="0.6" />
-                    <circle cx="50" cy="50" r="32" stroke="white" stroke-width="0.5" stroke-dasharray="50 40" opacity="0.4" />
-                </g>
-                <circle cx="50" cy="50" r="25" fill="black" />
+            <svg width="44" height="44" viewBox="0 0 24 24" fill="none">
+                <defs>
+                    <linearGradient id="voidGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" stop-color="#facc15" /> 
+                        <stop offset="40%" stop-color="#f97316" /> 
+                        <stop offset="100%" stop-color="#9333ea" /> 
+                    </linearGradient>
+                </defs>
+                <circle cx="12" cy="12" r="11" fill="url(#voidGradient)" class="spin-ccw" />
+                <circle cx="12" cy="12" r="5" fill="black" />
             </svg>
         </div>
     </div>
@@ -481,7 +476,6 @@
             });
             container.appendChild(fragment);
             if(recentKeys.length === 0) container.appendChild(createMsgEl("Hello. I am Celi. Tap the void to begin.", 'ai'));
-            // With justify-content: flex-end, we don't strictly need scrollTop but good to keep
             requestAnimationFrame(() => container.scrollTop = container.scrollHeight);
         }
 
