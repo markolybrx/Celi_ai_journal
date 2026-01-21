@@ -175,11 +175,9 @@
 
         .void-container { position: fixed; bottom: 110px; left: 25px; z-index: 40; transition: all 0.5s ease; }
         .void-fab {
-            width: 60px; height: 60px; border-radius: 50%;
-            background: #000; 
+            width: 60px; height: 60px; border-radius: 50%; background: #000; 
             display: flex; align-items: center; justify-content: center;
-            cursor: pointer; transition: transform 0.3s; 
-            animation: voidGlow 3s infinite alternate;
+            cursor: pointer; transition: transform 0.3s; animation: voidGlow 3s infinite alternate;
         }
         .void-fab:active { transform: scale(0.9); }
         .spin-ccw { animation: spinCCW 8s linear infinite; transform-origin: center; }
@@ -188,60 +186,69 @@
 
         /* --- CHAT MODAL OVERLAY --- */
         .chat-overlay {
-            position: fixed; inset: 0; 
-            background: rgba(0,0,0,0.6); /* Dimmed backdrop */
-            z-index: 2000; display: none; 
-            align-items: center; justify-content: center;
-            opacity: 0; transition: opacity 0.4s ease;
-            backdrop-filter: blur(5px);
+            position: fixed; inset: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.6); z-index: 2000; 
+            display: none; align-items: center; justify-content: center;
+            opacity: 0; transition: opacity 0.4s ease; backdrop-filter: blur(5px);
         }
         .chat-overlay.active { display: flex; opacity: 1; }
+
+        /* DOCKED STATE OVERRIDES */
+        .chat-overlay.docked {
+            background: transparent !important;
+            backdrop-filter: none !important;
+            pointer-events: none; /* Let clicks pass through backdrop */
+            align-items: flex-end; /* Push to bottom */
+            padding-bottom: 0;
+        }
 
         /* --- THE FLOATING MODAL WINDOW --- */
         .chat-modal-window {
             width: 90%; max-width: 500px; 
             height: 80vh; max-height: 800px;
-            background: #111; /* Default dark bg */
-            border: 1px solid rgba(255,255,255,0.1);
-            border-radius: 25px;
+            background: #111; 
+            border: 1px solid rgba(255,255,255,0.1); border-radius: 25px;
             box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.9);
             display: flex; flex-direction: column; overflow: hidden;
             transform: translateY(50px) scale(0.95);
-            transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
         }
         .chat-overlay.active .chat-modal-window { transform: translateY(0) scale(1); }
+
+        /* DOCKED WINDOW STYLES */
+        .chat-overlay.docked .chat-modal-window {
+            pointer-events: all; /* Make header clickable */
+            height: 60px; /* Collapse to header height */
+            transform: translateY(0); /* Stick to bottom */
+            border-bottom-left-radius: 0; border-bottom-right-radius: 0;
+            width: 100%; max-width: 100%; /* Full width bar */
+            margin-bottom: 0;
+            cursor: pointer;
+        }
+        .chat-overlay.docked .chat-history, 
+        .chat-overlay.docked .input-area { display: none; } /* Hide content */
 
         /* Specific Mode Styling */
         .chat-overlay.void-mode .chat-modal-window {
             background: #000; border: 1px solid rgba(147, 51, 234, 0.2);
             box-shadow: 0 0 40px rgba(0,0,0,1), inset 0 0 20px rgba(0,0,0,1);
         }
-        .chat-overlay.ai-mode .chat-modal-window {
-            background: #222831;
-        }
+        .chat-overlay.ai-mode .chat-modal-window { background: #222831; }
 
         /* Fixed Header Inside Modal */
         .chat-header { 
             flex-shrink: 0; height: 60px; padding: 0 20px; 
             display: flex; justify-content: space-between; align-items: center; 
-            border-bottom: 1px solid rgba(255,255,255,0.05);
-            background: rgba(255,255,255,0.02);
+            border-bottom: 1px solid rgba(255,255,255,0.05); background: rgba(255,255,255,0.02);
         }
+        .chat-controls { display: flex; gap: 15px; align-items: center; }
+        .win-btn { cursor: pointer; transition: opacity 0.2s; }
+        .win-btn:hover { opacity: 0.7; }
 
         /* Scrollable Area */
         .chat-history { 
-            flex: 1; overflow-y: auto; padding: 20px; 
-            display: flex; flex-direction: column; 
-            justify-content: flex-end; /* Gravity Anchor */
-            gap: 16px; -webkit-overflow-scrolling: touch;
-        }
-
-        /* Fixed Footer Inside Modal */
-        .input-area { 
-            flex-shrink: 0; padding: 15px; 
-            background: rgba(0,0,0,0.3); 
-            border-top: 1px solid rgba(255,255,255,0.05); 
-            display: flex; gap: 10px;
+            flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; 
+            justify-content: flex-end; gap: 16px; -webkit-overflow-scrolling: touch;
         }
 
         .msg { 
@@ -284,7 +291,7 @@
     <div class="app-header">
         <div class="header-left">
             <div class="logo">Celi</div>
-            <div class="version-tag">v2.0.45</div>
+            <div class="version-tag">v2.0.46</div>
         </div>
         <div class="header-right">
             <div class="search-trigger" id="search-trigger">
@@ -348,10 +355,17 @@
     </div>
 
     <div id="chat-overlay" class="chat-overlay" onclick="handleOutsideClick(event)">
-        <div class="chat-modal-window" onclick="event.stopPropagation()">
+        <div class="chat-modal-window" onclick="handleWindowClick(event)">
             <div class="chat-header">
                 <span id="chat-header-title" class="font-bold tracking-widest text-sm uppercase">Celi Neural Link</span>
-                <div class="close-chat" onclick="closeChat()"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></div>
+                <div class="chat-controls">
+                    <div class="win-btn" onclick="toggleDock(event)">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                    </div>
+                    <div class="win-btn" onclick="closeChat(event)">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                    </div>
+                </div>
             </div>
             <div id="chat-history" class="chat-history"></div>
             <div class="input-area">
@@ -392,6 +406,7 @@
         let fullChatHistory = {}; 
         let userHistoryDates = []; 
         let currentMode = 'journal'; 
+        let isDocked = false;
 
         const rankIcons = {
             "Observer": '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="32" height="32"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>',
@@ -451,30 +466,54 @@
             document.getElementById('chat-header-title').innerText = currentMode === 'rant' ? "THE VOID" : "CELI NEURAL LINK";
         }
 
-        // --- NEW CHAT LOGIC ---
         function openChat(mode) {
             currentMode = mode;
             const overlay = document.getElementById('chat-overlay');
             const title = document.getElementById('chat-header-title');
+            isDocked = false;
+            overlay.classList.remove('docked'); // Ensure fresh state
             
             if(mode === 'rant') { 
-                overlay.classList.add('void-mode'); overlay.classList.remove('ai-mode');
+                overlay.classList.add('void-mode'); 
                 title.innerText = "THE VOID"; 
                 document.body.classList.add('void-active');
             } else { 
-                overlay.classList.remove('void-mode'); overlay.classList.add('ai-mode');
+                overlay.classList.remove('void-mode'); 
                 title.innerText = "CELI NEURAL LINK"; 
                 document.body.classList.remove('void-active');
             }
-            
-            overlay.classList.add('active'); // Shows modal
+            overlay.classList.add('active'); 
             const c = document.getElementById('chat-history'); c.scrollTop = c.scrollHeight;
             document.getElementById('chat-input').focus();
         }
 
-        function closeChat() {
+        function toggleDock(e) {
+            e.stopPropagation();
+            const overlay = document.getElementById('chat-overlay');
+            isDocked = !isDocked;
+            if(isDocked) {
+                overlay.classList.add('docked');
+                document.body.classList.remove('void-active'); // Unblur background
+            } else {
+                overlay.classList.remove('docked');
+                if(currentMode === 'rant') document.body.classList.add('void-active'); // Re-blur if void
+            }
+        }
+
+        function handleWindowClick(e) {
+            e.stopPropagation();
+            // If clicked while docked, maximize
+            if(isDocked) {
+                toggleDock(e);
+            }
+        }
+
+        function closeChat(e) {
+            if(e) e.stopPropagation();
             const overlay = document.getElementById('chat-overlay');
             overlay.classList.remove('active');
+            overlay.classList.remove('docked');
+            isDocked = false;
             document.body.classList.remove('void-active'); 
         }
         
