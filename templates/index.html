@@ -21,70 +21,77 @@
             --font-main: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
         }
 
-        body { 
-            background: var(--bg); color: #fff; font-family: var(--font-main); 
-            height: 100vh; overflow: hidden; display: flex; flex-direction: column; 
+        /* --- VIEWPORT LOCK (KEYBOARD FIX) --- */
+        html, body {
+            margin: 0; padding: 0;
+            width: 100%; height: 100%; /* Forces browser to respect visual viewport */
+            background: var(--bg); color: #fff; font-family: var(--font-main);
+            overflow: hidden; /* CRITICAL: Prevents body from scrolling */
             -webkit-font-smoothing: antialiased;
-            transition: --mood 1s ease;
+            position: fixed; /* Locks the app shell in place */
         }
         
         ::-webkit-scrollbar { width: 4px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 10px; }
 
-        /* --- LAYOUT --- */
+        /* --- SCROLLABLE MAIN CONTAINER --- */
         #main-view { 
-            flex: 1; display: flex; flex-direction: column; 
-            overflow-y: auto; position: relative; 
-            width: 100%; max-width: 600px; margin: 0 auto;
-            padding: 60px 20px 100px 20px;
+            /* This is the ONLY thing that scrolls */
+            position: absolute; top: 60px; /* Starts below header */
+            bottom: 0; left: 0; right: 0;
+            overflow-y: auto; overflow-x: hidden;
+            padding: 20px 20px 120px 20px; /* Bottom padding for Dock space */
+            -webkit-overflow-scrolling: touch;
         }
         
-        /* --- HEADER (UPDATED) --- */
+        /* --- HEADER (STATIC) --- */
         .app-header { 
-            position: fixed; top: 0; left: 0; width: 100%; height: 45px;
-            background: rgba(0,0,0,0.3); backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px);
+            position: absolute; /* Fixed relative to body */
+            top: 0; left: 0; width: 100%; 
+            height: 60px; /* INCREASED HEIGHT */
+            background: rgba(0,0,0,0.3); 
+            backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px);
             border-bottom: 1px solid rgba(255,255,255,0.05);
             display: flex; justify-content: space-between; align-items: center; 
-            padding: 0 20px; z-index: 40;
+            padding: 0 20px; z-index: 50; /* Higher z-index */
         }
         .header-left { display: flex; align-items: center; gap: 8px; }
-        .logo { font-size: 24px; font-weight: 900; letter-spacing: -1px; color: #fff; line-height: 1; }
-        .version-tag { font-size: 11px; opacity: 0.5; font-family: monospace; letter-spacing: 0.5px; }
+        .logo { font-size: 22px; font-weight: 900; letter-spacing: -1px; color: #fff; line-height: 1; }
+        .version-tag { font-size: 10px; opacity: 0.5; font-family: monospace; letter-spacing: 0.5px; }
 
         /* Header Right Controls */
         .header-right { display: flex; align-items: center; gap: 15px; position: relative; }
         
-        /* Profile Icon (Clean, No Glow) */
         .header-pfp { 
-            width: 32px; height: 32px; border-radius: 50%; 
+            width: 36px; height: 36px; border-radius: 50%; 
             background: #222; overflow: hidden; cursor: pointer;
-            border: 1px solid rgba(255,255,255,0.3); /* Subtle border only */
+            border: 1px solid rgba(255,255,255,0.3);
         }
         .header-pfp img { width: 100%; height: 100%; object-fit: cover; }
 
         /* Search System */
-        .search-trigger { cursor: pointer; opacity: 0.7; transition: opacity 0.2s; }
+        .search-trigger { cursor: pointer; opacity: 0.7; transition: opacity 0.2s; padding: 5px; }
         .search-trigger:hover { opacity: 1; }
         
         .search-bar-container {
-            position: absolute; right: 40px; /* Left of profile */
+            position: absolute; right: 45px;
             top: 50%; transform: translateY(-50%);
-            width: 0; overflow: hidden;
-            transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-            background: rgba(255, 255, 255, 0.1);
+            width: 0; overflow: hidden; height: 36px;
+            transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s;
+            background: rgba(0, 0, 0, 0.8);
+            border: 1px solid rgba(255,255,255,0.1);
             backdrop-filter: blur(10px);
-            border-radius: 20px;
-            display: flex; align-items: center;
+            border-radius: 18px;
+            display: flex; align-items: center; opacity: 0; pointer-events: none;
         }
-        .search-bar-container.active { width: 200px; border: 1px solid rgba(255,255,255,0.2); }
+        .search-bar-container.active { width: 220px; opacity: 1; pointer-events: all; border-color: var(--mood); }
         .search-input {
-            width: 100%; bg: transparent; border: none; outline: none;
-            color: #fff; font-size: 12px; padding: 5px 15px; background: transparent;
+            width: 100%; border: none; outline: none;
+            color: #fff; font-size: 13px; padding: 0 15px; background: transparent; height: 100%;
         }
 
         @media (max-width: 380px) {
-            .logo { font-size: 20px; }
             .version-tag { display: none; }
         }
 
@@ -150,12 +157,12 @@
             background: rgba(20, 20, 25, 0.8); backdrop-filter: blur(25px); 
             border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 30px; z-index: 30;
             box-shadow: 0 15px 40px rgba(0,0,0,0.8);
-            display: flex; align-items: center; justify-content: center; /* Centered Label Only */
+            display: flex; align-items: center; justify-content: center; 
             padding: 0 25px;
         }
         .dock-label { font-size: 10px; color: rgba(255,255,255,0.3); letter-spacing: 2px; text-transform: uppercase; font-weight: bold; }
 
-        /* --- RIGHT: AI CHAT FAB --- */
+        /* --- FABS --- */
         .fab-container { position: fixed; bottom: 110px; right: 25px; z-index: 40; }
         .chat-fab {
             width: 60px; height: 60px; border-radius: 50%;
@@ -167,13 +174,13 @@
         }
         .chat-fab:active { transform: scale(0.9); }
         .chat-fab svg { filter: drop-shadow(0 2px 3px rgba(0,0,0,0.2)); }
+        
         @keyframes pinkPulse {
             0% { box-shadow: 0 0 0 0 rgba(244, 114, 182, 0.7); }
             70% { box-shadow: 0 0 0 15px rgba(244, 114, 182, 0); }
             100% { box-shadow: 0 0 0 0 rgba(244, 114, 182, 0); }
         }
 
-        /* --- LEFT: VOID FAB --- */
         .void-container { position: fixed; bottom: 110px; left: 25px; z-index: 40; }
         .void-fab {
             width: 60px; height: 60px; border-radius: 50%;
@@ -186,37 +193,44 @@
         .spin-ccw { animation: spinCCW 3s linear infinite; transform-origin: center; }
         @keyframes spinCCW { from { transform: rotate(360deg); } to { transform: rotate(0deg); } }
 
-        /* --- CHAT OVERLAY (SHARED FOR AI & VOID) --- */
+        /* --- CHAT OVERLAY (VIEWPORT LOCKED) --- */
         .chat-overlay {
-            position: fixed; inset: 0; height: 100%; width: 100%;
+            /* This mimics the body lock logic for the chat window */
+            position: fixed; inset: 0; 
+            width: 100%; height: 100%; /* Adapts to viewport */
             background: rgba(0,0,0,0.95); z-index: 100;
             backdrop-filter: blur(15px); display: none; flex-direction: column; 
             opacity: 0; transition: opacity 0.3s ease;
+            overflow: hidden; /* No scrolling on the overlay wrapper itself */
         }
+        
         .chat-header { 
-            padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; 
-            border-bottom: 1px solid var(--border); background: #222831; flex-shrink: 0;
+            flex-shrink: 0; /* Static top */
+            height: 60px; /* Match main header */
+            padding: 0 20px; display: flex; justify-content: space-between; align-items: center; 
+            border-bottom: 1px solid var(--border); background: #222831; 
         }
+        
         .chat-history { 
-            flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 16px; 
-            min-height: 0; overscroll-behavior: contain;
+            flex: 1; /* Scrolls this middle area */
+            overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 16px; 
+            -webkit-overflow-scrolling: touch;
         }
+        
         .msg { max-width: 85%; padding: 14px 18px; border-radius: 20px; font-size: 13.5px; line-height: 1.55; word-wrap: break-word; animation: fadeIn 0.3s ease; }
         .msg-user { align-self: flex-end; background: var(--mood); color: #000; border-bottom-right-radius: 4px; font-weight: 600; }
         .msg-ai { align-self: flex-start; background: rgba(255,255,255,0.08); color: #eee; border-bottom-left-radius: 4px; border: 1px solid rgba(255,255,255,0.05); }
         
         .input-area { 
+            flex-shrink: 0; /* Static bottom */
             padding: 15px; background: rgba(0,0,0,0.95); border-top: 1px solid var(--border); 
-            display: flex; gap: 10px; padding-bottom: max(15px, env(safe-area-inset-bottom)); flex-shrink: 0;
+            display: flex; gap: 10px; padding-bottom: max(15px, env(safe-area-inset-bottom));
         }
         .chat-input { flex: 1; background: rgba(255,255,255,0.05); border: 1px solid var(--border); border-radius: 25px; padding: 12px 20px; color: #fff; outline: none; font-size: 16px; }
         .send-btn { background: var(--mood); color: #000; width: 44px; height: 44px; border-radius: 50%; font-weight: bold; display: flex; align-items: center; justify-content: center; }
 
-        /* --- VOID MODE STYLES (Overrides) --- */
+        /* Void Mode Overrides */
         .chat-overlay.void-mode .chat-header { background: #000; border-bottom: 1px solid rgba(255,255,255,0.1); }
-        .chat-overlay.void-mode .msg-user { background: #333; color: #fff; border: 1px solid #555; }
-        .chat-overlay.void-mode .input-area { border-top: 1px solid rgba(255,255,255,0.1); }
-        .chat-overlay.void-mode .send-btn { background: #333; color: #fff; border: 1px solid #555; box-shadow: 0 0 10px rgba(255,255,255,0.1); }
         .chat-overlay.void-mode .chat-history { background: radial-gradient(circle at center, #111, #000); }
 
         /* --- MODALS --- */
@@ -239,16 +253,15 @@
     <div class="app-header">
         <div class="header-left">
             <div class="logo">Celi</div>
-            <div class="version-tag">v2.0.34</div>
+            <div class="version-tag">v2.0.35</div>
         </div>
         <div class="header-right">
-            <div class="search-trigger" onclick="toggleSearch()">
+            <div class="search-trigger" id="search-trigger">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
             </div>
             <div class="search-bar-container" id="search-container">
                 <input type="text" id="search-input" class="search-input" placeholder="Search journal..." onkeyup="handleSearch()">
             </div>
-            
             <div class="header-pfp" onclick="openModal('profile-modal')">
                 <img id="nav-pfp" src="">
             </div>
@@ -301,9 +314,7 @@
     <div id="chat-overlay" class="chat-overlay">
         <div class="chat-header">
             <span id="chat-header-title" class="font-bold tracking-widest text-sm uppercase">Celi Neural Link</span>
-            <div class="close-chat" onclick="closeChat()">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-            </div>
+            <div class="close-chat" onclick="closeChat()"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></div>
         </div>
         <div id="chat-history" class="chat-history"></div>
         <div class="input-area">
@@ -342,7 +353,7 @@
         let currentCalendarDate = new Date();
         let fullChatHistory = {}; 
         let userHistoryDates = []; 
-        let currentMode = 'journal'; // 'journal' (AI) or 'rant' (Void)
+        let currentMode = 'journal'; 
 
         const rankIcons = {
             "Observer": '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="32" height="32"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>',
@@ -362,7 +373,16 @@
             return "#00f2fe";
         }
 
-        // --- SEARCH LOGIC ---
+        // --- SEARCH LOGIC (AUTO-CLOSE) ---
+        document.addEventListener('click', function(e) {
+            const container = document.getElementById('search-container');
+            const trigger = document.getElementById('search-trigger');
+            if (!container.contains(e.target) && !trigger.contains(e.target)) {
+                container.classList.remove('active');
+                document.getElementById('search-input').value = '';
+            }
+        });
+
         function toggleSearch() {
             const container = document.getElementById('search-container');
             const input = document.getElementById('search-input');
@@ -381,14 +401,11 @@
                 const entry = fullChatHistory[key];
                 if((entry.summary && entry.summary.toLowerCase().includes(query)) || 
                    (entry.reply && entry.reply.toLowerCase().includes(query))) {
-                    filtered[key] = entry;
-                    found = true;
+                    filtered[key] = entry; found = true;
                 }
             });
-            
             if(found) {
                 renderChatHistory(filtered);
-                // Temporarily open chat to show results
                 if(document.getElementById('chat-overlay').style.display !== 'flex') openChat('ai');
                 document.getElementById('chat-header-title').innerText = "SEARCH RESULTS";
             }
@@ -416,8 +433,6 @@
             overlay.style.display = 'flex';
             void overlay.offsetWidth; overlay.style.opacity = '1';
             
-            // Filter history based on mode (if we wanted to separate them, but currently we show all)
-            // Ideally we could filter only 'rant' types for void, but user said "Chat Window"
             const c = document.getElementById('chat-history'); c.scrollTop = c.scrollHeight;
             document.getElementById('chat-input').focus();
         }
@@ -436,7 +451,6 @@
             const fragment = document.createDocumentFragment();
             recentKeys.forEach(timestamp => {
                 const entry = historyData[timestamp];
-                // Optional: Filter visual style based on entry.type === 'rant'
                 fragment.appendChild(createMsgEl(entry.summary || "Entry", 'user'));
                 fragment.appendChild(createMsgEl(entry.reply, 'ai'));
             });
@@ -485,7 +499,7 @@
                 if(fullChatHistory[key].date === dateStr) { filtered[key] = fullChatHistory[key]; found = true; }
             });
             renderChatHistory(filtered);
-            openChat('ai'); // Open chat to show results
+            openChat('ai'); 
             document.getElementById('chat-header-title').innerText = `ARCHIVE: ${dateStr}`;
         }
 
@@ -531,8 +545,7 @@
                 
                 if(data.profile_pic && data.profile_pic.length > 50) {
                     const pic = data.profile_pic;
-                    document.getElementById('profile-pfp').src = pic;
-                    document.getElementById('nav-pfp').src = pic;
+                    document.getElementById('profile-pfp').src = pic; document.getElementById('nav-pfp').src = pic;
                 } else {
                     const def = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGZpbGw9Im5vbmUiIHZpZXdCb3g9IjAgMCAyNCAyNCIgc3Ryb2tlPSJ3aGl0ZSIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiPjxwYXRoIGQ9Ik0yMCAyMXYtMmE0IDQgMCAwIDAtNC00SDhhNCA0IDAgMCAwLTQgNHYyIj48L3BhdGg+PGNpcmNsZSBjeD0iMTIiIGN5PSI3IiByPSI0Ij48L2NpcmNsZT48L3N2Zz4=";
                     document.getElementById('profile-pfp').src = def; document.getElementById('nav-pfp').src = def;
