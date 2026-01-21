@@ -54,11 +54,12 @@
         /* --- SCROLLABLE CONTAINER --- */
         #main-view { 
             position: absolute; top: 60px; bottom: 0; left: 0; right: 0;
-            /* Padding only on sides and top. Bottom is 0 to let galaxy hit edge. */
             padding: 20px 20px 0 20px; 
             overflow-y: auto; overflow-x: hidden;
-            -webkit-overflow-scrolling: touch; transition: all 0.5s ease;
+            -webkit-overflow-scrolling: touch; 
             z-index: 10; display: flex; flex-direction: column;
+            /* Transition for the slide-up effect */
+            transition: transform 0.8s cubic-bezier(0.2, 0.8, 0.2, 1);
         }
         
         /* --- HEADER --- */
@@ -97,77 +98,48 @@
 
         /* --- DASHBOARD CONTENT WRAPPER --- */
         #dashboard-content { 
-            transition: transform 0.8s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.5s; 
+            transition: opacity 0.5s; 
             flex: 1; display: flex; flex-direction: column; min-height: 100%;
         }
 
         /* --- GALAXY ELEMENTS (INFINITE HORIZON) --- */
         .galaxy-patch {
-            /* Force full width despite parent padding */
-            margin-left: -20px; 
-            margin-right: -20px;
+            margin-left: -20px; margin-right: -20px;
             width: calc(100% + 40px);
-            
-            /* Fill remaining height */
-            flex: 1; 
-            min-height: 250px;
-            
-            /* Top Curve Only */
-            border-top-left-radius: 25px; 
-            border-top-right-radius: 25px;
-            border-bottom-left-radius: 0;
-            border-bottom-right-radius: 0;
-            
-            /* DEEP SPACE BACKGROUND */
-            background: radial-gradient(ellipse at bottom, #1e1b4b 0%, #020617 60%, #000000 100%),
-                        linear-gradient(to top, rgba(88, 28, 135, 0.2) 0%, transparent 40%);
-            
+            flex: 1; min-height: 250px;
+            border-top-left-radius: 25px; border-top-right-radius: 25px;
+            border-bottom-left-radius: 0; border-bottom-right-radius: 0;
+            background: radial-gradient(ellipse at bottom, #1e1b4b 0%, #020617 60%, #000000 100%);
             border-top: 1px solid rgba(255,255,255,0.08);
             position: relative; overflow: hidden;
             display: flex; align-items: flex-end; justify-content: center;
-            
-            /* Connect visually to calendar */
             margin-top: 0px; 
             box-shadow: inset 0 10px 20px -10px rgba(0,0,0,0.8);
         }
 
-        /* MILKY WAY STAR DUST (Generated via box-shadow for performance/style) */
-        .stars-dust {
+        /* --- PROCEDURAL STAR DUST --- */
+        /* We use a single div and use box-shadow to generate 100s of stars */
+        .star-field {
             position: absolute; width: 1px; height: 1px; background: transparent;
-            /* Layer 1: Small Distant Dust */
-            box-shadow: 
-                10vw 10vh #fff, 20vw 80vh #fff, 50vw 30vh #fff, 80vw 60vh #fff,
-                15vw 40vh rgba(255,255,255,0.5), 60vw 20vh rgba(255,255,255,0.5),
-                90vw 90vh rgba(255,255,255,0.3), 30vw 50vh rgba(255,255,255,0.4),
-                40vw 10vh #fff, 70vw 70vh #fff, 5vw 95vh #fff, 95vw 5vh #fff;
-            opacity: 0.4; animation: driftSlow 100s linear infinite;
-        }
-        .stars-med {
-            position: absolute; width: 2px; height: 2px; background: transparent;
-            /* Layer 2: Medium Stars */
-            box-shadow: 
-                25vw 25vh #fff, 75vw 75vh #fff, 10vw 90vh #fff, 90vw 10vh #fff,
-                45vw 45vh rgba(200,200,255,0.8), 55vw 85vh rgba(200,200,255,0.6);
-            opacity: 0.6; animation: driftMid 120s linear infinite;
+            opacity: 0.8;
         }
         
-        @keyframes driftSlow { from { transform: translateY(0); } to { transform: translateY(-100px); } }
-        @keyframes driftMid { from { transform: translateY(0); } to { transform: translateY(-150px); } }
-
         /* Full Screen Galaxy View */
         #galaxy-view {
-            position: fixed; inset: 0; z-index: 45; /* Below Header, Above Main */
+            position: fixed; inset: 0; z-index: 45; /* Below Header */
             background: #000;
-            background-image: 
-                radial-gradient(circle at 50% 100%, rgba(76, 29, 149, 0.3), transparent 60%),
-                radial-gradient(circle at 80% 20%, rgba(56, 189, 248, 0.15), transparent 50%),
-                radial-gradient(circle at 20% 60%, rgba(236, 72, 153, 0.15), transparent 40%);
+            /* Start Off-Screen Bottom */
+            transform: translateY(100%);
+            transition: transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+            
             display: flex; flex-direction: column;
-            opacity: 0; pointer-events: none; transition: opacity 0.8s ease;
             overflow-y: auto; padding-top: 80px; padding-bottom: 100px;
+            /* Deep Background */
+            background-image: 
+                radial-gradient(circle at 50% 100%, rgba(76, 29, 149, 0.4), transparent 60%),
+                radial-gradient(circle at 10% 10%, rgba(56, 189, 248, 0.2), transparent 50%),
+                radial-gradient(circle at 90% 40%, rgba(236, 72, 153, 0.2), transparent 40%);
         }
-        /* Add dust to full view too */
-        #galaxy-view .stars-dust { opacity: 0.6; }
 
         .galaxy-grid {
             display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
@@ -189,9 +161,12 @@
         canvas { width: 100%; height: 100%; display: block; }
 
         /* --- GALAXY MODE ACTIVE STATE --- */
+        /* Slide Header elements away */
         body.galaxy-mode .header-right { opacity: 0; pointer-events: none; transform: translateY(-10px); }
-        body.galaxy-mode #dashboard-content { transform: translateY(-150vh); opacity: 0; }
-        body.galaxy-mode #galaxy-view { opacity: 1; pointer-events: all; }
+        /* Slide Dashboard Up & Away */
+        body.galaxy-mode #main-view { transform: translateY(-100vh); }
+        /* Slide Galaxy Up into View */
+        body.galaxy-mode #galaxy-view { transform: translateY(0); }
         
         /* --- RANK CARD --- */
         .rank-card {
@@ -231,7 +206,6 @@
         .bottom-dock {
             position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
             width: 90%; max-width: 600px; height: 75px;
-            /* Translucent Glass */
             background: rgba(20, 20, 25, 0.6); backdrop-filter: blur(25px); 
             border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 30px; z-index: 60;
             box-shadow: 0 15px 40px rgba(0,0,0,0.5);
@@ -298,9 +272,7 @@
     <div id="void-vignette"></div>
     
     <div id="galaxy-view">
-        <div class="stars-dust"></div>
-        <div class="stars-med"></div>
-        <div class="galaxy-grid" id="galaxy-grid-container">
+        <div id="galaxy-bg-stars" class="star-field"></div> <div class="galaxy-grid" id="galaxy-grid-container">
             </div>
         <div style="height: 100px;"></div>
     </div>
@@ -308,7 +280,7 @@
     <div class="app-header">
         <div class="header-left">
             <div class="logo">Celi</div>
-            <div class="version-tag">v2.0.53</div>
+            <div class="version-tag">v2.0.54</div>
         </div>
         <div class="header-right">
             <div class="search-trigger" id="search-trigger"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg></div>
@@ -338,8 +310,7 @@
             </div>
             
             <div class="galaxy-patch">
-                <div class="stars-dust"></div>
-                <div class="stars-med"></div>
+                <div id="mini-stars" class="star-field"></div>
             </div>
         </div>
     </div>
@@ -398,7 +369,7 @@
     </div>
 
     <script>
-        // --- VARIABLES ---
+        // --- CORE VARIABLES ---
         let isProcessing = false;
         let currentCalendarDate = new Date();
         let fullChatHistory = {}; 
@@ -407,6 +378,22 @@
         let isDocked = false;
         let galaxyMode = false;
         let constellationsInitialized = false;
+
+        // --- PROCEDURAL STAR GENERATOR ---
+        function generateSpaceDust(id, count) {
+            const el = document.getElementById(id);
+            if(!el) return;
+            let shadow = "";
+            for(let i=0; i<count; i++) {
+                const x = Math.random() * 100;
+                const y = Math.random() * 100;
+                const color = Math.random() > 0.8 ? "200, 200, 255" : "255, 255, 255";
+                const alpha = Math.random() * 0.8 + 0.2;
+                shadow += `${x}vw ${y}vh rgba(${color}, ${alpha}), `;
+            }
+            // Remove last comma
+            el.style.boxShadow = shadow.slice(0, -2);
+        }
 
         // --- CONSTELLATION DATA ---
         const constellationData = [
@@ -526,6 +513,9 @@
             return "#00f2fe";
         }
         
+        // ... (Remaining Logic for Chat, Calendar, Rank, same as before) ...
+        const rankIcons = { "Observer": '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="32" height="32"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>' }; // ... (Truncated for space, full list in previous msg)
+
         function handleOutsideClick(e) { if(e.target.id === 'chat-overlay') closeChat(); }
         function handleWindowClick(e) { e.stopPropagation(); if(isDocked) toggleDock(e); }
         function closeChat(e) { if(e) e.stopPropagation(); document.getElementById('chat-overlay').classList.remove('active'); document.getElementById('chat-overlay').classList.remove('docked'); isDocked=false; document.body.classList.remove('void-active'); document.body.classList.remove('chat-open'); }
@@ -536,7 +526,12 @@
         function closeModal(id) { document.getElementById(id).style.display = 'none'; }
         
         window.onload = loadData; 
-        function loadData() { renderCalendar(); }
+        function loadData() { 
+            renderCalendar(); 
+            // Generate Procedural Stars
+            generateSpaceDust('mini-stars', 200); 
+            generateSpaceDust('galaxy-bg-stars', 800);
+        }
         function renderCalendar() {
             const grid = document.getElementById('cal-grid'); if(!grid) return; grid.innerHTML='';
             const now = new Date(); document.getElementById('cal-month-year').innerText = "JANUARY 2026";
