@@ -40,16 +40,21 @@
             opacity: 0; transition: opacity 0.8s ease;
         }
         
+        /* Body State: Void/Chat Active Transitions */
         body.void-active #main-view, 
-        body.void-active .app-header, 
-        body.void-active .bottom-dock,
-        body.void-active .fab-container,
-        body.void-active .void-container {
+        body.void-active .app-header {
             filter: grayscale(100%) blur(3px) brightness(0.5);
             transform: scale(0.95);
             transition: all 0.8s cubic-bezier(0.2, 0.8, 0.2, 1);
         }
         body.void-active #void-vignette { opacity: 1; }
+
+        /* HIDE DOCK & FABS WHEN CHAT IS OPEN (Fixes Keyboard Issue) */
+        body.chat-open .bottom-dock,
+        body.chat-open .fab-container,
+        body.chat-open .void-container {
+            display: none !important; /* Forces them away so they don't ride up */
+        }
 
         /* --- SCROLLABLE CONTAINER --- */
         #main-view { 
@@ -58,13 +63,16 @@
             -webkit-overflow-scrolling: touch; transition: all 0.5s ease;
         }
         
-        /* --- HEADER --- */
+        /* --- HEADER (Stronger Pop) --- */
         .app-header { 
             position: absolute; top: 0; left: 0; width: 100%; height: 60px;
-            background: rgba(0,0,0,0.3); backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px);
-            border-bottom: 1px solid rgba(255,255,255,0.05);
+            /* Darker background for pop */
+            background: rgba(10, 10, 15, 0.7); 
+            backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(255,255,255,0.08);
             display: flex; justify-content: space-between; align-items: center; 
             padding: 0 20px; z-index: 50; transition: all 0.5s ease;
+            box-shadow: 0 4px 30px rgba(0,0,0,0.3); /* Shadow for depth */
         }
         .header-left { display: flex; align-items: center; gap: 8px; }
         .logo { font-size: 22px; font-weight: 900; letter-spacing: -1px; color: #fff; line-height: 1; }
@@ -98,7 +106,8 @@
             background: var(--glass); border: 1px solid var(--border); 
             border-radius: 20px; padding: 12px 15px; margin-bottom: 10px; 
             backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
-            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            /* Soft glow behind card */
+            box-shadow: 0 10px 40px -10px rgba(0,242,254,0.15);
             display: flex; align-items: center; gap: 12px;
             position: relative; overflow: hidden; cursor: pointer; transition: transform 0.2s, background 0.2s;
         }
@@ -120,6 +129,7 @@
             background: var(--glass); border: 1px solid var(--border);
             border-radius: 20px; padding: 15px; margin-bottom: 15px;
             backdrop-filter: blur(20px); min-height: 260px;
+            box-shadow: 0 15px 40px -10px rgba(0,0,0,0.5); /* Depth shadow */
         }
         .cal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; width: 100%; }
         .cal-title { font-size: 14px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; color: var(--mood); text-align: center; flex: 1; }
@@ -152,12 +162,12 @@
             border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 30px; z-index: 30;
             box-shadow: 0 15px 40px rgba(0,0,0,0.8);
             display: flex; align-items: center; justify-content: center; padding: 0 25px;
-            transition: all 0.5s ease;
+            transition: all 0.3s ease;
         }
         .dock-label { font-size: 10px; color: rgba(255,255,255,0.3); letter-spacing: 2px; text-transform: uppercase; font-weight: bold; }
 
         /* --- FABS --- */
-        .fab-container { position: fixed; bottom: 110px; right: 25px; z-index: 40; transition: all 0.5s ease; }
+        .fab-container { position: fixed; bottom: 110px; right: 25px; z-index: 40; transition: all 0.3s ease; }
         .chat-fab {
             width: 60px; height: 60px; border-radius: 50%;
             background: linear-gradient(135deg, #f9a8d4, #c084fc);
@@ -173,7 +183,7 @@
             100% { box-shadow: 0 0 0 0 rgba(192, 132, 252, 0); }
         }
 
-        .void-container { position: fixed; bottom: 110px; left: 25px; z-index: 40; transition: all 0.5s ease; }
+        .void-container { position: fixed; bottom: 110px; left: 25px; z-index: 40; transition: all 0.3s ease; }
         .void-fab {
             width: 60px; height: 60px; border-radius: 50%; background: #000; 
             display: flex; align-items: center; justify-content: center;
@@ -193,13 +203,10 @@
         }
         .chat-overlay.active { display: flex; opacity: 1; }
 
-        /* DOCKED STATE OVERRIDES */
+        /* DOCKED STATE */
         .chat-overlay.docked {
-            background: transparent !important;
-            backdrop-filter: none !important;
-            pointer-events: none; /* Let clicks pass through backdrop */
-            align-items: flex-end; /* Push to bottom */
-            padding-bottom: 0;
+            background: transparent !important; backdrop-filter: none !important;
+            pointer-events: none; align-items: flex-end; padding-bottom: 0;
         }
 
         /* --- THE FLOATING MODAL WINDOW --- */
@@ -215,27 +222,19 @@
         }
         .chat-overlay.active .chat-modal-window { transform: translateY(0) scale(1); }
 
-        /* DOCKED WINDOW STYLES */
         .chat-overlay.docked .chat-modal-window {
-            pointer-events: all; /* Make header clickable */
-            height: 60px; /* Collapse to header height */
-            transform: translateY(0); /* Stick to bottom */
+            pointer-events: all; height: 60px; transform: translateY(0);
             border-bottom-left-radius: 0; border-bottom-right-radius: 0;
-            width: 100%; max-width: 100%; /* Full width bar */
-            margin-bottom: 0;
-            cursor: pointer;
+            width: 100%; max-width: 100%; margin-bottom: 0; cursor: pointer;
         }
-        .chat-overlay.docked .chat-history, 
-        .chat-overlay.docked .input-area { display: none; } /* Hide content */
+        .chat-overlay.docked .chat-history, .chat-overlay.docked .input-area { display: none; }
 
-        /* Specific Mode Styling */
         .chat-overlay.void-mode .chat-modal-window {
             background: #000; border: 1px solid rgba(147, 51, 234, 0.2);
             box-shadow: 0 0 40px rgba(0,0,0,1), inset 0 0 20px rgba(0,0,0,1);
         }
         .chat-overlay.ai-mode .chat-modal-window { background: #222831; }
 
-        /* Fixed Header Inside Modal */
         .chat-header { 
             flex-shrink: 0; height: 60px; padding: 0 20px; 
             display: flex; justify-content: space-between; align-items: center; 
@@ -245,7 +244,6 @@
         .win-btn { cursor: pointer; transition: opacity 0.2s; }
         .win-btn:hover { opacity: 0.7; }
 
-        /* Scrollable Area */
         .chat-history { 
             flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; 
             justify-content: flex-end; gap: 16px; -webkit-overflow-scrolling: touch;
@@ -264,7 +262,12 @@
         .chat-input { flex: 1; background: rgba(255,255,255,0.05); border: 1px solid var(--border); border-radius: 25px; padding: 12px 20px; color: #fff; outline: none; font-size: 16px; }
         .send-btn { background: var(--mood); color: #000; width: 44px; height: 44px; border-radius: 50%; font-weight: bold; display: flex; align-items: center; justify-content: center; }
 
-        /* Void Text Fade */
+        .input-area { 
+            flex-shrink: 0; padding: 15px; background: rgba(0,0,0,0.95); 
+            border-top: 1px solid var(--border); display: flex; gap: 10px; 
+            padding-bottom: max(15px, env(safe-area-inset-bottom));
+        }
+
         .chat-overlay.void-mode .chat-history { 
             -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 15%);
             mask-image: linear-gradient(to bottom, transparent 0%, black 15%);
@@ -291,7 +294,7 @@
     <div class="app-header">
         <div class="header-left">
             <div class="logo">Celi</div>
-            <div class="version-tag">v2.0.46</div>
+            <div class="version-tag">v2.0.47</div>
         </div>
         <div class="header-right">
             <div class="search-trigger" id="search-trigger">
@@ -359,12 +362,8 @@
             <div class="chat-header">
                 <span id="chat-header-title" class="font-bold tracking-widest text-sm uppercase">Celi Neural Link</span>
                 <div class="chat-controls">
-                    <div class="win-btn" onclick="toggleDock(event)">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-                    </div>
-                    <div class="win-btn" onclick="closeChat(event)">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-                    </div>
+                    <div class="win-btn" onclick="toggleDock(event)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><line x1="5" y1="12" x2="19" y2="12"></line></svg></div>
+                    <div class="win-btn" onclick="closeChat(event)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></div>
                 </div>
             </div>
             <div id="chat-history" class="chat-history"></div>
@@ -471,8 +470,10 @@
             const overlay = document.getElementById('chat-overlay');
             const title = document.getElementById('chat-header-title');
             isDocked = false;
-            overlay.classList.remove('docked'); // Ensure fresh state
+            overlay.classList.remove('docked'); 
             
+            document.body.classList.add('chat-open'); // Hides Dock
+
             if(mode === 'rant') { 
                 overlay.classList.add('void-mode'); 
                 title.innerText = "THE VOID"; 
@@ -493,19 +494,20 @@
             isDocked = !isDocked;
             if(isDocked) {
                 overlay.classList.add('docked');
-                document.body.classList.remove('void-active'); // Unblur background
+                document.body.classList.remove('void-active'); 
+                document.body.classList.remove('chat-open'); // Show dock when minimized? No, keep it clean or show it? 
+                // Let's show the main dock when minimized so user can browse
+                document.body.classList.remove('chat-open');
             } else {
                 overlay.classList.remove('docked');
-                if(currentMode === 'rant') document.body.classList.add('void-active'); // Re-blur if void
+                if(currentMode === 'rant') document.body.classList.add('void-active'); 
+                document.body.classList.add('chat-open'); // Hide dock when maximized
             }
         }
 
         function handleWindowClick(e) {
             e.stopPropagation();
-            // If clicked while docked, maximize
-            if(isDocked) {
-                toggleDock(e);
-            }
+            if(isDocked) toggleDock(e);
         }
 
         function closeChat(e) {
@@ -515,6 +517,7 @@
             overlay.classList.remove('docked');
             isDocked = false;
             document.body.classList.remove('void-active'); 
+            document.body.classList.remove('chat-open'); // Show dock again
         }
         
         function handleOutsideClick(e) {
