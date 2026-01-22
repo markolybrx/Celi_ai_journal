@@ -14,12 +14,12 @@
 
     <style>
         :root { 
-            --mood: #ffffff; /* Monochrome Mood */
+            --mood: #ffffff; 
             --bg: #000; 
             --glass: rgba(20, 20, 20, 0.6); 
-            --border: rgba(255, 255, 255, 0.1); 
+            --border: rgba(255, 255, 255, 0.08); 
             --font-main: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            --text-gold: #e5e5e5; /* Silver/White gold */
+            --text-gold: #e5e5e5;
         }
 
         /* --- VIEWPORT LOCK --- */
@@ -63,57 +63,47 @@
         .milky-way-bg {
             position: absolute; inset: 0; z-index: 0;
             background: 
-                /* The Galactic Core & Dust Lanes (Pure White/Gray Gradients) */
                 radial-gradient(ellipse at 80% 20%, rgba(255, 255, 255, 0.15) 0%, transparent 50%),
                 radial-gradient(ellipse at 20% 80%, rgba(255, 255, 255, 0.1) 0%, transparent 50%),
-                /* Diagonal Band */
-                linear-gradient(135deg, 
-                    #000000 0%, 
-                    rgba(20, 20, 20, 0.8) 35%, 
-                    rgba(80, 80, 80, 0.4) 50%, /* Brightest Band */
-                    rgba(20, 20, 20, 0.8) 65%, 
-                    #000000 100%
+                linear-gradient(125deg, 
+                    #000 0%, 
+                    rgba(20,20,20,0.8) 35%, 
+                    rgba(80,80,80,0.4) 50%, 
+                    rgba(20,20,20,0.8) 65%, 
+                    #000 100%
                 );
-            opacity: 1;
-            filter: contrast(1.3) brightness(0.8); /* Astrophotography look */
+            filter: contrast(1.6) blur(35px);
         }
         
-        /* Noise Texture for that "Billions of Stars" Grain */
         .noise-overlay {
             position: absolute; inset: 0; z-index: 1; opacity: 0.12; pointer-events: none;
             background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
         }
 
-        /* PROCEDURAL STARS & TWINKLING */
-        .star-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 2; will-change: opacity; }
-        
-        /* Dust layer - Dense static haze */
-        .stars-micro { opacity: 0.8; } 
-        
-        /* Mid layer - Soft Twinkle */
-        .stars-mid { animation: twinkle 6s infinite ease-in-out; }
-        
-        /* Bright layer - Sharp Twinkle */
-        .stars-bright { filter: drop-shadow(0 0 1px white); animation: twinkleSharp 4s infinite ease-in-out alternate; }
+        /* --- CANVAS STAR LAYERS --- */
+        /* We use canvas instead of divs for performance and visibility guarantee */
+        .star-canvas {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none; z-index: 10; /* High Z-Index to sit on top of gradient */
+        }
 
-        @keyframes twinkle {
-            0%, 100% { opacity: 0.8; transform: scale(1); }
-            50% { opacity: 0.5; transform: scale(0.95); }
-        }
-        @keyframes twinkleSharp {
-            0%, 100% { opacity: 1; transform: scale(1.1); }
-            50% { opacity: 0.3; transform: scale(0.8); }
-        }
+        /* Layer Animation (Opacity Only) */
+        #canvas-dust { opacity: 0.9; }
+        #canvas-mid { animation: pulseSlow 5s ease-in-out infinite alternate; }
+        #canvas-bright { filter: drop-shadow(0 0 2px #fff); animation: pulseFast 3s ease-in-out infinite alternate; }
+
+        @keyframes pulseSlow { 0% { opacity: 0.5; } 100% { opacity: 1.0; } }
+        @keyframes pulseFast { 0% { opacity: 0.4; } 100% { opacity: 1.0; } }
 
         /* --- DASHBOARD SECTION (Top Half) --- */
         .dashboard-section {
             height: 50%; width: 100%; position: relative;
-            padding: 80px 20px 0 20px; display: flex; flex-direction: column; z-index: 10;
+            padding: 80px 20px 0 20px; display: flex; flex-direction: column; z-index: 20;
         }
 
         /* --- GALAXY SECTION (Bottom Half) --- */
         .galaxy-section {
-            height: 50%; width: 100%; position: relative; z-index: 10;
+            height: 50%; width: 100%; position: relative; z-index: 20;
             padding: 20px; display: flex; flex-direction: column;
         }
 
@@ -146,7 +136,7 @@
         .search-bar-container.active { width: 220px; opacity: 1; pointer-events: all; border-color: #fff; }
         .search-input { width: 100%; border: none; outline: none; color: #fff; font-size: 13px; padding: 0 15px; background: transparent; height: 100%; }
 
-        /* --- CARDS (Monochrome Glass) --- */
+        /* --- CARDS --- */
         .rank-card {
             background: rgba(20, 20, 20, 0.5); border: 1px solid rgba(255, 255, 255, 0.1); 
             border-radius: 20px; padding: 12px 15px; margin-bottom: 15px; 
@@ -164,7 +154,7 @@
 
         .calendar-card {
             background: rgba(20, 20, 20, 0.5); border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 20px; padding: 15px; margin-bottom: 0; /* FLUSH BOTTOM */
+            border-radius: 20px; padding: 15px; margin-bottom: 0;
             backdrop-filter: blur(20px); min-height: 260px;
             box-shadow: 0 15px 40px -10px rgba(0,0,0,0.5); z-index: 2;
         }
@@ -195,7 +185,7 @@
         .star-circle:hover { transform: scale(1.05); border-color: rgba(255,255,255,0.3); }
         .con-name { font-size: 12px; font-weight: 700; color: #fff; text-transform: uppercase; letter-spacing: 1px; }
         .star-count { font-size: 9px; color: var(--text-gold); font-weight: bold; }
-        canvas { width: 100%; height: 100%; display: block; }
+        .con-canvas { width: 100%; height: 100%; display: block; }
 
         /* --- DOCK & FABS --- */
         .bottom-dock {
@@ -240,7 +230,6 @@
         .chat-header { flex-shrink: 0; height: 60px; padding: 0 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.05); background: rgba(255,255,255,0.02); }
         .chat-controls { display: flex; gap: 15px; align-items: center; }
         .win-btn { cursor: pointer; transition: opacity 0.2s; }
-        .win-btn:hover { opacity: 0.7; }
         .chat-history { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; justify-content: flex-end; gap: 16px; }
         .msg { max-width: 85%; padding: 14px 18px; border-radius: 20px; font-size: 13.5px; line-height: 1.55; word-wrap: break-word; animation: bubblePop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; opacity: 0; transform: scale(0.9); }
         @keyframes bubblePop { to { opacity: 1; transform: scale(1); } }
@@ -273,9 +262,9 @@
         <div class="milky-way-bg"></div>
         <div class="noise-overlay"></div>
         
-        <div id="stars-micro" class="star-layer stars-micro"></div>
-        <div id="stars-mid" class="star-layer stars-mid"></div>
-        <div id="stars-bright" class="star-layer stars-bright"></div>
+        <canvas id="canvas-dust" class="star-canvas"></canvas>
+        <canvas id="canvas-mid" class="star-canvas"></canvas>
+        <canvas id="canvas-bright" class="star-canvas"></canvas>
 
         <div class="dashboard-section">
             <div class="rank-card" onclick="openModal('ranks-modal'); renderAllRanks();">
@@ -308,7 +297,7 @@
     <div class="app-header">
         <div class="header-left">
             <div class="logo">Celi</div>
-            <div class="version-tag">v2.0.58</div>
+            <div class="version-tag">v2.0.63</div>
         </div>
         <div class="header-right">
             <div class="search-trigger" id="search-trigger"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg></div>
@@ -353,33 +342,58 @@
         // --- VARIABLES ---
         let isProcessing = false; let currentCalendarDate = new Date(); let fullChatHistory = {}; let userHistoryDates = []; let currentMode = 'journal'; let isDocked = false; let galaxyMode = false; let constellationsInitialized = false;
 
-        // --- STAR GENERATOR (DEEP FIELD MONOCHROME) ---
-        function generateCosmicDust(id, count, minSize, maxSize, opacityRange) {
-            const el = document.getElementById(id);
-            if(!el) return;
-            let shadow = "";
-            for(let i=0; i<count; i++) {
-                // Bias star generation to diagonal galactic band
-                const x = Math.random() * 100;
-                // Complex bias formula for natural clustering over 200vh
-                const bias = (x - 50) * 1.8 + 100; 
-                let y = Math.random() * 200;
-                // Pull stars towards the center line, but allow outliers
-                y = (y + bias) / 2 + (Math.random() * 50 - 25);
+        // --- CANVAS STAR GENERATOR ---
+        function generateCanvasStars(canvasId, count, sizeRange, spread) {
+            const canvas = document.getElementById(canvasId);
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            
+            // Set canvas size to match container
+            const container = document.getElementById('cosmos-container');
+            const w = container.offsetWidth;
+            const h = container.offsetHeight; // 200% height
+            
+            canvas.width = w;
+            canvas.height = h;
+            
+            ctx.clearRect(0, 0, w, h);
+            ctx.fillStyle = "rgba(255, 255, 255, 1)"; // Pure white
 
-                // Randomize size and opacity for depth
-                const size = Math.random() * (maxSize - minSize) + minSize;
-                const alpha = (Math.random() * (opacityRange[1] - opacityRange[0]) + opacityRange[0]).toFixed(2);
+            for (let i = 0; i < count; i++) {
+                // 1. Diagonal Band Logic
+                const x = Math.random() * w;
                 
-                // PURE WHITE ONLY - No colors
-                const color = "255, 255, 255";
+                // Ideal line: Y = 1.2 * X (roughly diagonal)
+                const idealY = (x * 1.5) - (w * 0.2); 
                 
-                shadow += `${x}vw ${y}vh 0 ${size/2}px rgba(${color}, ${alpha}), `;
+                // Cluster stars near the line using power math
+                let randomSpread = (Math.random() - 0.5) * 2; 
+                // Cluster tightly
+                randomSpread = Math.sign(randomSpread) * Math.pow(Math.abs(randomSpread), 2); 
+                
+                // Spread scales with width
+                let deviation = randomSpread * (w * spread / 100); 
+                
+                // Outliers
+                if(Math.random() > 0.85) deviation = (Math.random() - 0.5) * h * 0.8;
+
+                const y = idealY + deviation + (h * 0.1); // Offset to center vertically
+
+                // 2. Draw
+                const size = Math.random() * (sizeRange[1] - sizeRange[0]) + sizeRange[0];
+                
+                // Distance opacity logic
+                const dist = Math.abs(deviation);
+                let alpha = 1.0 - (dist / (w * 0.6));
+                if (alpha < 0.2) alpha = 0.2;
+                
+                ctx.globalAlpha = alpha;
+                ctx.fillRect(x, y, size, size); // Draw rectangle is faster than arc
             }
-            el.style.boxShadow = shadow.slice(0, -2);
         }
 
-        // --- CONSTELLATION DATA ---
+        // --- CONSTELLATION DATA & DRAWING (Same as before) ---
+        // For brevity, using the previous robust drawing logic but ensuring it renders on 'View Galaxy'
         const constellationData = [
             { name: "Leo", sub: "The Lion", stars: 9, points: [{x:0.6,y:0.3},{x:0.7,y:0.4},{x:0.55,y:0.6},{x:0.5,y:0.4},{x:0.3,y:0.45},{x:0.15,y:0.35},{x:0.2,y:0.7},{x:0.4,y:0.7}], lines: [[0,1],[1,2],[2,3],[3,0],[3,4],[4,5],[4,6],[2,7],[7,6]], figureLayers: [{ type: 'fill', color: 'rgba(255,255,255,0.08)', path: [{op:'M',args:[0.15,0.35]},{op:'C',args:[0.2,0.2, 0.4,0.2, 0.5,0.3]},{op:'C',args:[0.6,0.2, 0.75,0.25, 0.8,0.4]},{op:'C',args:[0.8,0.55, 0.7,0.65, 0.55,0.7]},{op:'L',args:[0.5,0.85]},{op:'L',args:[0.35,0.85]},{op:'L',args:[0.35,0.7]},{op:'L',args:[0.2,0.85]},{op:'L',args:[0.1,0.8]},{op:'C',args:[0.05,0.6, 0.1,0.45, 0.15,0.35]},{op:'Z'}] }, { type: 'stroke', color: 'rgba(255,255,255,0.15)', width: 1, path: [{op:'M',args:[0.5,0.3]},{op:'C',args:[0.45,0.35, 0.45,0.45, 0.5,0.55]},{op:'M',args:[0.55,0.25]},{op:'C',args:[0.5,0.35, 0.5,0.5, 0.6,0.6]},{op:'M',args:[0.65,0.25]},{op:'C',args:[0.7,0.35, 0.7,0.5, 0.65,0.65]},{op:'M',args:[0.75,0.35]},{op:'C',args:[0.8,0.45, 0.75,0.55, 0.7,0.65]}]}, { type: 'stroke', color: 'rgba(255,255,255,0.2)', width: 0.8, path: [{op:'M',args:[0.75,0.4]},{op:'Q',args:[0.7,0.45, 0.75,0.5]},{op:'M',args:[0.3,0.45]},{op:'Q',args:[0.3,0.6, 0.35,0.7]},{op:'M',args:[0.2,0.7]},{op:'Q',args:[0.15,0.6, 0.2,0.5]}]} ] },
             { name: "Cygnus", sub: "The Swan", stars: 6, points: [{x:0.5,y:0.15},{x:0.5,y:0.5},{x:0.5,y:0.85},{x:0.15,y:0.4},{x:0.3,y:0.45},{x:0.85,y:0.4},{x:0.7,y:0.45}], lines: [[0,1],[1,2],[3,4],[4,1],[1,5],[5,6]], figureLayers: [ { type: 'fill', color: 'rgba(255,255,255,0.08)', path: [{op:'M',args:[0.5,0.9]},{op:'C',args:[0.45,0.7, 0.4,0.6, 0.2,0.5]},{op:'C',args:[0.1,0.4, 0.1,0.3, 0.2,0.25]},{op:'C',args:[0.3,0.3, 0.4,0.35, 0.5,0.2]},{op:'C',args:[0.6,0.35, 0.7,0.3, 0.8,0.25]},{op:'C',args:[0.9,0.3, 0.9,0.4, 0.8,0.5]},{op:'C',args:[0.6,0.6, 0.55,0.7, 0.5,0.9]},{op:'Z'}]}, { type: 'stroke', color: 'rgba(255,255,255,0.15)', width: 0.8, path: [{op:'M',args:[0.4,0.5]},{op:'Q',args:[0.3,0.45, 0.2,0.45]},{op:'M',args:[0.38,0.45]},{op:'Q',args:[0.28,0.4, 0.18,0.4]},{op:'M',args:[0.36,0.4]},{op:'Q',args:[0.26,0.35, 0.16,0.35]}]}, { type: 'stroke', color: 'rgba(255,255,255,0.15)', width: 0.8, path: [{op:'M',args:[0.6,0.5]},{op:'Q',args:[0.7,0.45, 0.8,0.45]},{op:'M',args:[0.62,0.45]},{op:'Q',args:[0.72,0.4, 0.82,0.4]},{op:'M',args:[0.64,0.4]},{op:'Q',args:[0.74,0.35, 0.84,0.35]}]}, { type: 'stroke', color: 'rgba(255,255,255,0.2)', width: 1, path: [{op:'M',args:[0.5,0.2]},{op:'L',args:[0.5,0.55]},{op:'M',args:[0.48,0.6]},{op:'Q',args:[0.5,0.75, 0.48,0.85]},{op:'M',args:[0.52,0.6]},{op:'Q',args:[0.5,0.75, 0.52,0.85]}]} ] },
@@ -452,31 +466,29 @@
             });
         }
 
-        function getRankColor(rankName) {
-            if(rankName.includes("Observer") || rankName.includes("Moonwalker")) return "#fff"; 
-            if(rankName.includes("Celestial") || rankName.includes("Stellar")) return "#fff"; 
-            if(rankName.includes("Interstellar") || rankName.includes("Galactic")) return "#fff"; 
-            if(rankName.includes("Ethereal")) return "#fff"; 
-            return "#fff";
-        }
-        
+        // --- UTILS ---
         function handleOutsideClick(e) { if(e.target.id === 'chat-overlay') closeChat(); }
         function handleWindowClick(e) { e.stopPropagation(); if(isDocked) toggleDock(e); }
         function closeChat(e) { if(e) e.stopPropagation(); document.getElementById('chat-overlay').classList.remove('active'); document.getElementById('chat-overlay').classList.remove('docked'); isDocked=false; document.body.classList.remove('void-active'); document.body.classList.remove('chat-open'); }
         function toggleDock(e) { e.stopPropagation(); isDocked = !isDocked; const o = document.getElementById('chat-overlay'); if(isDocked) { o.classList.add('docked'); document.body.classList.remove('void-active'); document.body.classList.remove('chat-open'); } else { o.classList.remove('docked'); if(currentMode==='rant') document.body.classList.add('void-active'); document.body.classList.add('chat-open'); } }
         function openChat(mode) { currentMode = mode; isDocked = false; const o = document.getElementById('chat-overlay'); o.classList.remove('docked'); document.body.classList.add('chat-open'); if(mode==='rant') { o.classList.add('void-mode'); o.classList.remove('ai-mode'); document.getElementById('chat-header-title').innerText="THE VOID"; document.body.classList.add('void-active'); } else { o.classList.remove('void-mode'); o.classList.add('ai-mode'); document.getElementById('chat-header-title').innerText="CELI NEURAL LINK"; document.body.classList.remove('void-active'); } o.classList.add('active'); }
-        
         function openModal(id) { document.getElementById(id).style.display = 'flex'; }
         function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+        function getRankColor() { return "#fff"; }
         
         window.onload = loadData; 
+        
         function loadData() { 
             renderCalendar(); 
-            // Generate MILLIONS (Simulated via 10,000+ coordinates for heavy dust look)
-            generateCosmicDust('stars-micro', 8000, 0.5, 1.0, [0.1, 0.4]); // The Haze
-            generateCosmicDust('stars-mid', 1500, 1.0, 2.0, [0.4, 0.7]);   // The Stars
-            generateCosmicDust('stars-bright', 100, 2.0, 4.0, [0.7, 1.0]); // The Giants
+            // GENERATE STARS ON CANVAS
+            // Dust: High count, small size, wide spread
+            generateCanvasStars('canvas-dust', 8000, [0.5, 1.5], 60);
+            // Mid: Medium count, brighter
+            generateCanvasStars('canvas-mid', 1000, [1.5, 2.5], 40);
+            // Bright: Low count, very bright
+            generateCanvasStars('canvas-bright', 100, [2.5, 4.0], 30);
         }
+        
         function renderCalendar() {
             const grid = document.getElementById('cal-grid'); if(!grid) return; grid.innerHTML='';
             const now = new Date(); document.getElementById('cal-month-year').innerText = "JANUARY 2026";
