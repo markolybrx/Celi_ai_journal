@@ -14,12 +14,12 @@
 
     <style>
         :root { 
-            --mood: #00f2fe; 
+            --mood: #ffffff; /* Monochrome Mood */
             --bg: #000; 
-            --glass: rgba(20, 20, 25, 0.6); 
-            --border: rgba(255, 255, 255, 0.08); 
+            --glass: rgba(20, 20, 20, 0.6); 
+            --border: rgba(255, 255, 255, 0.1); 
             --font-main: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            --text-gold: #fbbf24;
+            --text-gold: #e5e5e5; /* Silver/White gold */
         }
 
         /* --- VIEWPORT LOCK --- */
@@ -31,7 +31,7 @@
         
         ::-webkit-scrollbar { width: 4px; }
         ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 10px; }
+        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 10px; }
 
         /* --- VOID VIGNETTE --- */
         #void-vignette {
@@ -41,7 +41,7 @@
         }
         
         body.void-active #cosmos-container, body.void-active .app-header {
-            filter: grayscale(100%) blur(3px) brightness(0.5);
+            filter: blur(2px) brightness(0.4);
             transform: scale(0.98);
             transition: all 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
         }
@@ -53,50 +53,56 @@
         /* --- THE UNIFIED COSMOS CONTAINER --- */
         #cosmos-container {
             position: absolute; top: 0; left: 0; width: 100%; height: 200%; /* Double height */
-            /* GPU ACCELERATION FOR SMOOTH ANIMATION */
             transform: translate3d(0, 0, 0); 
             will-change: transform;
-            transition: transform 0.8s cubic-bezier(0.65, 0, 0.35, 1); /* Custom smooth curve */
+            transition: transform 0.8s cubic-bezier(0.65, 0, 0.35, 1);
             z-index: 1; background: #000;
         }
         
-        /* THE MILKY WAY TEXTURE (Monochrome Density Map) */
+        /* THE MILKY WAY TEXTURE (B&W Photography Style) */
         .milky-way-bg {
             position: absolute; inset: 0; z-index: 0;
             background: 
-                /* Define the shape of the galactic band using grayscale density */
-                linear-gradient(110deg, 
+                /* The Galactic Core & Dust Lanes (Pure White/Gray Gradients) */
+                radial-gradient(ellipse at 80% 20%, rgba(255, 255, 255, 0.15) 0%, transparent 50%),
+                radial-gradient(ellipse at 20% 80%, rgba(255, 255, 255, 0.1) 0%, transparent 50%),
+                /* Diagonal Band */
+                linear-gradient(135deg, 
                     #000000 0%, 
-                    rgba(20, 20, 20, 0.8) 30%, 
-                    rgba(50, 50, 50, 0.6) 45%, /* Core density */
-                    rgba(80, 80, 80, 0.3) 55%, 
-                    rgba(20, 20, 20, 0.8) 70%, 
+                    rgba(20, 20, 20, 0.8) 35%, 
+                    rgba(80, 80, 80, 0.4) 50%, /* Brightest Band */
+                    rgba(20, 20, 20, 0.8) 65%, 
                     #000000 100%
                 );
-            opacity: 0.8;
-            filter: blur(50px) contrast(1.2); /* Smooth and deepen blackness */
+            opacity: 1;
+            filter: contrast(1.3) brightness(0.8); /* Astrophotography look */
         }
-        /* Noise Texture for Realism */
+        
+        /* Noise Texture for that "Billions of Stars" Grain */
         .noise-overlay {
-            position: absolute; inset: 0; z-index: 1; opacity: 0.05; pointer-events: none;
-            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+            position: absolute; inset: 0; z-index: 1; opacity: 0.12; pointer-events: none;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
         }
 
         /* PROCEDURAL STARS & TWINKLING */
         .star-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 2; will-change: opacity; }
         
-        /* Dust layer - static haze */
-        .stars-micro { opacity: 0.7; } 
+        /* Dust layer - Dense static haze */
+        .stars-micro { opacity: 0.8; } 
         
-        /* Mid layer - slow pulse */
-        .stars-mid { animation: twinkle 8s infinite ease-in-out; }
+        /* Mid layer - Soft Twinkle */
+        .stars-mid { animation: twinkle 6s infinite ease-in-out; }
         
-        /* Bright layer - faster twinkle */
-        .stars-bright { filter: drop-shadow(0 0 1px white); animation: twinkle 4s infinite ease-in-out alternate; }
+        /* Bright layer - Sharp Twinkle */
+        .stars-bright { filter: drop-shadow(0 0 1px white); animation: twinkleSharp 4s infinite ease-in-out alternate; }
 
         @keyframes twinkle {
             0%, 100% { opacity: 0.8; transform: scale(1); }
-            50% { opacity: 0.4; transform: scale(0.98); }
+            50% { opacity: 0.5; transform: scale(0.95); }
+        }
+        @keyframes twinkleSharp {
+            0%, 100% { opacity: 1; transform: scale(1.1); }
+            50% { opacity: 0.3; transform: scale(0.8); }
         }
 
         /* --- DASHBOARD SECTION (Top Half) --- */
@@ -114,9 +120,9 @@
         /* --- UI OVERLAYS (Fixed) --- */
         .app-header { 
             position: fixed; top: 0; left: 0; width: 100%; height: 60px;
-            background: rgba(10, 10, 15, 0.7); 
+            background: rgba(0, 0, 0, 0.7); 
             backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px);
-            border-bottom: 1px solid rgba(255,255,255,0.08);
+            border-bottom: 1px solid rgba(255,255,255,0.1);
             display: flex; justify-content: space-between; align-items: center; 
             padding: 0 20px; z-index: 80; transition: all 0.3s ease;
         }
@@ -133,44 +139,44 @@
             position: absolute; right: 45px; top: 50%; transform: translateY(-50%);
             width: 0; overflow: hidden; height: 36px;
             transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s;
-            background: rgba(0, 0, 0, 0.8); border: 1px solid rgba(255,255,255,0.1);
+            background: rgba(20, 20, 20, 0.8); border: 1px solid rgba(255,255,255,0.2);
             backdrop-filter: blur(10px); border-radius: 18px;
             display: flex; align-items: center; opacity: 0; pointer-events: none;
         }
-        .search-bar-container.active { width: 220px; opacity: 1; pointer-events: all; border-color: var(--mood); }
+        .search-bar-container.active { width: 220px; opacity: 1; pointer-events: all; border-color: #fff; }
         .search-input { width: 100%; border: none; outline: none; color: #fff; font-size: 13px; padding: 0 15px; background: transparent; height: 100%; }
 
-        /* --- CARDS --- */
+        /* --- CARDS (Monochrome Glass) --- */
         .rank-card {
-            background: var(--glass); border: 1px solid var(--border); 
+            background: rgba(20, 20, 20, 0.5); border: 1px solid rgba(255, 255, 255, 0.1); 
             border-radius: 20px; padding: 12px 15px; margin-bottom: 15px; 
             backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
-            box-shadow: 0 10px 40px -10px rgba(0,242,254,0.15);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
             display: flex; align-items: center; gap: 12px; position: relative; overflow: hidden; cursor: pointer; transition: transform 0.2s;
         }
         .rank-card:active { transform: scale(0.98); }
-        .rank-icon { width: 45px; height: 45px; border-radius: 50%; background: rgba(255, 255, 255, 0.03); border: 2px solid var(--mood); box-shadow: 0 0 15px var(--mood), inset 0 0 5px rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: center; color: #ffffff; flex-shrink: 0; }
+        .rank-icon { width: 45px; height: 45px; border-radius: 50%; background: rgba(255, 255, 255, 0.05); border: 2px solid #fff; box-shadow: 0 0 15px rgba(255,255,255,0.2); display: flex; align-items: center; justify-content: center; color: #ffffff; flex-shrink: 0; }
         .rank-details { flex: 1; z-index: 2; }
         .greeting { font-size: 16px; font-weight: 800; color: #fff; line-height: 1.2; }
         .rank-title { font-size: 10px; font-weight: 500; opacity: 0.5; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 1px; }
         .progress-container { width: 100%; height: 3px; background: rgba(255,255,255,0.1); border-radius: 10px; overflow: hidden; }
-        .progress-bar { height: 100%; background: var(--mood); width: 0%; box-shadow: 0 0 5px var(--mood); }
+        .progress-bar { height: 100%; background: #fff; width: 0%; box-shadow: 0 0 5px rgba(255,255,255,0.5); }
 
         .calendar-card {
-            background: var(--glass); border: 1px solid var(--border);
+            background: rgba(20, 20, 20, 0.5); border: 1px solid rgba(255, 255, 255, 0.1);
             border-radius: 20px; padding: 15px; margin-bottom: 0; /* FLUSH BOTTOM */
             backdrop-filter: blur(20px); min-height: 260px;
             box-shadow: 0 15px 40px -10px rgba(0,0,0,0.5); z-index: 2;
         }
         .cal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; width: 100%; }
-        .cal-title { font-size: 14px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; color: var(--mood); text-align: center; flex: 1; }
+        .cal-title { font-size: 14px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; color: #fff; text-align: center; flex: 1; }
         .cal-btn { width: 28px; height: 28px; border-radius: 8px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: #fff; font-size: 12px; display: flex; align-items: center; justify-content: center; cursor: pointer; }
         .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; text-align: center; }
         .cal-day-label { font-size: 8px; opacity: 0.3; margin-bottom: 2px; font-weight: bold; }
         .cal-day { aspect-ratio: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 10px; border-radius: 6px; position: relative; color: rgba(255,255,255,0.7); cursor: default; }
-        .cal-day.today { background: rgba(255,255,255,0.1); color: #fff; font-weight: 900; border: 1px solid rgba(255,255,255,0.2); }
-        .cal-day.has-entry { color: var(--mood); font-weight: bold; cursor: pointer; }
-        .cal-day.has-entry::after { content: ''; position: absolute; bottom: 3px; width: 3px; height: 3px; background: var(--mood); border-radius: 50%; box-shadow: 0 0 4px var(--mood); }
+        .cal-day.today { background: rgba(255,255,255,0.2); color: #fff; font-weight: 900; border: 1px solid rgba(255,255,255,0.3); }
+        .cal-day.has-entry { color: #fff; font-weight: bold; cursor: pointer; text-shadow: 0 0 5px rgba(255,255,255,0.5); }
+        .cal-day.has-entry::after { content: ''; position: absolute; bottom: 3px; width: 3px; height: 3px; background: #fff; border-radius: 50%; box-shadow: 0 0 4px rgba(255,255,255,0.8); }
 
         /* --- CONSTELLATIONS --- */
         .galaxy-grid {
@@ -195,9 +201,9 @@
         .bottom-dock {
             position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
             width: 90%; max-width: 600px; height: 75px;
-            background: rgba(20, 20, 25, 0.6); backdrop-filter: blur(25px); 
-            border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 30px; z-index: 60;
-            box-shadow: 0 15px 40px rgba(0,0,0,0.5);
+            background: rgba(20, 20, 20, 0.8); backdrop-filter: blur(25px); 
+            border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 30px; z-index: 60;
+            box-shadow: 0 15px 40px rgba(0,0,0,0.8);
             display: flex; align-items: center; justify-content: space-between; padding: 0 25px;
             transition: all 0.3s ease;
         }
@@ -206,21 +212,19 @@
         .dock-btn:active { background: rgba(255,255,255,0.2); transform: scale(0.95); }
 
         .fab-container { position: fixed; bottom: 110px; right: 25px; z-index: 60; transition: all 0.3s ease; }
-        .chat-fab { width: 60px; height: 60px; border-radius: 50%; background: linear-gradient(135deg, #f9a8d4, #c084fc); border: none; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: transform 0.3s; color: #fff; animation: pastelPulse 3s infinite; box-shadow: 0 4px 20px rgba(192, 132, 252, 0.4); }
+        .chat-fab { width: 60px; height: 60px; border-radius: 50%; background: #fff; border: none; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: transform 0.3s; color: #000; animation: pastelPulse 3s infinite; box-shadow: 0 0 20px rgba(255, 255, 255, 0.4); }
         .chat-fab:active { transform: scale(0.9); }
-        @keyframes pastelPulse { 0% { box-shadow: 0 0 0 0 rgba(192, 132, 252, 0.6); } 70% { box-shadow: 0 0 0 15px rgba(192, 132, 252, 0); } 100% { box-shadow: 0 0 0 0 rgba(192, 132, 252, 0); } }
+        @keyframes pastelPulse { 0% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.6); } 70% { box-shadow: 0 0 0 15px rgba(255, 255, 255, 0); } 100% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0); } }
 
         .void-container { position: fixed; bottom: 110px; left: 25px; z-index: 60; transition: all 0.3s ease; }
-        .void-fab { width: 60px; height: 60px; border-radius: 50%; background: #000; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: transform 0.3s; animation: voidGlow 3s infinite alternate; }
+        .void-fab { width: 60px; height: 60px; border-radius: 50%; background: #000; border: 1px solid #333; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: transform 0.3s; animation: voidGlow 3s infinite alternate; }
         .void-fab:active { transform: scale(0.9); }
         .spin-ccw { animation: spinCCW 8s linear infinite; transform-origin: center; }
         @keyframes spinCCW { from { transform: rotate(360deg); } to { transform: rotate(0deg); } }
-        @keyframes voidGlow { from { box-shadow: 0 0 10px rgba(245, 158, 11, 0.3); } to { box-shadow: 0 0 25px rgba(99, 102, 241, 0.6); } }
+        @keyframes voidGlow { from { box-shadow: 0 0 10px rgba(255, 255, 255, 0.1); } to { box-shadow: 0 0 25px rgba(255, 255, 255, 0.4); } }
 
         /* --- GALAXY STATE --- */
-        body.galaxy-mode #cosmos-container { 
-            transform: translate3d(0, -50%, 0); /* SLIDE UP 100vh (which is 50% of 200%) */
-        }
+        body.galaxy-mode #cosmos-container { transform: translate3d(0, -50%, 0); }
         body.galaxy-mode .header-right { opacity: 0; pointer-events: none; transform: translateY(-10px); }
 
         /* --- CHAT MODAL --- */
@@ -231,8 +235,8 @@
         .chat-overlay.active .chat-modal-window { transform: translateY(0) scale(1); }
         .chat-overlay.docked .chat-modal-window { pointer-events: all; height: 60px; transform: translateY(0); border-bottom-left-radius: 0; border-bottom-right-radius: 0; width: 100%; max-width: 100%; margin-bottom: 0; cursor: pointer; }
         .chat-overlay.docked .chat-history, .chat-overlay.docked .input-area { display: none; }
-        .chat-overlay.void-mode .chat-modal-window { background: #000; border: 1px solid rgba(147, 51, 234, 0.2); box-shadow: 0 0 40px rgba(0,0,0,1), inset 0 0 20px rgba(0,0,0,1); }
-        .chat-overlay.ai-mode .chat-modal-window { background: #222831; }
+        .chat-overlay.void-mode .chat-modal-window { background: #000; border: 1px solid #333; box-shadow: 0 0 40px rgba(0,0,0,1), inset 0 0 20px rgba(0,0,0,1); }
+        .chat-overlay.ai-mode .chat-modal-window { background: #111; }
         .chat-header { flex-shrink: 0; height: 60px; padding: 0 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.05); background: rgba(255,255,255,0.02); }
         .chat-controls { display: flex; gap: 15px; align-items: center; }
         .win-btn { cursor: pointer; transition: opacity 0.2s; }
@@ -240,10 +244,10 @@
         .chat-history { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; justify-content: flex-end; gap: 16px; }
         .msg { max-width: 85%; padding: 14px 18px; border-radius: 20px; font-size: 13.5px; line-height: 1.55; word-wrap: break-word; animation: bubblePop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; opacity: 0; transform: scale(0.9); }
         @keyframes bubblePop { to { opacity: 1; transform: scale(1); } }
-        .msg-user { align-self: flex-end; background: var(--mood); color: #000; border-bottom-right-radius: 4px; font-weight: 600; }
-        .msg-ai { align-self: flex-start; background: rgba(255,255,255,0.08); color: #eee; border-bottom-left-radius: 4px; border: 1px solid rgba(255,255,255,0.05); }
+        .msg-user { align-self: flex-end; background: #fff; color: #000; border-bottom-right-radius: 4px; font-weight: 600; }
+        .msg-ai { align-self: flex-start; background: rgba(255,255,255,0.1); color: #eee; border-bottom-left-radius: 4px; border: 1px solid rgba(255,255,255,0.05); }
         .chat-input { flex: 1; background: rgba(255,255,255,0.05); border: 1px solid var(--border); border-radius: 25px; padding: 12px 20px; color: #fff; outline: none; font-size: 16px; }
-        .send-btn { background: var(--mood); color: #000; width: 44px; height: 44px; border-radius: 50%; font-weight: bold; display: flex; align-items: center; justify-content: center; }
+        .send-btn { background: #fff; color: #000; width: 44px; height: 44px; border-radius: 50%; font-weight: bold; display: flex; align-items: center; justify-content: center; }
         .input-area { flex-shrink: 0; padding: 15px; background: rgba(0,0,0,0.95); border-top: 1px solid var(--border); display: flex; gap: 10px; padding-bottom: max(15px, env(safe-area-inset-bottom)); }
         .chat-overlay.void-mode .chat-history { -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 15%); mask-image: linear-gradient(to bottom, transparent 0%, black 15%); }
 
@@ -254,7 +258,7 @@
         #ranks-grid { padding-right: 5px; }
         #ranks-grid::-webkit-scrollbar { width: 4px; }
         #loading-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.95); z-index: 200; display: flex; align-items: center; justify-content: center; flex-direction: column; display: none; }
-        .spinner { width: 40px; height: 40px; border: 2px solid rgba(255,255,255,0.1); border-top-color: var(--mood); border-radius: 50%; animation: spin 0.8s infinite linear; }
+        .spinner { width: 40px; height: 40px; border: 2px solid rgba(255,255,255,0.1); border-top-color: #fff; border-radius: 50%; animation: spin 0.8s infinite linear; }
         @keyframes spin { to { transform: rotate(360deg); } }
         @media (max-width: 380px) { .version-tag { display: none; } }
     </style>
@@ -304,7 +308,7 @@
     <div class="app-header">
         <div class="header-left">
             <div class="logo">Celi</div>
-            <div class="version-tag">v2.0.57</div>
+            <div class="version-tag">v2.0.58</div>
         </div>
         <div class="header-right">
             <div class="search-trigger" id="search-trigger"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg></div>
@@ -320,12 +324,12 @@
 
     <div class="void-container" onclick="openChat('void')">
         <div class="void-fab">
-            <svg width="44" height="44" viewBox="0 0 24 24" fill="none"><defs><linearGradient id="voidGradient" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#facc15" /><stop offset="40%" stop-color="#f97316" /><stop offset="100%" stop-color="#9333ea" /></linearGradient></defs><circle cx="12" cy="12" r="11" fill="url(#voidGradient)" class="spin-ccw" /><circle cx="12" cy="12" r="5" fill="black" /></svg>
+            <svg width="44" height="44" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="11" fill="black" stroke="white" stroke-width="1.5" class="spin-ccw" /><circle cx="12" cy="12" r="5" fill="black" /></svg>
         </div>
     </div>
     <div class="fab-container" onclick="openChat('ai')">
         <div class="chat-fab">
-            <svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><g transform="rotate(-90 12 12)"><path d="M12 19l7-7 3 3-7 7-3-3z" /><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z" /><path d="M2 2l7.586 7.586" /><circle cx="11" cy="11" r="2" fill="white" stroke="none" opacity="0.6"/><path d="M19 0 L20.5 3.5 L24 5 L20.5 6.5 L19 10 L17.5 6.5 L14 5 L17.5 3.5 Z" fill="white" stroke="none"/></g></svg>
+            <svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><g transform="rotate(-90 12 12)"><path d="M12 19l7-7 3 3-7 7-3-3z" /><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z" /><path d="M2 2l7.586 7.586" /><circle cx="11" cy="11" r="2" fill="black" stroke="none" opacity="0.6"/><path d="M19 0 L20.5 3.5 L24 5 L20.5 6.5 L19 10 L17.5 6.5 L14 5 L17.5 3.5 Z" fill="black" stroke="none"/></g></svg>
         </div>
     </div>
 
@@ -349,24 +353,25 @@
         // --- VARIABLES ---
         let isProcessing = false; let currentCalendarDate = new Date(); let fullChatHistory = {}; let userHistoryDates = []; let currentMode = 'journal'; let isDocked = false; let galaxyMode = false; let constellationsInitialized = false;
 
-        // --- STAR GENERATOR (MONOCHROME) ---
+        // --- STAR GENERATOR (DEEP FIELD MONOCHROME) ---
         function generateCosmicDust(id, count, minSize, maxSize, opacityRange) {
             const el = document.getElementById(id);
             if(!el) return;
             let shadow = "";
             for(let i=0; i<count; i++) {
-                // Bias star generation to diagonals to match Milky Way density
+                // Bias star generation to diagonal galactic band
                 const x = Math.random() * 100;
-                // Bias Y based on X to create a band, but keep it organic over 200vh
-                const bias = (x - 50) * 2 + 100; 
+                // Complex bias formula for natural clustering over 200vh
+                const bias = (x - 50) * 1.8 + 100; 
                 let y = Math.random() * 200;
-                // Pull stars towards the diagonal band
-                y = (y + bias) / 2 + (Math.random() * 40 - 20);
+                // Pull stars towards the center line, but allow outliers
+                y = (y + bias) / 2 + (Math.random() * 50 - 25);
 
+                // Randomize size and opacity for depth
                 const size = Math.random() * (maxSize - minSize) + minSize;
                 const alpha = (Math.random() * (opacityRange[1] - opacityRange[0]) + opacityRange[0]).toFixed(2);
                 
-                // Pure White Only
+                // PURE WHITE ONLY - No colors
                 const color = "255, 255, 255";
                 
                 shadow += `${x}vw ${y}vh 0 ${size/2}px rgba(${color}, ${alpha}), `;
@@ -447,13 +452,12 @@
             });
         }
 
-        // --- EXISTING UTILS ---
         function getRankColor(rankName) {
-            if(rankName.includes("Observer") || rankName.includes("Moonwalker")) return "#00f2fe"; 
-            if(rankName.includes("Celestial") || rankName.includes("Stellar")) return "#facc15"; 
-            if(rankName.includes("Interstellar") || rankName.includes("Galactic")) return "#a855f7"; 
-            if(rankName.includes("Ethereal")) return "#ffffff"; 
-            return "#00f2fe";
+            if(rankName.includes("Observer") || rankName.includes("Moonwalker")) return "#fff"; 
+            if(rankName.includes("Celestial") || rankName.includes("Stellar")) return "#fff"; 
+            if(rankName.includes("Interstellar") || rankName.includes("Galactic")) return "#fff"; 
+            if(rankName.includes("Ethereal")) return "#fff"; 
+            return "#fff";
         }
         
         function handleOutsideClick(e) { if(e.target.id === 'chat-overlay') closeChat(); }
@@ -468,10 +472,10 @@
         window.onload = loadData; 
         function loadData() { 
             renderCalendar(); 
-            // Generate MILLIONS (Simulated via 4500+ coordinates) - MONOCHROME
-            generateCosmicDust('stars-micro', 4000, 0.5, 1.0, [0.1, 0.5]); 
-            generateCosmicDust('stars-mid', 500, 1.0, 2.0, [0.5, 0.8]);
-            generateCosmicDust('stars-bright', 100, 2.0, 3.5, [0.8, 1.0]);
+            // Generate MILLIONS (Simulated via 10,000+ coordinates for heavy dust look)
+            generateCosmicDust('stars-micro', 8000, 0.5, 1.0, [0.1, 0.4]); // The Haze
+            generateCosmicDust('stars-mid', 1500, 1.0, 2.0, [0.4, 0.7]);   // The Stars
+            generateCosmicDust('stars-bright', 100, 2.0, 4.0, [0.7, 1.0]); // The Giants
         }
         function renderCalendar() {
             const grid = document.getElementById('cal-grid'); if(!grid) return; grid.innerHTML='';
