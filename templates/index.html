@@ -110,7 +110,7 @@
         .nav-btn span { font-size: 8px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
         .nav-btn:hover, .nav-btn:active { color: #fff; transform: translateY(-2px); }
 
-        /* GALAXY BUTTON (CALIBRATED) */
+        /* GALAXY BUTTON (INLINE) */
         .galaxy-btn {
             width: 80px; height: 80px;
             border-radius: 50%;
@@ -122,14 +122,14 @@
             box-shadow: 0 0 30px rgba(255, 255, 255, 0.4);
             cursor: pointer; 
             transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            /* RE-CALIBRATED POSITION: Sits closer to menu */
-            position: relative; 
-            top: -15px; /* Was -25px */
+            /* RESET: Sit right beside other icons */
             margin: 0 5px;
+            position: relative; 
+            z-index: 40; /* Stacks nicely above dock if huge */
         }
         .galaxy-btn svg { width: 32px; height: 32px; fill: #000; }
-        .galaxy-btn:hover { transform: scale(1.05) translateY(-20px); box-shadow: 0 0 40px rgba(255,255,255,0.7); }
-        .galaxy-btn:active { transform: scale(0.95); top: -12px; }
+        .galaxy-btn:hover { transform: scale(1.05) translateY(-5px); box-shadow: 0 0 40px rgba(255,255,255,0.7); }
+        .galaxy-btn:active { transform: scale(0.95); }
 
         /* FABS */
         .fab-container { position: fixed; bottom: 110px; right: 25px; z-index: 40; transition: all 0.3s ease; }
@@ -187,7 +187,7 @@
     <div class="app-header">
         <div class="header-left">
             <div class="logo">Celi</div>
-            <div class="version-tag">v3.0.4</div>
+            <div class="version-tag">v3.0.5</div>
         </div>
         <div class="header-right">
             <div class="search-trigger" id="search-trigger"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg></div>
@@ -287,7 +287,7 @@
             alert("Galaxy View: Under Construction");
         }
 
-        // ... [REST OF JS IDENTICAL TO v3.0.3] ...
+        // ... [REST OF JS IDENTICAL TO v3.0.1] ...
         const rankIcons = { "Observer": '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="32" height="32"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>' };
         function getRankColor(rankName) { return "#00f2fe"; }
         document.addEventListener('click', function(e) { const container = document.getElementById('search-container'); const trigger = document.getElementById('search-trigger'); if (!container.contains(e.target) && !trigger.contains(e.target)) { container.classList.remove('active'); document.getElementById('search-input').value = ''; } });
