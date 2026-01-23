@@ -30,7 +30,6 @@
             --font-main: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
         }
 
-        /* --- IMMUTABLE BACKGROUND --- */
         #static-background { position: fixed; inset: 0; z-index: -1; background: var(--bg); transition: background 1s ease; }
 
         html, body { margin: 0; padding: 0; width: 100%; height: 100%; color: #fff; font-family: var(--font-main); overflow: hidden; -webkit-font-smoothing: antialiased; position: fixed; }
@@ -110,20 +109,27 @@
         .nav-btn span { font-size: 8px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
         .nav-btn:hover, .nav-btn:active { color: #fff; transform: translateY(-2px); }
 
-        /* GALAXY BUTTON (CENTER) */
+        /* GALAXY BUTTON (OVERLAPPING POP-OUT) */
         .galaxy-btn {
-            width: 50px; height: 50px; border-radius: 50%;
-            background: #fff; border: 4px solid rgba(255,255,255,0.1);
+            width: 80px; height: 80px; /* Bigger than dock height */
+            border-radius: 50%;
+            background: #fff; 
+            /* Creates a slight separation if desired, or blends with shadow */
+            border: 4px solid rgba(255,255,255,0.1);
             background-clip: padding-box;
             color: #000;
             display: flex; align-items: center; justify-content: center;
-            box-shadow: 0 0 20px rgba(255, 255, 255, 0.3);
-            cursor: pointer; transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            margin: 0 5px; position: relative; top: -5px; /* Slight pop up */
+            box-shadow: 0 0 30px rgba(255, 255, 255, 0.4); /* Strong glow */
+            cursor: pointer; 
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            /* This makes it overlap the top of the menu */
+            position: relative; 
+            top: -25px; 
+            margin: 0 5px;
         }
-        .galaxy-btn svg { width: 24px; height: 24px; fill: #000; }
-        .galaxy-btn:hover { transform: scale(1.1) translateY(-5px); box-shadow: 0 0 30px rgba(255,255,255,0.6); }
-        .galaxy-btn:active { transform: scale(0.95); }
+        .galaxy-btn svg { width: 32px; height: 32px; fill: #000; }
+        .galaxy-btn:hover { transform: scale(1.05) translateY(-28px); box-shadow: 0 0 40px rgba(255,255,255,0.7); }
+        .galaxy-btn:active { transform: scale(0.95); top: -22px; }
 
         /* FABS */
         .fab-container { position: fixed; bottom: 110px; right: 25px; z-index: 40; transition: all 0.3s ease; }
@@ -156,9 +162,9 @@
         @keyframes bubblePop { to { opacity: 1; transform: scale(1); } }
         .msg-user { align-self: flex-end; background: var(--mood); color: #000; border-bottom-right-radius: 4px; font-weight: 600; }
         .msg-ai { align-self: flex-start; background: rgba(255,255,255,0.08); color: #eee; border-bottom-left-radius: 4px; border: 1px solid rgba(255,255,255,0.05); }
-        .chat-input { flex: 1; background: rgba(255,255,255,0.05); border: 1px solid var(--border); border-radius: 25px; padding: 12px 20px; color: #fff; outline: none; font-size: 16px; }
-        .send-btn { background: var(--mood); color: #000; width: 44px; height: 44px; border-radius: 50%; font-weight: bold; display: flex; align-items: center; justify-content: center; }
-        .input-area { flex-shrink: 0; padding: 15px; background: rgba(0,0,0,0.95); border-top: 1px solid var(--border); display: flex; gap: 10px; padding-bottom: max(15px, env(safe-area-inset-bottom)); }
+        .chat-input { width: 100%; background: rgba(255,255,255,0.05); border: 1px solid var(--border); border-radius: 25px; padding: 12px 20px; color: #fff; outline: none; font-size: 16px; }
+        .send-btn { background: var(--mood); color: #000; width: 44px; height: 44px; border-radius: 50%; font-weight: bold; display: flex; align-items: center; justify-content: center; margin-left: 10px; }
+        .input-area { flex-shrink: 0; padding: 15px; background: rgba(0,0,0,0.95); border-top: 1px solid var(--border); display: flex; align-items: center; padding-bottom: max(15px, env(safe-area-inset-bottom)); }
         .chat-overlay.void-mode .chat-history { -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 15%); mask-image: linear-gradient(to bottom, transparent 0%, black 15%); }
 
         .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.95); z-index: 110; display: none; align-items: center; justify-content: center; padding: 20px; backdrop-filter: blur(8px); }
@@ -181,7 +187,7 @@
     <div class="app-header">
         <div class="header-left">
             <div class="logo">Celi</div>
-            <div class="version-tag">v3.0.2</div>
+            <div class="version-tag">v3.0.3</div>
         </div>
         <div class="header-right">
             <div class="search-trigger" id="search-trigger"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg></div>
