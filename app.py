@@ -16,11 +16,11 @@ CONTEXT_STATE = {"awaiting_void_confirm": False}
 # --- 1. SETUP API KEY ---
 api_key = os.environ.get("GEMINI_API_KEY")
 if api_key:
-    # Strip any accidental whitespace (common copy-paste error)
+    # Strip whitespace/quotes to prevent auth errors
     api_key = api_key.strip().replace("'", "").replace('"', "")
     try:
         genai.configure(api_key=api_key)
-        print(f"✅ Key Configured. Ends with: ...{api_key[-4:]}")
+        print(f"✅ Key Configured.")
     except Exception as e:
         print(f"❌ Key Config Error: {e}")
 else:
@@ -55,39 +55,26 @@ def get_data():
 
 def generate_with_fallback(msg, is_void):
     """
-    Tries multiple models. Returns response text OR error details.
+    Targets the specific models available on your key.
     """
-    # List of models to try in order of preference
+    # UPDATED CANDIDATES BASED ON YOUR DIAGNOSTIC REPORT
     candidates = [
-        "gemini-1.5-flash",
-        "gemini-1.5-pro",
-        "gemini-pro",
-        "models/gemini-1.5-flash", # Sometimes explicit path is needed
+        "gemini-2.0-flash",       # Primary: Fast & Intelligent
+        "gemini-2.0-flash-lite",  # Backup: Ultra-fast
+        "gemini-2.5-flash",       # Fallback: Cutting edge
     ]
     
     last_error = ""
-    
     system_instruction = VOID_INSTRUCTION if is_void else CELI_INSTRUCTION
 
     for model_name in candidates:
         try:
             print(f"🔄 Trying model: {model_name}...")
-            
-            # Note: gemini-pro (1.0) often fails with system_instruction param.
-            # We handle that by manually prepending prompts if needed.
-            if "gemini-pro" in model_name and "1.5" not in model_name:
-                # Legacy model handling
-                model = genai.GenerativeModel(model_name)
-                full_prompt = f"{system_instruction}\n\nUser: {msg}"
-                response = model.generate_content(full_prompt)
-            else:
-                # Modern model handling (1.5+)
-                model = genai.GenerativeModel(
-                    model_name=model_name,
-                    system_instruction=system_instruction
-                )
-                response = model.generate_content(msg)
-                
+            model = genai.GenerativeModel(
+                model_name=model_name,
+                system_instruction=system_instruction
+            )
+            response = model.generate_content(msg)
             return response.text.strip(), model_name # Success!
             
         except Exception as e:
@@ -95,17 +82,8 @@ def generate_with_fallback(msg, is_void):
             last_error = str(e)
             continue # Try next model
 
-    # IF WE ARE HERE, ALL MODELS FAILED.
-    # RUN DIAGNOSTIC: List available models
-    try:
-        available = []
-        for m in genai.list_models():
-            if 'generateContent' in m.supported_generation_methods:
-                available.append(m.name)
-        
-        return f"⚠️ ALL MODELS FAILED. \nYour Key has access to: {available}. \nLast Error: {last_error}", "None"
-    except Exception as e:
-        return f"⚠️ CRITICAL AUTH FAILURE. Your API Key might be invalid or not enabled for Generative AI. Error: {last_error}", "None"
+    # If all fail, return error
+    return f"⚠️ CONNECTION FAILED. All Gemini 2.0 models failed. Error: {last_error}", "None"
 
 
 @app.route('/api/process', methods=['POST'])
