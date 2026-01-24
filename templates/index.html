@@ -46,20 +46,17 @@
         .cal-day.today { background: rgba(255,255,255,0.1); color: #fff; font-weight: 900; border: 1px solid rgba(255,255,255,0.2); }
         .cal-day.has-entry { color: var(--mood); font-weight: bold; cursor: pointer; } .cal-day.has-entry::after { content: ''; width: 3px; height: 3px; background: var(--mood); border-radius: 50%; position: absolute; bottom: 3px; }
 
-        /* DOCK */
         .bottom-dock { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); width: 95%; max-width: 500px; height: 75px; background: rgba(15, 15, 20, 0.85); backdrop-filter: blur(25px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 40px; z-index: 30; display: flex; align-items: center; justify-content: space-evenly; transition: all 0.3s ease; }
         .nav-btn { display: flex; flex-direction: column; align-items: center; justify-content: center; color: rgba(255,255,255,0.4); background: none; border: none; width: 50px; gap: 4px; }
         .nav-btn span { font-size: 8px; font-weight: 600; text-transform: uppercase; }
         .nav-btn svg { width: 22px; height: 22px; }
 
-        /* GALAXY BUTTON (VECTOR) */
         .galaxy-btn { width: 80px; height: 80px; border-radius: 50%; background: #fff; border: 4px solid rgba(255,255,255,0.1); color: #000; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 30px rgba(255, 255, 255, 0.4); transition: transform 0.4s, background-color 0.3s; margin: 0 5px; position: relative; z-index: 40; }
         .galaxy-btn svg { width: 50px; height: 50px; fill: none; transition: fill 0.3s; }
         .galaxy-btn:active { transform: scale(0.95); }
         .galaxy-btn.galaxy-open { background-color: #ef4444; border-color: #991b1b; transform: rotate(90deg) scale(1.1); box-shadow: 0 0 30px rgba(239, 68, 68, 0.5); }
         .galaxy-btn.galaxy-open svg { stroke: #fff; width: 36px; height: 36px; }
 
-        /* FABS & MODALS */
         .void-fab { width: 60px; height: 60px; border-radius: 50%; background: #000; display: flex; align-items: center; justify-content: center; animation: voidGlow 3s infinite alternate; }
         .chat-fab { width: 60px; height: 60px; border-radius: 50%; background: linear-gradient(135deg, #f9a8d4, #c084fc); display: flex; align-items: center; justify-content: center; animation: pastelPulse 3s infinite; }
         .void-container { position: fixed; bottom: 110px; left: 25px; z-index: 40; } .fab-container { position: fixed; bottom: 110px; right: 25px; z-index: 40; }
@@ -94,7 +91,7 @@
     <div id="static-background"></div>
 
     <div class="app-header">
-        <div class="header-left"><div class="logo">Celi</div><div class="version-tag">v3.0.11</div></div>
+        <div class="header-left"><div class="logo">Celi</div><div class="version-tag">v3.0.12</div></div>
         <div class="header-right"><div class="header-pfp" onclick="openModal('profile-modal')"><img id="nav-pfp" src=""></div></div>
     </div>
 
@@ -181,8 +178,8 @@
         function handleSearch() { const query = document.getElementById('search-input').value.toLowerCase(); if(query.length < 2) { resetChatFilter(); return; } const filtered = {}; let found = false; Object.keys(fullChatHistory).forEach(key => { const entry = fullChatHistory[key]; if((entry.summary && entry.summary.toLowerCase().includes(query)) || (entry.reply && entry.reply.toLowerCase().includes(query))) { filtered[key] = entry; found = true; } }); if(found) { renderChatHistory(filtered); if(document.getElementById('chat-overlay').style.display === 'none') openChat('ai'); document.getElementById('chat-header-title').innerText = "SEARCH RESULTS"; } }
         function resetChatFilter() { renderChatHistory(fullChatHistory); document.getElementById('chat-header-title').innerText = currentMode === 'rant' ? "THE VOID" : "CELI NEURAL LINK"; }
         
+        // --- LOGIC FIX: TRIGGER RENDER ON OPEN ---
         function openChat(mode) { 
-            // LOGIC FIX: Explicitly set currentMode
             currentMode = mode; 
             const overlay = document.getElementById('chat-overlay'); 
             const title = document.getElementById('chat-header-title'); 
@@ -202,19 +199,50 @@
             overlay.classList.add('active'); 
             const c = document.getElementById('chat-history'); c.scrollTop = c.scrollHeight; 
             document.getElementById('chat-input').focus(); 
+            // CRITICAL FIX: Refresh chat view to show correct greeting for this mode
+            renderChatHistory(fullChatHistory);
         }
 
         function toggleDock(e) { e.stopPropagation(); const overlay = document.getElementById('chat-overlay'); isDocked = !isDocked; if(isDocked) { overlay.classList.add('docked'); document.body.classList.remove('void-active'); document.body.classList.remove('chat-open'); } else { overlay.classList.remove('docked'); if(currentMode === 'rant') document.body.classList.add('void-active'); document.body.classList.add('chat-open'); } }
         function handleWindowClick(e) { e.stopPropagation(); if(isDocked) toggleDock(e); }
         function closeChat(e) { if(e) e.stopPropagation(); const overlay = document.getElementById('chat-overlay'); overlay.classList.remove('active'); overlay.classList.remove('docked'); isDocked = false; document.body.classList.remove('void-active'); document.body.classList.remove('chat-open'); }
         function handleOutsideClick(e) { if(e.target.id === 'chat-overlay') closeChat(); }
-        function renderChatHistory(historyData) { const container = document.getElementById('chat-history'); container.innerHTML = ''; const sortedKeys = Object.keys(historyData).sort((a, b) => parseFloat(a) - parseFloat(b)); const recentKeys = sortedKeys.slice(-50); const fragment = document.createDocumentFragment(); recentKeys.forEach(timestamp => { const entry = historyData[timestamp]; fragment.appendChild(createMsgEl(entry.summary || "Entry", 'user')); fragment.appendChild(createMsgEl(entry.reply, 'ai')); }); container.appendChild(fragment); if(recentKeys.length === 0) container.appendChild(createMsgEl("Hello. I am Celi. Tap the void to begin.", 'ai')); requestAnimationFrame(() => container.scrollTop = container.scrollHeight); }
+        
+        // --- MODIFIED RENDER LOGIC FOR GREETINGS ---
+        function renderChatHistory(historyData) { 
+            const container = document.getElementById('chat-history'); 
+            container.innerHTML = ''; 
+            const sortedKeys = Object.keys(historyData).sort((a, b) => parseFloat(a) - parseFloat(b)); 
+            const recentKeys = sortedKeys.slice(-50); 
+            const fragment = document.createDocumentFragment(); 
+            
+            recentKeys.forEach(timestamp => { 
+                const entry = historyData[timestamp]; 
+                fragment.appendChild(createMsgEl(entry.summary || "Entry", 'user')); 
+                fragment.appendChild(createMsgEl(entry.reply, 'ai')); 
+            }); 
+            
+            container.appendChild(fragment); 
+            
+            // SHOW CONTEXTUAL PROMPT IF EMPTY (OR ALWAYS IF DESIRED, BUT KEEPING TO EMPTY FOR NOW)
+            if(recentKeys.length === 0) {
+                let greeting = "";
+                if (currentMode === 'rant') {
+                    greeting = "Void Link Established. This space is for ranting.";
+                } else {
+                    greeting = "Journal Link Established. How is your day going?";
+                }
+                container.appendChild(createMsgEl(greeting, 'ai')); 
+            }
+            
+            requestAnimationFrame(() => container.scrollTop = container.scrollHeight); 
+        }
+
         function renderCalendar() { const grid = document.getElementById('cal-grid'); if(!grid) return; grid.innerHTML = ''; const year = currentCalendarDate.getFullYear(); const month = currentCalendarDate.getMonth(); const monthNames = ["January","February","March","April","May","June","July","August","September","October","November","December"]; document.getElementById('cal-month-year').innerText = `${monthNames[month]} ${year}`; ["S","M","T","W","T","F","S"].forEach(d => { const el = document.createElement('div'); el.className = 'cal-day-label'; el.innerText = d; grid.appendChild(el); }); const firstDay = new Date(year, month, 1).getDay(); const daysInMonth = new Date(year, month + 1, 0).getDate(); for(let i=0; i<firstDay; i++) { grid.appendChild(document.createElement('div')); } const today = new Date(); for(let i=1; i<=daysInMonth; i++) { const el = document.createElement('div'); el.className = 'cal-day'; el.innerText = i; if(i === today.getDate() && month === today.getMonth() && year === today.getFullYear()) el.classList.add('today'); const checkDate = `${year}-${String(month+1).padStart(2,'0')}-${String(i).padStart(2,'0')}`; if(userHistoryDates.includes(checkDate)) { el.classList.add('has-entry'); el.onclick = () => filterChatByDate(checkDate); } grid.appendChild(el); } }
         function changeMonth(dir) { currentCalendarDate.setMonth(currentCalendarDate.getMonth() + dir); renderCalendar(); }
         function filterChatByDate(dateStr) { const filtered = {}; let found = false; Object.keys(fullChatHistory).forEach(key => { if(fullChatHistory[key].date === dateStr) { filtered[key] = fullChatHistory[key]; found = true; } }); renderChatHistory(filtered); openChat('ai'); document.getElementById('chat-header-title').innerText = `ARCHIVE: ${dateStr}`; }
         function renderAllRanks() { const list = ["Observer", "Moonwalker", "Celestial", "Stellar", "Interstellar", "Galactic", "Ethereal"]; const container = document.getElementById('ranks-grid'); container.innerHTML = ''; list.forEach(r => { const color = getRankColor(r); const icon = rankIcons[Object.keys(rankIcons)[0]]; const div = document.createElement('div'); div.className = "flex items-center gap-4 p-4 rounded-2xl bg-white/5 border border-white/5 transition hover:bg-white/10"; div.innerHTML = `<div class="w-14 h-14 rounded-full flex items-center justify-center bg-white/5 border-2 shadow-lg" style="border-color:${color}; box-shadow: 0 0 15px ${color}, inset 0 0 10px rgba(255,255,255,0.1); color: white;">${icon}</div><div><div class="text-xs font-bold uppercase tracking-[2px]" style="color: ${color}">${r}</div><div class="text-[9px] text-white/40 mt-1 uppercase tracking-wider">Phase Lock</div></div>`; container.appendChild(div); }); }
         
-        // --- STABILIZED DATA LOADER ---
         async function loadData() { 
             try { 
                 const res = await fetch('/api/data'); 
@@ -240,7 +268,6 @@
             } 
         }
 
-        // --- STABILIZED SEND MESSAGE (Logic Sync) ---
         async function sendMessage() { 
             if(isProcessing) return; 
             const input = document.getElementById('chat-input'); 
@@ -252,7 +279,6 @@
             const typingId = 'typing-' + Date.now(); 
             appendTyping(typingId); 
             
-            // Logic Fix: Ensure mode is strictly correct
             const mode = currentMode === 'rant' ? 'rant' : 'journal'; 
             
             try { 
@@ -268,7 +294,6 @@
                 const data = await res.json(); 
                 appendMsg(data.reply, 'ai'); 
                 
-                // Logic Fix: Await data refresh to prevent race conditions
                 await loadData(); 
             } catch(e) { 
                 removeMsg(typingId); 
