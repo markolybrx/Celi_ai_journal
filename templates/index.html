@@ -115,7 +115,7 @@
     <div id="static-background"></div>
 
     <div class="app-header">
-        <div class="header-left"><div class="logo">Celi</div><div class="version-tag">v3.0.18</div></div>
+        <div class="header-left"><div class="logo">Celi</div><div class="version-tag">v3.0.19</div></div>
         <div class="header-right"><div class="header-pfp" onclick="openModal('profile-modal')"><img id="nav-pfp" src=""></div></div>
     </div>
 
@@ -269,6 +269,7 @@
             
             container.appendChild(fragment); 
             
+            // CONTEXTUAL GREETING ON OPEN
             if(recentKeys.length === 0) {
                 let greeting = "";
                 if (currentMode === 'rant') {
