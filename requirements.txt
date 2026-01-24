@@ -1,6 +1,6 @@
-flask
+Flask
 gunicorn
-google-generativeai
+google-generativeai>=0.8.3
 pymongo[srv]
 dnspython
 certifi
