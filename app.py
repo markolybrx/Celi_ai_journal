@@ -81,13 +81,15 @@ def process():
         command = None
 
         # --- GENERATE CONTENT ---
-        # Using a safer model name fallback just in case 'flash' is region-locked
         try:
-            model_name = "gemini-1.5-flash" 
+            # SWITCHED TO 'gemini-pro' FOR MAX COMPATIBILITY
+            model_name = "gemini-pro" 
             
             if mode == 'rant':
-                model = genai.GenerativeModel(model_name=model_name, system_instruction=VOID_INSTRUCTION, generation_config=generation_config)
-                response = model.generate_content(msg)
+                model = genai.GenerativeModel(model_name=model_name, generation_config=generation_config)
+                # Manually prepending instruction because gemini-pro handles system prompts differently than flash
+                prompt = f"{VOID_INSTRUCTION}\n\nUser: {msg}"
+                response = model.generate_content(prompt)
                 reply = response.text.strip()
             else:
                 if CONTEXT_STATE["awaiting_void_confirm"]:
@@ -97,16 +99,17 @@ def process():
                         CONTEXT_STATE["awaiting_void_confirm"] = False
                     else:
                         CONTEXT_STATE["awaiting_void_confirm"] = False
-                        model = genai.GenerativeModel(model_name=model_name, system_instruction=CELI_INSTRUCTION, generation_config=generation_config)
-                        reply = model.generate_content(f"User declined void. Respond to: {msg}").text.strip()
+                        model = genai.GenerativeModel(model_name=model_name, generation_config=generation_config)
+                        prompt = f"{CELI_INSTRUCTION}\n\nUser declined void. User said: {msg}"
+                        reply = model.generate_content(prompt).text.strip()
                 else:
-                    model = genai.GenerativeModel(model_name=model_name, system_instruction=CELI_INSTRUCTION, generation_config=generation_config)
-                    response = model.generate_content(msg)
+                    model = genai.GenerativeModel(model_name=model_name, generation_config=generation_config)
+                    prompt = f"{CELI_INSTRUCTION}\n\nUser: {msg}"
+                    response = model.generate_content(prompt)
                     reply = response.text.strip()
                     if "open The Void" in reply: CONTEXT_STATE["awaiting_void_confirm"] = True
 
         except Exception as e:
-            # THIS WILL PRINT THE EXACT ERROR TO YOUR CHAT WINDOW
             return jsonify({"reply": f"⚠️ AI ERROR: {str(e)}"}), 200
 
         # Save & Return
@@ -114,7 +117,6 @@ def process():
         return jsonify({"reply": reply, "command": command})
 
     except Exception as e:
-        # Catch generic python errors
         traceback.print_exc()
         return jsonify({"reply": f"⚠️ SERVER CRASH: {str(e)}"}), 200
 
