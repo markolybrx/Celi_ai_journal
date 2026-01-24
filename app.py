@@ -1,18 +1,25 @@
 import os
+import logging
 from flask import Flask, render_template, jsonify, request, send_from_directory, redirect, url_for
 from datetime import datetime
 import google.generativeai as genai
 
+# --- LOGGING SETUP ---
+logging.basicConfig(level=logging.DEBUG)
+
 app = Flask(__name__)
 
 # --- 🔑 GEMINI CONFIGURATION ---
-# This grabs the key you saved in Render's Environment Variables
 api_key = os.environ.get("GEMINI_API_KEY")
 
-if api_key:
-    genai.configure(api_key=api_key)
+if not api_key:
+    print("❌ CRITICAL ERROR: GEMINI_API_KEY is missing from environment variables.")
 else:
-    print("⚠️ WARNING: GEMINI_API_KEY not found in environment variables.")
+    try:
+        genai.configure(api_key=api_key)
+        print("✅ Gemini API Configured Successfully")
+    except Exception as e:
+        print(f"❌ Gemini Configuration Failed: {e}")
 
 # --- AI MODEL SETTINGS ---
 generation_config = {
@@ -41,7 +48,7 @@ you MUST say exactly: "I sense heavy energy. Would you like to open The Void to 
 Otherwise, ask relevant follow-up questions about their day (e.g., about food, sleep, work).
 """
 
-# --- MEMORY & STATE ---
+# --- MEMORY ---
 HISTORY = {} 
 CONTEXT_STATE = {"awaiting_void_confirm": False}
 
@@ -53,7 +60,7 @@ def index(): return render_template('index.html')
 def logout(): return redirect(url_for('login'))
 
 @app.route('/login')
-def login(): return redirect(url_for('index')) # Redirect to app for now
+def login(): return redirect(url_for('index'))
 
 @app.route('/sw.js')
 def service_worker(): return send_from_directory('static', 'sw.js', mimetype='application/javascript')
@@ -71,6 +78,11 @@ def get_data():
 @app.route('/api/process', methods=['POST'])
 def process():
     try:
+        # 1. Check Key Presence
+        if not api_key:
+            print("Request failed: Missing API Key")
+            return jsonify({"reply": "⚠️ System Error: API Key missing. Please check Render Environment Variables."}), 500
+
         data = request.json
         msg = data.get('message', '')
         mode = data.get('mode', 'journal')
@@ -79,49 +91,48 @@ def process():
         reply = ""
         command = None
 
-        if not api_key:
-            return jsonify({"reply": "System Error: API Key missing. Check Render settings."}), 500
+        # 2. Check Input
+        if not msg:
+            return jsonify({"reply": "Silence received."})
 
         # --- REAL AI PROCESSING ---
-        
-        # 1. VOID MODE
-        if mode == 'rant':
-            model = genai.GenerativeModel(
-                model_name="gemini-1.5-flash",
-                generation_config=generation_config,
-                system_instruction=VOID_INSTRUCTION
-            )
-            # Create a one-off chat response (stateless for the void effect)
-            response = model.generate_content(msg)
-            reply = response.text.strip()
-
-        # 2. CELI MODE
-        else:
-            # Check for Context Switch Confirmation FIRST
-            if CONTEXT_STATE["awaiting_void_confirm"]:
-                if any(x in msg.lower() for x in ["yes", "sure", "please", "ok", "yeah", "open it"]):
-                    reply = "Understood. Opening the Void for you now... Breathe."
-                    command = "switch_to_void"
-                    CONTEXT_STATE["awaiting_void_confirm"] = False
-                else:
-                    # User declined Void
-                    CONTEXT_STATE["awaiting_void_confirm"] = False
-                    model = genai.GenerativeModel("gemini-1.5-flash", system_instruction=CELI_INSTRUCTION, generation_config=generation_config)
-                    reply = model.generate_content(f"User declined the void. Respond to: {msg}").text.strip()
-            else:
-                # Normal Celi Chat
+        try:
+            # 1. VOID MODE
+            if mode == 'rant':
                 model = genai.GenerativeModel(
                     model_name="gemini-1.5-flash",
                     generation_config=generation_config,
-                    system_instruction=CELI_INSTRUCTION
+                    system_instruction=VOID_INSTRUCTION
                 )
                 response = model.generate_content(msg)
                 reply = response.text.strip()
 
-                # LOGIC: Check if Celi detected a rant (Self-Correction)
-                # If Gemini generated the specific phrase we told it to use in the system instruction
-                if "open The Void" in reply or "step into The Void" in reply:
-                    CONTEXT_STATE["awaiting_void_confirm"] = True
+            # 2. CELI MODE
+            else:
+                if CONTEXT_STATE["awaiting_void_confirm"]:
+                    if any(x in msg.lower() for x in ["yes", "sure", "please", "ok", "yeah", "open it"]):
+                        reply = "Understood. Opening the Void for you now... take a deep breath."
+                        command = "switch_to_void"
+                        CONTEXT_STATE["awaiting_void_confirm"] = False
+                    else:
+                        CONTEXT_STATE["awaiting_void_confirm"] = False
+                        model = genai.GenerativeModel("gemini-1.5-flash", system_instruction=CELI_INSTRUCTION, generation_config=generation_config)
+                        reply = model.generate_content(f"User declined the void. Respond to: {msg}").text.strip()
+                else:
+                    model = genai.GenerativeModel(
+                        model_name="gemini-1.5-flash",
+                        generation_config=generation_config,
+                        system_instruction=CELI_INSTRUCTION
+                    )
+                    response = model.generate_content(msg)
+                    reply = response.text.strip()
+
+                    if "open The Void" in reply or "step into The Void" in reply:
+                        CONTEXT_STATE["awaiting_void_confirm"] = True
+
+        except Exception as ai_error:
+            print(f"❌ AI Generation Failed: {ai_error}")
+            return jsonify({"reply": "⚠️ AI Core Unresponsive. (Google Gemini Error)"}), 500
 
         # Save to History
         HISTORY[timestamp] = {
@@ -134,8 +145,8 @@ def process():
         return jsonify({"reply": reply, "command": command})
 
     except Exception as e:
-        print(f"AI Error: {e}")
-        return jsonify({"reply": "⚠️ Signal Interrupted. Neural Link Unstable."}), 500
+        print(f"❌ Critical Server Error: {e}")
+        return jsonify({"reply": "⚠️ Signal Interrupted. Check Server Logs."}), 500
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
