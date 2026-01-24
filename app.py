@@ -1,15 +1,12 @@
-import os
 from flask import Flask, render_template, jsonify, request, send_from_directory
 from datetime import datetime
 
 app = Flask(__name__)
 
-# --- CONFIGURATION ---
-# In a real app, you would use a database. For this demo, we use in-memory storage.
-# This resets when the app restarts.
+# --- MEMORY (Resets on restart) ---
 HISTORY = {} 
 
-# --- PWA SYSTEM ROUTES (DO NOT TOUCH) ---
+# --- SYSTEM ROUTES ---
 @app.route('/sw.js')
 def service_worker():
     return send_from_directory('static', 'sw.js', mimetype='application/javascript')
@@ -18,15 +15,12 @@ def service_worker():
 def manifest():
     return send_from_directory('static', 'manifest.json', mimetype='application/json')
 
-# --- APP ROUTES ---
 @app.route('/')
 def index():
     return render_template('index.html')
 
 @app.route('/api/data')
 def get_data():
-    """Syncs user data and chat history to the frontend"""
-    # In a real app, fetch this from a database based on session
     return jsonify({
         "status": "user",
         "username": "User",
@@ -39,36 +33,31 @@ def get_data():
 
 @app.route('/api/process', methods=['POST'])
 def process():
-    """Handles the Chat Logic"""
     try:
         data = request.json
         msg = data.get('message', '')
-        mode = data.get('mode', 'journal') # 'journal' (AI) or 'rant' (Void)
-        timestamp = str(datetime.now().timestamp())
+        mode = data.get('mode', 'journal') # 'journal' or 'rant'
         
-        reply = ""
+        timestamp = str(datetime.now().timestamp())
         summary = msg[:30] + "..." if len(msg) > 30 else msg
+        reply = "..."
 
         # --- LOGIC BRAIN ---
         if mode == 'rant':
-            # VOID MODE: Minimalist, thematic logging
             reply = "Signal weak. Entry logged."
-        
         else:
-            # AI MODE: Simulated Intelligence (Replace this with OpenAI/Gemini API call later)
-            lower_msg = msg.lower()
-            if "hello" in lower_msg or "hi" in lower_msg:
+            # AI SIMULATION (Replace with real AI logic later)
+            msg_lower = msg.lower()
+            if "hello" in msg_lower:
                 reply = "Systems online. I am listening."
-            elif "task" in lower_msg:
-                reply = "I've noted that task. Focus is key."
-            elif "sad" in lower_msg or "tired" in lower_msg:
-                reply = "It is okay to rest. The stars will still be here when you wake."
-            elif "galaxy" in lower_msg:
-                reply = "The galaxy is vast, just like your potential."
+            elif "who are you" in msg_lower:
+                reply = "I am Celi. Your navigational archive."
+            elif "sad" in msg_lower or "tired" in msg_lower:
+                reply = "Rest is part of the journey. The stars will wait."
             else:
-                reply = "Data received. I am processing your thoughts."
+                reply = f"Logged: {summary}. Systems stable."
 
-        # Save to History
+        # Save Entry
         HISTORY[timestamp] = {
             "date": datetime.now().strftime("%Y-%m-%d"),
             "summary": summary,
@@ -79,8 +68,8 @@ def process():
         return jsonify({"reply": reply})
 
     except Exception as e:
-        print(f"Error: {e}")
-        return jsonify({"reply": "System Error: Connection severed."}), 500
+        print(f"Server Error: {e}")
+        return jsonify({"reply": "System Error: Neural Link Severed."}), 500
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
