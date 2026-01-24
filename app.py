@@ -1,12 +1,12 @@
-from flask import Flask, render_template, jsonify, request, send_from_directory
+import os
+from flask import Flask, render_template, jsonify, request, send_from_directory, redirect, url_for
 from datetime import datetime
 
 app = Flask(__name__)
 
 # --- MEMORY & CONTEXT TRACKING ---
 HISTORY = {} 
-# Simple global state to track if Celi just offered the void. 
-# (Note: In a real multi-user app, use Flask Sessions or a DB)
+# Simple global state to track if Celi just offered the void.
 CONTEXT_STATE = {"awaiting_void_confirm": False}
 
 # --- SYSTEM ROUTES ---
@@ -18,9 +18,28 @@ def service_worker():
 def manifest():
     return send_from_directory('static', 'manifest.json', mimetype='application/json')
 
+# --- APP ROUTES ---
 @app.route('/')
 def index():
     return render_template('index.html')
+
+# --- AUTH ROUTES (FIXED 404 ERROR) ---
+@app.route('/logout')
+def logout():
+    # In a real app, you would clear the session here: session.clear()
+    # For this prototype, we just redirect back to the app or a login placeholder
+    return redirect(url_for('login'))
+
+@app.route('/login')
+def login():
+    # Simple placeholder for a login page to prevent crashing
+    return """
+    <body style="background:#000; color:#fff; font-family:sans-serif; display:flex; flex-direction:column; align-items:center; justify-content:center; height:100vh;">
+        <h1>Celi Terminal</h1>
+        <p>Session Ended.</p>
+        <a href="/" style="color:#00f2fe; text-decoration:none; border:1px solid #00f2fe; padding:10px 20px; border-radius:20px; margin-top:20px;">Reconnect</a>
+    </body>
+    """
 
 @app.route('/api/data')
 def get_data():
@@ -44,11 +63,11 @@ def process():
         timestamp = str(datetime.now().timestamp())
         summary = msg[:30] + "..." if len(msg) > 30 else msg
         reply = "..."
-        command = None # Used to trigger frontend actions (like switching modes)
+        command = None 
 
         # --- LOGIC BRAIN ---
         
-        # 1. VOID PERSONA (Empathetic, Self-Aware, Advisory)
+        # 1. VOID PERSONA
         if mode == 'rant':
             lower_msg = msg.lower()
             if "sad" in lower_msg or "hurt" in lower_msg:
@@ -58,11 +77,11 @@ def process():
             else:
                 reply = "I am listening. Your words are safe in the silence. Release them."
 
-        # 2. CELI AI PERSONA (Friendly, Compassionate, Rant Detector)
+        # 2. CELI AI PERSONA
         else:
             lower_msg = msg.lower()
             
-            # CHECK: Did we just offer the void?
+            # CHECK: Switching Context
             if CONTEXT_STATE["awaiting_void_confirm"]:
                 if "yes" in lower_msg or "sure" in lower_msg or "please" in lower_msg:
                     reply = "Understood. Opening the Void for you now..."
@@ -72,7 +91,7 @@ def process():
                     reply = "Okay, we can stay here in the light. What else is on your mind?"
                     CONTEXT_STATE["awaiting_void_confirm"] = False
             
-            # CHECK: Is user ranting? (Negative Sentiment Detection)
+            # CHECK: Rant Detection
             elif any(word in lower_msg for word in ["hate", "angry", "annoyed", "furious", "sucks", "tired of", "stupid"]):
                 reply = "I sense a lot of heavy energy in your words. Would you like to step into The Void to let this out safely?"
                 CONTEXT_STATE["awaiting_void_confirm"] = True
