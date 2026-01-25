@@ -15,7 +15,7 @@ from pymongo import MongoClient
 from celery import Celery
 
 # --- IMPORT NEW LOGIC ---
-from rank_system import process_daily_rewards, update_rank_check, get_rank_meta
+from rank_system import process_daily_rewards, update_rank_check, get_rank_meta, get_all_ranks_data
 
 # --- SETUP LOGGING ---
 logging.basicConfig(level=logging.DEBUG)
@@ -145,7 +145,12 @@ def get_data():
     user = users_col.find_one({"user_id": session['user_id']})
     if not user: return jsonify({"status": "error"}), 404
     
+    # Get Metadata for CURRENT rank
     rank_info = get_rank_meta(user.get('rank_index', 0))
+    
+    # Get Full List for Modal
+    progression_tree = get_all_ranks_data()
+    
     max_dust = rank_info['req']
     current_dust = user.get('stardust', 0)
     
@@ -153,14 +158,24 @@ def get_data():
     loaded_history = {entry['timestamp']: entry for entry in history_cursor}
 
     return jsonify({
-        "status": "user", "username": user.get("username"), "first_name": user.get("first_name"),
-        "rank": user.get("rank", "Observer III"), "rank_progress": (current_dust/max_dust)*100 if max_dust>0 else 0,
-        "rank_psyche": rank_info.get("psyche", "Unknown"), "rank_desc": rank_info.get("desc", ""),
-        "stardust_current": current_dust, "stardust_max": max_dust,
-        "history": loaded_history, "profile_pic": user.get("profile_pic", "")
+        "status": "user", 
+        "username": user.get("username"), 
+        "first_name": user.get("first_name"),
+        "rank": user.get("rank", "Observer III"),
+        "rank_index": user.get("rank_index", 0), 
+        "rank_progress": (current_dust/max_dust)*100 if max_dust>0 else 0,
+        "rank_psyche": rank_info.get("psyche", "Unknown"), 
+        "rank_desc": rank_info.get("desc", ""),
+        "current_svg": rank_info.get("svg"), 
+        "current_color": rank_info.get("color"),
+        "stardust_current": current_dust, 
+        "stardust_max": max_dust,
+        "history": loaded_history, 
+        "profile_pic": user.get("profile_pic", ""),
+        "progression_tree": progression_tree
     })
 
-# --- GALAXY MAP API (CONSTELLATIONS) ---
+# --- GALAXY MAP API ---
 @app.route('/api/galaxy_map')
 def galaxy_map():
     if 'user_id' not in session: return jsonify([])
@@ -169,10 +184,9 @@ def galaxy_map():
     cursor = history_col.find({"user_id": session['user_id']}, {'_id': 0, 'full_message': 0}).sort("timestamp", 1)
     
     stars = []
-    # Group stars into Constellations (Sets of 7)
     for index, doc in enumerate(cursor):
         star_type = "void" if doc.get('mode') == 'rant' else "journal"
-        constellation_group = index // 7 # 0, 1, 2...
+        constellation_group = index // 7 
         
         stars.append({
             "id": doc['timestamp'],
@@ -180,8 +194,8 @@ def galaxy_map():
             "summary": doc.get('summary', '...'),
             "type": star_type,
             "has_media": doc.get('has_media', False),
-            "group": constellation_group,   # Frontend connects these
-            "index": index                  # Unique order ID
+            "group": constellation_group,   
+            "index": index                  
         })
     return jsonify(stars)
 
@@ -207,7 +221,7 @@ def star_detail():
         "mode": entry.get('mode', 'journal')
     })
 
-# --- PROCESS ENTRY API (REWARDS) ---
+# --- PROCESS ENTRY API ---
 @app.route('/api/process', methods=['POST'])
 def process():
     if 'user_id' not in session: return jsonify({"reply": "Session Expired"}), 401
