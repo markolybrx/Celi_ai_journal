@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 
 # ==================================================
-#           ASSET LIBRARY (SVGS & COLORS)
+#           ASSET LIBRARY (COLORS & SVGS)
 # ==================================================
 
 PHASE_COLORS = {
@@ -32,6 +32,10 @@ RANK_ICONS = {
     
     'Lock': """<svg viewBox="0 0 24 24" fill="currentColor"><rect x="7" y="11" width="10" height="10" rx="2" /><path d="M12 16v2" stroke="black" stroke-width="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4" fill="none" stroke="currentColor" stroke-width="2"/></svg>"""
 }
+
+# ==================================================
+#           RANK PROGRESSION LOGIC
+# ==================================================
 
 # --- HELPER: ROMAN NUMERALS ---
 def to_roman(n):
@@ -104,10 +108,12 @@ ethereal_states = [
     {"name": "The Source", "desc": "You return to the beginning, but with full knowledge. You are the Universe experiencing itself."}
 ]
 
+# Generate Ethereal I to Ethereal X (10 levels)
 for i in range(1, 11):
     roman = to_roman(i)
     cost = base_req + ((i - 1) * 100) # 200, 300, 400...
     state = ethereal_states[i-1]
+    
     ETHEREAL_RANKS.append({
         "title": f"Ethereal {roman}",
         "req": cost,
@@ -122,12 +128,23 @@ RANK_SYSTEM = STATIC_RANKS + ETHEREAL_RANKS
 # ==================================================
 
 def check_entry_quality(msg):
-    if len(msg.strip()) < 30: return False
+    """
+    Quality control: Entry must be > 30 chars to earn Stardust.
+    """
+    if len(msg.strip()) < 30:
+        return False
     return True
 
 def process_daily_rewards(users_col, user_id, msg):
+    """
+    Calculates Daily Rewards, Streaks, and Constellation Bonuses.
+    Returns: { 'awarded': bool, 'total_gain': int, 'message': str, 'event': str }
+    """
     if users_col is None: return {'awarded': False}
-    if not check_entry_quality(msg): return {'awarded': False, 'message': "Entry too short for Stardust."}
+
+    # 1. QUALITY CHECK
+    if not check_entry_quality(msg):
+        return {'awarded': False, 'message': "Entry too short for Stardust."}
 
     user = users_col.find_one({"user_id": user_id})
     if not user: return {'awarded': False}
@@ -138,49 +155,94 @@ def process_daily_rewards(users_col, user_id, msg):
     current_dust = user.get("stardust", 0)
     stars_count = user.get("star_count", 0) 
 
-    if last_reward == today_str: return {'awarded': False, 'message': "Daily reward already claimed."}
+    # 2. CHECK IF ALREADY REWARDED TODAY
+    if last_reward == today_str:
+        return {'awarded': False, 'message': "Daily reward already claimed."}
 
+    # 3. CALCULATE STREAK
     yesterday_str = (datetime.now() - timedelta(days=1)).strftime("%Y-%m-%d")
-    if last_reward == yesterday_str: current_streak += 1
-    else: current_streak = 1 
+    
+    if last_reward == yesterday_str:
+        current_streak += 1
+    else:
+        current_streak = 1 # Reset streak if missed a day
 
+    # 4. CALCULATE REWARDS
     base_sd = 5
     streak_sd = base_sd * current_streak
+    
+    # 5. CONSTELLATION BONUS (Every 7th Star/Entry)
     stars_count += 1
-    constellation_bonus = 10 if (stars_count % 7 == 0) else 0
+    constellation_bonus = 0
+    is_constellation_complete = (stars_count % 7 == 0)
+    
+    if is_constellation_complete:
+        constellation_bonus = 10
+    
     total_gain = streak_sd + constellation_bonus
     new_dust = current_dust + total_gain
     
-    users_col.update_one({"user_id": user_id}, {"$set": {"stardust": new_dust, "current_streak": current_streak, "last_reward_date": today_str, "star_count": stars_count}})
+    # 6. UPDATE DB
+    users_col.update_one(
+        {"user_id": user_id},
+        {
+            "$set": {
+                "stardust": new_dust,
+                "current_streak": current_streak,
+                "last_reward_date": today_str,
+                "star_count": stars_count
+            }
+        }
+    )
 
-    event_type = "constellation_complete" if constellation_bonus else "daily_reward"
+    # 7. FORMAT FEEDBACK MESSAGE
+    event_type = "daily_reward"
     msg_text = f"+{streak_sd} SD (Streak x{current_streak})"
-    if constellation_bonus: msg_text += f"\n+10 SD (Constellation Completed!)"
+    
+    if constellation_bonus: 
+        msg_text += f"\n+10 SD (Constellation Completed!)"
+        event_type = "constellation_complete"
 
-    return {'awarded': True, 'total_gain': total_gain, 'message': msg_text, 'event': event_type}
+    return {
+        'awarded': True, 
+        'total_gain': total_gain, 
+        'message': msg_text,
+        'event': event_type
+    }
 
 def update_rank_check(users_col, user_id):
+    """
+    Checks if current stardust is enough to Level Up.
+    Does NOT award XP, just processes Rank Changes.
+    """
     if users_col is None: return None
+    
     user = users_col.find_one({"user_id": user_id})
     current_idx = user.get("rank_index", 0)
     current_dust = user.get("stardust", 0)
+    
     rank_data = RANK_SYSTEM[current_idx] if current_idx < len(RANK_SYSTEM) else RANK_SYSTEM[-1]
     req = rank_data['req']
     
     if current_dust >= req and current_idx < len(RANK_SYSTEM) - 1:
-        new_dust = current_dust - req
+        new_dust = current_dust - req # Carry over overflow
         current_idx += 1
         new_rank = RANK_SYSTEM[current_idx]['title']
-        users_col.update_one({"user_id": user_id}, {"$set": {"rank_index": current_idx, "rank": new_rank, "stardust": new_dust}})
+        
+        users_col.update_one({"user_id": user_id}, {
+            "$set": {"rank_index": current_idx, "rank": new_rank, "stardust": new_dust}
+        })
         return "level_up"
     return None
 
 def get_rank_meta(idx):
+    """Returns the metadata (req, psyche, desc, svg, color) for a given rank index."""
     if idx < 0: idx = 0
     if idx >= len(RANK_SYSTEM): idx = len(RANK_SYSTEM) - 1
+    
     data = RANK_SYSTEM[idx].copy()
     
-    # Inject Assets into the metadata return
+    # Inject Assets based on Rank Title Prefix
     base_name = data['title'].split(' ')[0]
     data['svg'] = RANK_ICONS.get(base_name, RANK_ICONS.get('Observer'))
     data['color'] = PHASE_COLORS.get(base_name, "#00f2fe")
