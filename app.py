@@ -70,7 +70,10 @@ def login_page():
     try:
         username = request.form.get('username')
         password = request.form.get('password')
-        if not users_col: return jsonify({"status": "error", "error": "Database Offline"})
+        
+        # --- FIX 1: Strict None check ---
+        if users_col is None: return jsonify({"status": "error", "error": "Database Offline"})
+        
         user = users_col.find_one({"username": username})
         if user and check_password_hash(user['password_hash'], password):
             session['user_id'] = user['user_id']
@@ -87,6 +90,9 @@ def logout():
 @app.route('/api/register', methods=['POST'])
 def register():
     try:
+        # --- FIX 2: Strict None check ---
+        if users_col is None: return jsonify({"status": "error", "error": "Database Offline"})
+
         data = request.json
         if users_col.find_one({"username": data['reg_username']}): return jsonify({"status": "error", "error": "Username taken"})
         new_user = {
@@ -101,6 +107,7 @@ def register():
 
 @app.route('/api/find_user', methods=['POST'])
 def find_user():
+    if users_col is None: return jsonify({"status": "error", "error": "Database Offline"})
     data = request.json
     user = users_col.find_one({"first_name": data['fname'], "last_name": data['lname'], "dob": data['dob']})
     if user: return jsonify({"status": "found", "question_code": user.get('secret_question', 'pet')})
@@ -108,6 +115,7 @@ def find_user():
 
 @app.route('/api/recover', methods=['POST'])
 def recover():
+    if users_col is None: return jsonify({"status": "error", "error": "Database Offline"})
     data = request.json
     user = users_col.find_one({"first_name": data['fname'], "last_name": data['lname']})
     if user and check_password_hash(user['secret_answer_hash'], data['secret_answer'].lower().strip()): return jsonify({"status": "success", "username": user['username']})
@@ -115,6 +123,7 @@ def recover():
 
 @app.route('/api/reset_password', methods=['POST'])
 def reset_password():
+    if users_col is None: return jsonify({"status": "error", "error": "Database Offline"})
     data = request.json
     users_col.update_one({"username": data['username']}, {"$set": {"password_hash": generate_password_hash(data['new_password'])}})
     return jsonify({"status": "success"})
@@ -123,6 +132,8 @@ def reset_password():
 @app.route('/api/data')
 def get_data():
     if 'user_id' not in session: return jsonify({"status": "guest"}), 401
+    if users_col is None: return jsonify({"status": "error", "message": "DB Offline"}), 500
+    
     user = users_col.find_one({"user_id": session['user_id']})
     if not user: return jsonify({"status": "error"}), 404
 
@@ -174,13 +185,14 @@ def process():
                 reply, _ = generate_with_fallback(msg, False)
                 if "open The Void" in reply: session['awaiting_void_confirm'] = True
 
-        history_col.insert_one({"user_id": session['user_id'], "timestamp": timestamp, "date": datetime.now().strftime("%Y-%m-%d"), "summary": msg[:50] + "...", "full_message": msg, "reply": reply, "mode": mode})
+        if history_col is not None:
+            history_col.insert_one({"user_id": session['user_id'], "timestamp": timestamp, "date": datetime.now().strftime("%Y-%m-%d"), "summary": msg[:50] + "...", "full_message": msg, "reply": reply, "mode": mode})
         
         # USE HELPER FROM RANK_SYSTEM.PY
-        # Note: We pass 'users_col' because rank_system.py needs DB access
-        rank_event = update_rank_progress(users_col, session['user_id'])
-        if rank_event == "level_up": command = "level_up"
-        elif rank_event == "xp_gain": command = "xp_gain"
+        if users_col is not None:
+            rank_event = update_rank_progress(users_col, session['user_id'])
+            if rank_event == "level_up": command = "level_up"
+            elif rank_event == "xp_gain": command = "xp_gain"
 
         return jsonify({"reply": reply, "command": command})
     except Exception as e:
@@ -189,7 +201,7 @@ def process():
 
 @app.route('/api/clear_history', methods=['POST'])
 def clear_history():
-    if 'user_id' in session:
+    if 'user_id' in session and history_col is not None:
         history_col.delete_many({"user_id": session['user_id']})
         return jsonify({"status": "success"})
     return jsonify({"status": "error"})
