@@ -14,7 +14,7 @@
         #static-background { position: fixed; inset: 0; z-index: -2; background: var(--bg); transition: opacity 1s ease; }
         #starfield { position: fixed; inset: 0; z-index: -1; opacity: 0; transition: opacity 1s ease; pointer-events: none; }
         body.galaxy-mode #static-background { opacity: 0; }
-        body.galaxy-mode #starfield { opacity: 1; pointer-events: auto; } /* Stars clickable in this mode */
+        body.galaxy-mode #starfield { opacity: 1; pointer-events: auto; }
 
         html, body { margin: 0; padding: 0; width: 100%; height: 100%; color: #fff; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; overflow: hidden; position: fixed; }
         
@@ -79,7 +79,6 @@
         .msg-user { align-self: flex-end; background: var(--mood); color: #000; font-weight: 600; }
         .msg-ai { align-self: flex-start; background: rgba(255,255,255,0.08); color: #eee; }
         
-        /* INPUT AREA WITH MEDIA BUTTONS */
         .input-area { padding: 15px; background: rgba(0,0,0,0.95); border-top: 1px solid var(--border); display: flex; align-items: center; gap: 8px; }
         .chat-input { flex: 1; background: rgba(255,255,255,0.05); border: 1px solid var(--border); border-radius: 25px; padding: 12px 20px; color: #fff; outline: none; }
         .media-btn { width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; border-radius: 50%; background: rgba(255,255,255,0.1); color: #fff; cursor: pointer; }
@@ -100,7 +99,7 @@
     <div id="static-background"></div>
 
     <div class="app-header">
-        <div class="header-left"><div class="logo">Celi</div><div class="version-tag">v4.0.0</div></div>
+        <div class="header-left"><div class="logo">Celi</div><div class="version-tag">v5.0.0</div></div>
         <div class="header-right"><div class="header-pfp" id="nav-pfp" onclick="openModal('profile-modal')"><img id="pfp-img" src=""></div></div>
     </div>
 
@@ -132,7 +131,10 @@
                 <svg id="galaxy-icon-svg" viewBox="0 0 24 24"><g fill="currentColor" stroke="currentColor" stroke-width="0.8"><circle cx="12" cy="12" r="2.5" fill="black" stroke="none" /><path d="M12 12 C14.5 12 16 10 16 8 C16 6 14 5 12 5" fill="none" stroke-linecap="round" stroke-dasharray="1 1" /><path d="M12 12 C12 14.5 14 16 16 16 C18 16 19 14 19 12" fill="none" stroke-linecap="round" stroke-dasharray="1 1" /><path d="M12 12 C9.5 12 8 14 8 16 C8 18 10 19 12 19" fill="none" stroke-linecap="round" stroke-dasharray="1 1" /><path d="M12 12 C12 9.5 10 8 8 8 C6 8 5 10 5 12" fill="none" stroke-linecap="round" stroke-dasharray="1 1" /><circle cx="8" cy="8" r="0.5" fill="black" stroke="none" /><circle cx="16" cy="16" r="0.5" fill="black" stroke="none" /><circle cx="16" cy="8" r="0.5" fill="black" stroke="none" /><circle cx="8" cy="16" r="0.5" fill="black" stroke="none" /></g></svg>
             </button>
         </div>
-        <div class="nav-group"><button class="nav-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M13 10V3L4 14h7v7l9-11h-7z" /></svg></button><button class="nav-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg></button></div>
+        <div class="nav-group">
+            <button class="nav-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M13 10V3L4 14h7v7l9-11h-7z" /></svg></button>
+            <button class="nav-btn" onclick="toggleGalaxy()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="5" cy="5" r="1.5"/><circle cx="19" cy="5" r="1.5"/><circle cx="5" cy="19" r="1.5"/><circle cx="19" cy="19" r="1.5"/><path d="M5 5l14 14M5 19L19 5"/></svg></button>
+        </div>
     </div>
 
     <div class="void-container" onclick="openChat('rant')"><div class="void-fab"><svg width="44" height="44" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="11" fill="url(#voidGradient)" /><circle cx="12" cy="12" r="5" fill="black" /><defs><linearGradient id="voidGradient" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#facc15" /><stop offset="40%" stop-color="#f97316" /><stop offset="100%" stop-color="#9333ea" /></linearGradient></defs></svg></div></div>
@@ -174,7 +176,6 @@
     <script>
         let isProcessing = false; let currentCalendarDate = new Date(); let fullChatHistory = {}; let userHistoryDates = []; let currentMode = 'journal'; let activeMedia = null;
 
-        // --- GALAXY ENGINE (Interactive) ---
         const canvas = document.getElementById('starfield');
         const ctx = canvas.getContext('2d');
         let stars = []; let animationFrameId; let isGalaxyActive = false; let galaxyData = [];
@@ -182,20 +183,14 @@
         function resizeStars() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
         window.addEventListener('resize', resizeStars); resizeStars();
 
-        // Canvas Interaction
         canvas.addEventListener('click', (e) => {
             if(!isGalaxyActive) return;
             const rect = canvas.getBoundingClientRect();
             const x = e.clientX - rect.left;
             const y = e.clientY - rect.top;
-            
-            // Check collision with stars
             galaxyData.forEach(star => {
-                const dx = x - star.x;
-                const dy = y - star.y;
-                if(dx*dx + dy*dy < 100) { // 10px radius hit
-                    openArchive(star.id);
-                }
+                const dx = x - star.x; const dy = y - star.y;
+                if(dx*dx + dy*dy < 100) openArchive(star.id);
             });
         });
 
@@ -204,22 +199,19 @@
             isGalaxyActive = !isGalaxyActive;
             
             if (isGalaxyActive) {
-                // Fetch Real Data
-                btn.classList.add('galaxy-open');
-                btn.innerHTML = '✕';
+                btn.classList.add('galaxy-open'); btn.innerHTML = '✕';
                 document.body.classList.add('galaxy-mode');
-                document.getElementById('bottom-dock').style.transform = "translateX(-50%) translateY(100px)"; // Hide Dock
+                document.getElementById('bottom-dock').style.transform = "translateX(-50%) translateY(100px)";
                 
-                // Fetch Stars from API
                 const res = await fetch('/api/galaxy_map');
                 const data = await res.json();
                 
-                // Map Data to Coords
+                // Randomly distribute stars but keep group indices
                 galaxyData = data.map(d => ({
                     ...d,
-                    x: Math.random() * canvas.width,
-                    y: Math.random() * canvas.height,
-                    r: d.type === 'void' ? 2 : 3, // Void stars smaller
+                    x: Math.random() * (canvas.width - 40) + 20,
+                    y: Math.random() * (canvas.height - 40) + 20,
+                    r: d.type === 'void' ? 2 : 4,
                     color: d.type === 'void' ? '#ef4444' : '#ffffff'
                 }));
                 animateStars();
@@ -227,7 +219,7 @@
                 btn.classList.remove('galaxy-open');
                 btn.innerHTML = `<svg id="galaxy-icon-svg" viewBox="0 0 24 24"><g fill="currentColor" stroke="currentColor" stroke-width="0.8"><circle cx="12" cy="12" r="2.5" fill="black" stroke="none" /><path d="M12 12 C14.5 12 16 10 16 8 C16 6 14 5 12 5" fill="none" stroke-linecap="round" stroke-dasharray="1 1" /><path d="M12 12 C12 14.5 14 16 16 16 C18 16 19 14 19 12" fill="none" stroke-linecap="round" stroke-dasharray="1 1" /><path d="M12 12 C9.5 12 8 14 8 16 C8 18 10 19 12 19" fill="none" stroke-linecap="round" stroke-dasharray="1 1" /><path d="M12 12 C12 9.5 10 8 8 8 C6 8 5 10 5 12" fill="none" stroke-linecap="round" stroke-dasharray="1 1" /><circle cx="8" cy="8" r="0.5" fill="black" stroke="none" /><circle cx="16" cy="16" r="0.5" fill="black" stroke="none" /><circle cx="16" cy="8" r="0.5" fill="black" stroke="none" /><circle cx="8" cy="16" r="0.5" fill="black" stroke="none" /></g></svg>`;
                 document.body.classList.remove('galaxy-mode');
-                document.getElementById('bottom-dock').style.transform = "translateX(-50%) translateY(0)"; // Show Dock
+                document.getElementById('bottom-dock').style.transform = "translateX(-50%) translateY(0)";
                 cancelAnimationFrame(animationFrameId);
             }
         }
@@ -235,40 +227,35 @@
         function animateStars() {
             if(!isGalaxyActive) return;
             ctx.clearRect(0,0,canvas.width,canvas.height);
+            
+            // Draw Constellation Lines (Connect stars in same group)
+            ctx.lineWidth = 0.5; ctx.strokeStyle = "rgba(255,255,255,0.15)";
+            galaxyData.forEach((star, i) => {
+                // If next star exists AND is in same group, draw connection
+                if (galaxyData[i+1] && galaxyData[i+1].group === star.group) {
+                    ctx.beginPath(); ctx.moveTo(star.x, star.y); ctx.lineTo(galaxyData[i+1].x, galaxyData[i+1].y); ctx.stroke();
+                }
+            });
+
             galaxyData.forEach(star => {
-                ctx.beginPath(); 
-                ctx.arc(star.x, star.y, star.r, 0, Math.PI*2); 
-                ctx.fillStyle = star.color;
-                ctx.shadowBlur = 10; ctx.shadowColor = star.color;
-                ctx.fill();
-                // Gentle drift
-                star.y -= 0.2; if(star.y < 0) star.y = canvas.height;
+                ctx.beginPath(); ctx.arc(star.x, star.y, star.r, 0, Math.PI*2); ctx.fillStyle = star.color;
+                ctx.shadowBlur = 10; ctx.shadowColor = star.color; ctx.fill();
             });
             animationFrameId = requestAnimationFrame(animateStars);
         }
 
-        // --- ARCHIVE LOGIC ---
         async function openArchive(id) {
-            const modal = document.getElementById('archive-modal');
-            modal.classList.add('active');
-            
+            const modal = document.getElementById('archive-modal'); modal.classList.add('active');
             const res = await fetch('/api/star_detail', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({id})});
             const d = await res.json();
-            
             document.getElementById('archive-date').innerText = d.date;
             document.getElementById('archive-analysis').innerText = d.analysis || "Analysis corrupted.";
-            
             const imgContainer = document.getElementById('archive-image-container');
-            if(d.media) {
-                imgContainer.classList.remove('hidden');
-                document.getElementById('archive-image').src = d.media;
-            } else {
-                imgContainer.classList.add('hidden');
-            }
+            if(d.media) { imgContainer.classList.remove('hidden'); document.getElementById('archive-image').src = d.media; } 
+            else { imgContainer.classList.add('hidden'); }
         }
         function closeArchive() { document.getElementById('archive-modal').classList.remove('active'); }
 
-        // --- MEDIA LOGIC (Voice & Vision) ---
         function handleFileSelect() {
             const input = document.getElementById('img-upload');
             if(input.files && input.files[0]) {
@@ -277,72 +264,65 @@
                 reader.readAsDataURL(input.files[0]);
             }
         }
-
-        // Voice to Text
         function toggleMic() {
             if (!('webkitSpeechRecognition' in window)) { alert("Voice not supported in this browser."); return; }
             const recognition = new webkitSpeechRecognition();
             recognition.continuous = false; recognition.interimResults = false;
-            
-            const btn = document.getElementById('mic-btn');
-            btn.classList.add('recording');
-            
-            recognition.onresult = function(event) {
-                const txt = event.results[0][0].transcript;
-                document.getElementById('chat-input').value += txt + " ";
-                btn.classList.remove('recording');
-            };
+            const btn = document.getElementById('mic-btn'); btn.classList.add('recording');
+            recognition.onresult = function(event) { document.getElementById('chat-input').value += event.results[0][0].transcript + " "; btn.classList.remove('recording'); };
             recognition.onerror = () => btn.classList.remove('recording');
             recognition.start();
         }
 
-        // --- CORE LOGIC (Process) ---
         async function sendMessage() {
             if(isProcessing) return;
             const input = document.getElementById('chat-input');
             const msg = input.value.trim();
             if(!msg && !activeMedia) return;
             
-            appendMsg(msg || "[Image Sent]", 'user'); 
-            input.value=''; isProcessing=true;
+            appendMsg(msg || "[Image Sent]", 'user'); input.value=''; isProcessing=true;
             
             try {
-                const res = await fetch('/api/process', { 
-                    method:'POST', 
-                    headers:{'Content-Type':'application/json'}, 
-                    body:JSON.stringify({message:msg, mode:currentMode, media:activeMedia}) 
-                });
+                const res = await fetch('/api/process', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({message:msg, mode:currentMode, media:activeMedia}) });
                 const data = await res.json();
                 appendMsg(data.reply, 'ai');
-                
-                if(data.command === 'xp_gain' || data.command === 'level_up') spawnStardust();
+                if(data.command === 'daily_reward' || data.command === 'level_up') spawnStardust();
                 if(data.command === 'switch_to_void') setTimeout(()=>openChat('rant'), 1000);
-                
-                activeMedia = null; // Reset
+                activeMedia = null; document.getElementById('chat-input').placeholder = "Signal...";
                 await loadData();
             } catch(e) { appendMsg("Transmission failed.", 'ai'); }
             isProcessing=false;
         }
 
-        // ... [Rest of Helper Functions: appendMsg, loadData, renderCalendar etc.] ...
-        // (Copied from previous version for brevity)
         function appendMsg(txt, sender) { const div = document.createElement('div'); div.className = `msg msg-${sender}`; div.innerText = txt; document.getElementById('chat-history').appendChild(div); document.getElementById('chat-history').scrollTop = 9999; }
         function openChat(mode) { currentMode = mode; document.getElementById('chat-overlay').classList.add('active'); const w = document.getElementById('chat-modal-window'); w.className = `chat-window origin-${mode === 'rant' ? 'void' : 'ai'}`; document.getElementById('chat-header-title').innerText = mode === 'rant' ? "THE VOID" : "CELI AI"; renderChatHistory(fullChatHistory); }
         function closeChat() { document.getElementById('chat-overlay').classList.remove('active'); }
         function openModal(id) { document.getElementById(id).style.display='flex'; }
         function closeModal(id) { document.getElementById(id).style.display='none'; }
-        async function loadData() { /* Previous Load Logic */ 
+        async function loadData() { 
             const res = await fetch('/api/data'); const data = await res.json();
+            if(data.status === 'guest') { window.location.href='/login'; return; }
             document.getElementById('greeting-text').innerText = `Good Day, ${data.first_name}`;
             document.getElementById('rank-display').innerText = data.rank;
+            document.getElementById('rank-psyche').innerText = data.rank_psyche;
             document.getElementById('rank-progress-bar').style.width = `${data.rank_progress}%`;
             document.getElementById('stardust-cnt').innerText = `${data.stardust_current}/${data.stardust_max} SD`;
-            if(data.history) fullChatHistory = data.history;
+            document.getElementById('profile-username').innerText = data.username;
+            document.getElementById('profile-rank-badge').innerText = data.rank;
+            document.getElementById('profile-desc').innerText = data.rank_desc;
+            document.getElementById('pfp-img').src = data.profile_pic || '';
+            document.getElementById('profile-pfp-large').src = data.profile_pic || '';
+            if(data.history) fullChatHistory = data.history; userHistoryDates = Object.values(data.history).map(e=>e.date); renderCalendar();
+            const base = data.rank.split(' ')[0]; document.documentElement.style.setProperty('--mood', getRankColor(base));
+            document.getElementById('rank-icon-slot').innerHTML = `<div class="text-[8px] uppercase tracking-widest">${base.substring(0,2)}</div>`;
         }
         window.onload = loadData;
-        function getRankColor(r) { if(r.includes("Observer")) return "#00f2fe"; return "#ffffff"; }
-        function spawnStardust() { /* Previous Stardust Logic */ }
+        function getRankColor(r) { if(r.includes("Observer")||r.includes("Moonwalker")) return "#00f2fe"; if(r.includes("Celestial")||r.includes("Stellar")) return "#facc15"; if(r.includes("Interstellar")||r.includes("Galactic")) return "#a855f7"; return "#ffffff"; }
+        function spawnStardust() { const s=document.getElementById('nav-pfp').getBoundingClientRect(); const t=document.getElementById('rank-progress-bar').getBoundingClientRect(); const pfp=document.getElementById('nav-pfp'); pfp.classList.remove('pulse-anim'); void pfp.offsetWidth; pfp.classList.add('pulse-anim'); for(let i=0;i<8;i++){ setTimeout(()=>{ const p=document.createElement('div'); p.className='stardust-particle'; p.style.left=(s.left+s.width/2)+'px'; p.style.top=(s.top+s.height/2)+'px'; document.body.appendChild(p); const tx=t.left+Math.random()*t.width; const ty=t.top+t.height/2; p.animate([{transform:'translate(0,0) scale(1)',opacity:1},{transform:`translate(${tx-parseFloat(p.style.left)}px, ${ty-parseFloat(p.style.top)}px) scale(0.5)`,opacity:0}],{duration:800+Math.random()*400,easing:'cubic-bezier(0.25,1,0.5,1)'}).onfinish=()=>p.remove(); },i*100); } }
+        function renderCalendar() { const g=document.getElementById('cal-grid'); g.innerHTML=''; const m=currentCalendarDate.getMonth(); const y=currentCalendarDate.getFullYear(); document.getElementById('cal-month-year').innerText=new Date(y,m).toLocaleString('default',{month:'long',year:'numeric'}); ["S","M","T","W","T","F","S"].forEach(d=>g.innerHTML+=`<div>${d}</div>`); const days=new Date(y,m+1,0).getDate(); const f=new Date(y,m,1).getDay(); for(let i=0;i<f;i++)g.innerHTML+=`<div></div>`; for(let i=1;i<=days;i++){ const d=document.createElement('div'); d.className='cal-day'; d.innerText=i; if(userHistoryDates.includes(`${y}-${String(m+1).padStart(2,'0')}-${String(i).padStart(2,'0')}`)) d.classList.add('has-entry'); g.appendChild(d); } }
+        function changeMonth(d) { currentCalendarDate.setMonth(currentCalendarDate.getMonth()+d); renderCalendar(); }
         function renderChatHistory(h) { const c = document.getElementById('chat-history'); c.innerHTML=''; Object.keys(h).sort().slice(-50).forEach(k => { appendMsg(h[k].summary||"Entry", 'user'); appendMsg(h[k].reply, 'ai'); }); }
+        async function clearMemory() { if(confirm("Wipe?")) { await fetch('/api/clear_history',{method:'POST'}); window.location.reload(); } }
     </script>
 </body>
 </html>
