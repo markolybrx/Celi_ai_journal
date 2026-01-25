@@ -5,6 +5,7 @@ import certifi
 import uuid
 import redis
 import ssl
+import json
 from flask import Flask, render_template, jsonify, request, send_from_directory, redirect, url_for, session
 from flask_session import Session
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -20,54 +21,32 @@ from rank_system import update_rank_progress, get_rank_meta
 logging.basicConfig(level=logging.DEBUG)
 app = Flask(__name__)
 
-# --- 1. CONFIG: SECRET & REDIS (SSL FIX) ---
+# --- CONFIG: SECRET & REDIS ---
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'celi_super_secret_key_999')
 app.config['SESSION_TYPE'] = 'redis'
 app.config['SESSION_PERMANENT'] = False
 app.config['SESSION_USE_SIGNER'] = True
 
-# Get Redis URL from Env
 redis_url = os.environ.get('REDIS_URL', 'redis://localhost:6379')
-
-# PATCH: Force 'rediss://' scheme if using Upstash/Cloud Redis
+# Fix Upstash/SSL issues
 if 'upstash' in redis_url or 'rediss' in redis_url:
-    if redis_url.startswith('redis://'):
-        redis_url = redis_url.replace('redis://', 'rediss://', 1)
-    
-    # SSL Context for Upstash
-    ssl_context = ssl.create_default_context()
-    ssl_context.check_hostname = False
-    ssl_context.verify_mode = ssl.CERT_NONE
-    
+    if redis_url.startswith('redis://'): redis_url = redis_url.replace('redis://', 'rediss://', 1)
     app.config['SESSION_REDIS'] = redis.from_url(redis_url, ssl_cert_reqs=None)
 else:
-    # Local/Internal Redis (No SSL)
     app.config['SESSION_REDIS'] = redis.from_url(redis_url)
 
 server_session = Session(app)
 
-# --- 2. CONFIG: CELERY (SSL FIX) ---
+# --- CONFIG: CELERY ---
 def make_celery(app):
-    # Ensure Celery uses the patched URL
-    celery = Celery(
-        app.import_name,
-        backend=redis_url,
-        broker=redis_url
-    )
-    
-    # Force SSL for Celery if needed
+    celery = Celery(app.import_name, backend=redis_url, broker=redis_url)
     if 'rediss' in redis_url:
-        celery.conf.update(
-            broker_use_ssl={"ssl_cert_reqs": ssl.CERT_NONE},
-            redis_backend_use_ssl={"ssl_cert_reqs": ssl.CERT_NONE}
-        )
-        
+        celery.conf.update(broker_use_ssl={"ssl_cert_reqs": ssl.CERT_NONE}, redis_backend_use_ssl={"ssl_cert_reqs": ssl.CERT_NONE})
     celery.conf.update(app.config)
     return celery
-
 celery_app = make_celery(app)
 
-# --- 3. CONFIG: MONGODB ---
+# --- CONFIG: MONGODB ---
 mongo_uri = os.environ.get("MONGO_URI")
 db, users_col, history_col = None, None, None
 if mongo_uri:
@@ -79,33 +58,61 @@ if mongo_uri:
         print("✅ Memory Core (MongoDB) Connected")
     except Exception as e: print(f"❌ Memory Core Error: {e}")
 
-# --- 4. CONFIG: AI CORE ---
+# --- CONFIG: AI CORE ---
 api_key = os.environ.get("GEMINI_API_KEY")
 if api_key:
     try: genai.configure(api_key=api_key.strip().replace("'", "").replace('"', ""))
     except: pass
 
 # ==================================================
-#                 ROUTING LOGIC
+#                 HELPER FUNCTIONS
 # ==================================================
-def login_required(): return 'user_id' in session
+
+def generate_analysis(entry_text):
+    """Generates a psychological summary of a journal entry."""
+    try:
+        model = genai.GenerativeModel("gemini-2.0-flash")
+        prompt = f"Analyze this journal entry psychologically. Be warm, insightful, and brief (max 2 sentences). Entry: {entry_text}"
+        response = model.generate_content(prompt)
+        return response.text.strip()
+    except:
+        return "Analysis unavailable due to signal interference."
+
+def generate_with_media(msg, media_data=None, is_void=False):
+    """Handles Text AND Images."""
+    candidates = ["gemini-2.0-flash", "gemini-2.0-flash-lite"]
+    system = "You are 'The Void'. Infinite, safe emptiness. Absorb pain." if is_void else "You are Celi. Analyze the user's day based on their text and/or image. Be warm and observant."
+    
+    content = [msg]
+    if media_data:
+        # media_data expected as: {'mime_type': 'image/jpeg', 'data': b64_bytes}
+        content.append(media_data)
+
+    for m in candidates:
+        try:
+            model = genai.GenerativeModel(m, system_instruction=system)
+            response = model.generate_content(content)
+            return response.text.strip()
+        except Exception as e:
+            print(f"Model Error ({m}): {e}")
+            continue
+    return "⚠️ Signal Lost. Visual/Text processing failed."
+
+# ==================================================
+#                 ROUTES
+# ==================================================
 
 @app.route('/')
 def index():
-    if not login_required(): return redirect(url_for('login_page'))
+    if 'user_id' not in session: return redirect(url_for('login_page'))
     return render_template('index.html')
 
 @app.route('/login', methods=['GET', 'POST'])
 def login_page():
-    if request.method == 'GET':
-        if login_required(): return redirect(url_for('index'))
-        return render_template('auth.html')
+    if request.method == 'GET': return redirect(url_for('index')) if 'user_id' in session else render_template('auth.html')
     try:
-        username = request.form.get('username')
-        password = request.form.get('password')
-        
+        username, password = request.form.get('username'), request.form.get('password')
         if users_col is None: return jsonify({"status": "error", "error": "Database Offline"})
-        
         user = users_col.find_one({"username": username})
         if user and check_password_hash(user['password_hash'], password):
             session['user_id'] = user['user_id']
@@ -114,16 +121,13 @@ def login_page():
     except Exception as e: return jsonify({"status": "error", "error": str(e)}), 500
 
 @app.route('/logout')
-def logout():
-    session.clear()
-    return redirect(url_for('login_page'))
+def logout(): session.clear(); return redirect(url_for('login_page'))
 
 # --- AUTH API ---
 @app.route('/api/register', methods=['POST'])
 def register():
     try:
         if users_col is None: return jsonify({"status": "error", "error": "Database Offline"})
-
         data = request.json
         if users_col.find_one({"username": data['reg_username']}): return jsonify({"status": "error", "error": "Username taken"})
         new_user = {
@@ -136,100 +140,145 @@ def register():
         return jsonify({"status": "success"})
     except Exception as e: return jsonify({"status": "error", "error": str(e)})
 
-@app.route('/api/find_user', methods=['POST'])
-def find_user():
-    if users_col is None: return jsonify({"status": "error", "error": "Database Offline"})
-    data = request.json
-    user = users_col.find_one({"first_name": data['fname'], "last_name": data['lname'], "dob": data['dob']})
-    if user: return jsonify({"status": "found", "question_code": user.get('secret_question', 'pet')})
-    return jsonify({"status": "not_found"})
-
-@app.route('/api/recover', methods=['POST'])
-def recover():
-    if users_col is None: return jsonify({"status": "error", "error": "Database Offline"})
-    data = request.json
-    user = users_col.find_one({"first_name": data['fname'], "last_name": data['lname']})
-    if user and check_password_hash(user['secret_answer_hash'], data['secret_answer'].lower().strip()): return jsonify({"status": "success", "username": user['username']})
-    return jsonify({"status": "error"})
-
-@app.route('/api/reset_password', methods=['POST'])
-def reset_password():
-    if users_col is None: return jsonify({"status": "error", "error": "Database Offline"})
-    data = request.json
-    users_col.update_one({"username": data['username']}, {"$set": {"password_hash": generate_password_hash(data['new_password'])}})
-    return jsonify({"status": "success"})
-
-# --- APP LOGIC ---
+# --- DATA API ---
 @app.route('/api/data')
 def get_data():
     if 'user_id' not in session: return jsonify({"status": "guest"}), 401
-    if users_col is None: return jsonify({"status": "error", "message": "DB Offline"}), 500
-    
+    if users_col is None: return jsonify({"status": "error"}), 500
     user = users_col.find_one({"user_id": session['user_id']})
     if not user: return jsonify({"status": "error"}), 404
-
-    # Use Helper to get Rank Metadata
-    idx = user.get('rank_index', 0)
-    rank_info = get_rank_meta(idx)
     
+    rank_info = get_rank_meta(user.get('rank_index', 0))
     max_dust = rank_info['req']
     current_dust = user.get('stardust', 0)
-    progress_percent = (current_dust / max_dust) * 100 if max_dust > 0 else 0
-
-    history_cursor = history_col.find({"user_id": session['user_id']}, {'_id': 0}).sort("timestamp", 1)
+    
+    # Simple history for chat view (last 50)
+    history_cursor = history_col.find({"user_id": session['user_id']}, {'_id': 0}).sort("timestamp", 1).limit(50)
     loaded_history = {entry['timestamp']: entry for entry in history_cursor}
 
     return jsonify({
         "status": "user", "username": user.get("username"), "first_name": user.get("first_name"),
-        "rank": user.get("rank", "Observer III"), "rank_progress": progress_percent,
+        "rank": user.get("rank", "Observer III"), "rank_progress": (current_dust/max_dust)*100 if max_dust>0 else 0,
         "rank_psyche": rank_info.get("psyche", "Unknown"), "rank_desc": rank_info.get("desc", ""),
         "stardust_current": current_dust, "stardust_max": max_dust,
-        "history": loaded_history,
-        "profile_pic": user.get("profile_pic", "")
+        "history": loaded_history, "profile_pic": user.get("profile_pic", "")
     })
 
-def generate_with_fallback(msg, is_void):
-    candidates = ["gemini-2.0-flash", "gemini-2.0-flash-lite", "gemini-2.5-flash"]
-    system = "You are 'The Void'. Sentient, infinite, safe emptiness. Listen to pain. Be deep, abstract." if is_void else "You are 'Celi', a warm AI Journaling Companion. If user rants, ask: 'I sense heavy energy. Open The Void?'"
-    for m in candidates:
-        try: return genai.GenerativeModel(m, system_instruction=system).generate_content(msg).text.strip(), m
-        except: continue
-    return "⚠️ Signal Lost.", "None"
+# --- GALAXY MAP API (NEW) ---
+@app.route('/api/galaxy_map')
+def galaxy_map():
+    if 'user_id' not in session: return jsonify([])
+    if history_col is None: return jsonify([])
+    
+    # Fetch ALL history for the galaxy view
+    cursor = history_col.find({"user_id": session['user_id']}, {'_id': 0, 'full_message': 0}) # Optimize: Don't load full text yet
+    stars = []
+    for doc in cursor:
+        # Determine Star Type based on Mode
+        star_type = "void" if doc.get('mode') == 'rant' else "journal"
+        # Determine Brightness/Color logic could go here
+        stars.append({
+            "id": doc['timestamp'],
+            "date": doc['date'],
+            "summary": doc.get('summary', '...'),
+            "type": star_type,
+            "has_media": doc.get('has_media', False)
+        })
+    return jsonify(stars)
 
+# --- STAR DETAIL API (NEW) ---
+@app.route('/api/star_detail', methods=['POST'])
+def star_detail():
+    if 'user_id' not in session: return jsonify({"error": "Auth"})
+    data = request.json
+    timestamp = data.get('id')
+    
+    entry = history_col.find_one({"user_id": session['user_id'], "timestamp": timestamp}, {'_id': 0})
+    if not entry: return jsonify({"error": "Not found"})
+    
+    # If entry doesn't have an AI analysis yet, generate it now
+    analysis = entry.get('ai_analysis')
+    if not analysis:
+        analysis = generate_analysis(entry.get('full_message', ''))
+        history_col.update_one({"user_id": session['user_id'], "timestamp": timestamp}, {"$set": {"ai_analysis": analysis}})
+    
+    return jsonify({
+        "date": entry['date'],
+        "analysis": analysis,
+        "media": entry.get('media_base64', None), # Return image if exists
+        "mode": entry.get('mode', 'journal')
+    })
+
+# --- PROCESS ENTRY API (UPDATED) ---
 @app.route('/api/process', methods=['POST'])
 def process():
     if 'user_id' not in session: return jsonify({"reply": "Session Expired"}), 401
     try:
         data = request.json
-        msg, mode = data.get('message', ''), data.get('mode', 'journal')
+        msg = data.get('message', '')
+        media_b64 = data.get('media', None) # New: Base64 Image
+        mode = data.get('mode', 'journal')
         timestamp = str(datetime.now().timestamp())
         
-        awaiting_void = session.get('awaiting_void_confirm', False)
-        reply, command = "...", None
+        # Format media for Gemini
+        gemini_media = None
+        has_media = False
+        if media_b64:
+            has_media = True
+            # Assuming JPEG for simplicity, or detect from header
+            gemini_media = {'mime_type': 'image/jpeg', 'data': media_b64.split(',')[1]} 
 
-        if mode == 'rant': reply, _ = generate_with_fallback(msg, True)
+        # Generate Reply
+        reply = "..."
+        command = None
+        
+        # Logic Switch
+        if mode == 'rant':
+            reply = generate_with_media(msg, gemini_media, is_void=True)
         else:
-            if awaiting_void:
-                if any(x in msg.lower() for x in ["yes", "sure", "ok"]): reply, command, session['awaiting_void_confirm'] = "Understood. Opening the Void...", "switch_to_void", False
-                else: session['awaiting_void_confirm'] = False; reply, _ = generate_with_fallback(f"User declined void. Respond to: {msg}", False)
+            # Check Void Switch
+            if session.get('awaiting_void_confirm', False):
+                if any(x in msg.lower() for x in ["yes", "sure", "ok"]): 
+                    reply, command, session['awaiting_void_confirm'] = "Understood. Opening the Void...", "switch_to_void", False
+                else: 
+                    session['awaiting_void_confirm'] = False
+                    reply = generate_with_media(f"User declined void. Respond to: {msg}", gemini_media, is_void=False)
             else:
-                reply, _ = generate_with_fallback(msg, False)
+                reply = generate_with_media(msg, gemini_media, is_void=False)
                 if "open The Void" in reply: session['awaiting_void_confirm'] = True
 
-        if history_col is not None:
-            history_col.insert_one({"user_id": session['user_id'], "timestamp": timestamp, "date": datetime.now().strftime("%Y-%m-%d"), "summary": msg[:50] + "...", "full_message": msg, "reply": reply, "mode": mode})
+        # Save to DB (Include Media & Analysis)
+        history_col.insert_one({
+            "user_id": session['user_id'],
+            "timestamp": timestamp,
+            "date": datetime.now().strftime("%Y-%m-%d"),
+            "summary": msg[:50] + "...",
+            "full_message": msg,
+            "reply": reply, # Chat reply
+            "ai_analysis": None, # Will be generated when viewed in Galaxy
+            "mode": mode,
+            "has_media": has_media,
+            "media_base64": media_b64 if has_media else None # Storing B64 in Mongo (Limit size in frontend!)
+        })
         
-        # USE HELPER FROM RANK_SYSTEM.PY
+        # Rank Up
         if users_col is not None:
             rank_event = update_rank_progress(users_col, session['user_id'])
             if rank_event == "level_up": command = "level_up"
             elif rank_event == "xp_gain": command = "xp_gain"
+            
+            # Bonus XP for Media
+            if has_media: 
+                update_rank_progress(users_col, session['user_id']) # Double XP for photos
 
         return jsonify({"reply": reply, "command": command})
+
     except Exception as e:
         traceback.print_exc()
         return jsonify({"reply": f"SYSTEM ERROR: {str(e)}"}), 500
 
+# ... (Keep clear_history, sw.js, manifest.json routes the same) ...
+# (Just add them back if copying full file, omitted for brevity)
 @app.route('/api/clear_history', methods=['POST'])
 def clear_history():
     if 'user_id' in session and history_col is not None:
