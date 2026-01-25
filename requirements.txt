@@ -1,10 +1,10 @@
-Flask
+flask
 gunicorn
 google-generativeai>=0.8.3
 pymongo[srv]
 dnspython
 certifi
-celery
 redis
+celery
+flask-session
 werkzeug
-google-api-python-client
