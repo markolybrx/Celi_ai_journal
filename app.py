@@ -14,8 +14,8 @@ import google.generativeai as genai
 from pymongo import MongoClient
 from celery import Celery
 
-# --- IMPORT RANK LOGIC ---
-from rank_system import update_rank_progress, get_rank_meta
+# --- IMPORT NEW LOGIC ---
+from rank_system import process_daily_rewards, update_rank_check, get_rank_meta
 
 # --- SETUP LOGGING ---
 logging.basicConfig(level=logging.DEBUG)
@@ -28,7 +28,7 @@ app.config['SESSION_PERMANENT'] = False
 app.config['SESSION_USE_SIGNER'] = True
 
 redis_url = os.environ.get('REDIS_URL', 'redis://localhost:6379')
-# Fix Upstash/SSL issues
+# Fix Upstash/SSL
 if 'upstash' in redis_url or 'rediss' in redis_url:
     if redis_url.startswith('redis://'): redis_url = redis_url.replace('redis://', 'rediss://', 1)
     app.config['SESSION_REDIS'] = redis.from_url(redis_url, ssl_cert_reqs=None)
@@ -69,7 +69,6 @@ if api_key:
 # ==================================================
 
 def generate_analysis(entry_text):
-    """Generates a psychological summary of a journal entry."""
     try:
         model = genai.GenerativeModel("gemini-2.0-flash")
         prompt = f"Analyze this journal entry psychologically. Be warm, insightful, and brief (max 2 sentences). Entry: {entry_text}"
@@ -79,13 +78,11 @@ def generate_analysis(entry_text):
         return "Analysis unavailable due to signal interference."
 
 def generate_with_media(msg, media_data=None, is_void=False):
-    """Handles Text AND Images."""
     candidates = ["gemini-2.0-flash", "gemini-2.0-flash-lite"]
     system = "You are 'The Void'. Infinite, safe emptiness. Absorb pain." if is_void else "You are Celi. Analyze the user's day based on their text and/or image. Be warm and observant."
     
     content = [msg]
     if media_data:
-        # media_data expected as: {'mime_type': 'image/jpeg', 'data': b64_bytes}
         content.append(media_data)
 
     for m in candidates:
@@ -152,7 +149,6 @@ def get_data():
     max_dust = rank_info['req']
     current_dust = user.get('stardust', 0)
     
-    # Simple history for chat view (last 50)
     history_cursor = history_col.find({"user_id": session['user_id']}, {'_id': 0}).sort("timestamp", 1).limit(50)
     loaded_history = {entry['timestamp']: entry for entry in history_cursor}
 
@@ -164,29 +160,32 @@ def get_data():
         "history": loaded_history, "profile_pic": user.get("profile_pic", "")
     })
 
-# --- GALAXY MAP API (NEW) ---
+# --- GALAXY MAP API (CONSTELLATIONS) ---
 @app.route('/api/galaxy_map')
 def galaxy_map():
     if 'user_id' not in session: return jsonify([])
     if history_col is None: return jsonify([])
     
-    # Fetch ALL history for the galaxy view
-    cursor = history_col.find({"user_id": session['user_id']}, {'_id': 0, 'full_message': 0}) # Optimize: Don't load full text yet
+    cursor = history_col.find({"user_id": session['user_id']}, {'_id': 0, 'full_message': 0}).sort("timestamp", 1)
+    
     stars = []
-    for doc in cursor:
-        # Determine Star Type based on Mode
+    # Group stars into Constellations (Sets of 7)
+    for index, doc in enumerate(cursor):
         star_type = "void" if doc.get('mode') == 'rant' else "journal"
-        # Determine Brightness/Color logic could go here
+        constellation_group = index // 7 # 0, 1, 2...
+        
         stars.append({
             "id": doc['timestamp'],
             "date": doc['date'],
             "summary": doc.get('summary', '...'),
             "type": star_type,
-            "has_media": doc.get('has_media', False)
+            "has_media": doc.get('has_media', False),
+            "group": constellation_group,   # Frontend connects these
+            "index": index                  # Unique order ID
         })
     return jsonify(stars)
 
-# --- STAR DETAIL API (NEW) ---
+# --- STAR DETAIL API ---
 @app.route('/api/star_detail', methods=['POST'])
 def star_detail():
     if 'user_id' not in session: return jsonify({"error": "Auth"})
@@ -196,7 +195,6 @@ def star_detail():
     entry = history_col.find_one({"user_id": session['user_id'], "timestamp": timestamp}, {'_id': 0})
     if not entry: return jsonify({"error": "Not found"})
     
-    # If entry doesn't have an AI analysis yet, generate it now
     analysis = entry.get('ai_analysis')
     if not analysis:
         analysis = generate_analysis(entry.get('full_message', ''))
@@ -205,71 +203,66 @@ def star_detail():
     return jsonify({
         "date": entry['date'],
         "analysis": analysis,
-        "media": entry.get('media_base64', None), # Return image if exists
+        "media": entry.get('media_base64', None),
         "mode": entry.get('mode', 'journal')
     })
 
-# --- PROCESS ENTRY API (UPDATED) ---
+# --- PROCESS ENTRY API (REWARDS) ---
 @app.route('/api/process', methods=['POST'])
 def process():
     if 'user_id' not in session: return jsonify({"reply": "Session Expired"}), 401
     try:
         data = request.json
         msg = data.get('message', '')
-        media_b64 = data.get('media', None) # New: Base64 Image
+        media_b64 = data.get('media', None)
         mode = data.get('mode', 'journal')
         timestamp = str(datetime.now().timestamp())
         
-        # Format media for Gemini
-        gemini_media = None
-        has_media = False
-        if media_b64:
-            has_media = True
-            # Assuming JPEG for simplicity, or detect from header
-            gemini_media = {'mime_type': 'image/jpeg', 'data': media_b64.split(',')[1]} 
-
-        # Generate Reply
-        reply = "..."
-        command = None
+        # 1. PROCESS DAILY REWARD
+        reward_result = process_daily_rewards(users_col, session['user_id'], msg)
         
-        # Logic Switch
+        # 2. GENERATE AI REPLY
+        gemini_media = {'mime_type': 'image/jpeg', 'data': media_b64.split(',')[1]} if media_b64 else None
+        
+        reply = "..."
         if mode == 'rant':
             reply = generate_with_media(msg, gemini_media, is_void=True)
         else:
-            # Check Void Switch
             if session.get('awaiting_void_confirm', False):
                 if any(x in msg.lower() for x in ["yes", "sure", "ok"]): 
-                    reply, command, session['awaiting_void_confirm'] = "Understood. Opening the Void...", "switch_to_void", False
+                    reply, command, session['awaiting_void_confirm'] = "Understood. Opening Void...", "switch_to_void", False
                 else: 
                     session['awaiting_void_confirm'] = False
-                    reply = generate_with_media(f"User declined void. Respond to: {msg}", gemini_media, is_void=False)
+                    reply = generate_with_media(f"User declined void. Respond: {msg}", gemini_media, False)
             else:
-                reply = generate_with_media(msg, gemini_media, is_void=False)
+                reply = generate_with_media(msg, gemini_media, False)
                 if "open The Void" in reply: session['awaiting_void_confirm'] = True
 
-        # Save to DB (Include Media & Analysis)
+        # 3. SAVE TO DB
         history_col.insert_one({
             "user_id": session['user_id'],
             "timestamp": timestamp,
             "date": datetime.now().strftime("%Y-%m-%d"),
             "summary": msg[:50] + "...",
             "full_message": msg,
-            "reply": reply, # Chat reply
-            "ai_analysis": None, # Will be generated when viewed in Galaxy
+            "reply": reply,
+            "ai_analysis": None,
             "mode": mode,
-            "has_media": has_media,
-            "media_base64": media_b64 if has_media else None # Storing B64 in Mongo (Limit size in frontend!)
+            "has_media": bool(media_b64),
+            "media_base64": media_b64,
+            "is_valid_star": reward_result['awarded']
         })
         
-        # Rank Up
-        if users_col is not None:
-            rank_event = update_rank_progress(users_col, session['user_id'])
-            if rank_event == "level_up": command = "level_up"
-            elif rank_event == "xp_gain": command = "xp_gain"
-            
-            # Bonus XP for Media
-            if has_media: 
-                update_rank_progress(users_col, session['user_id']) # Double XP for photos
+        # 4. CHECK LEVEL UP
+        command = None
+        level_check = update_rank_check(users_col, session['user_id'])
+        
+        if level_check == "level_up": 
+            command = "level_up"
+            reply += f"\n\n[System]: Level Up! {reward_result.get('message', '')}"
+        elif reward_result['awarded']:
+            command = "daily_reward"
+            reply += f"\n\n[System]: {reward_result['message']}"
 
         return jsonify({"reply": reply, "command": command})
 
@@ -277,8 +270,6 @@ def process():
         traceback.print_exc()
         return jsonify({"reply": f"SYSTEM ERROR: {str(e)}"}), 500
 
-# ... (Keep clear_history, sw.js, manifest.json routes the same) ...
-# (Just add them back if copying full file, omitted for brevity)
 @app.route('/api/clear_history', methods=['POST'])
 def clear_history():
     if 'user_id' in session and history_col is not None:
