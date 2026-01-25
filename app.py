@@ -4,6 +4,7 @@ import traceback
 import certifi
 import uuid
 import redis
+import ssl
 from flask import Flask, render_template, jsonify, request, send_from_directory, redirect, url_for, session
 from flask_session import Session
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -19,22 +20,54 @@ from rank_system import update_rank_progress, get_rank_meta
 logging.basicConfig(level=logging.DEBUG)
 app = Flask(__name__)
 
-# --- CONFIG: SECRET & REDIS ---
+# --- 1. CONFIG: SECRET & REDIS (SSL FIX) ---
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'celi_super_secret_key_999')
 app.config['SESSION_TYPE'] = 'redis'
 app.config['SESSION_PERMANENT'] = False
 app.config['SESSION_USE_SIGNER'] = True
-app.config['SESSION_REDIS'] = redis.from_url(os.environ.get('REDIS_URL', 'redis://localhost:6379'))
+
+# Get Redis URL from Env
+redis_url = os.environ.get('REDIS_URL', 'redis://localhost:6379')
+
+# PATCH: Force 'rediss://' scheme if using Upstash/Cloud Redis
+if 'upstash' in redis_url or 'rediss' in redis_url:
+    if redis_url.startswith('redis://'):
+        redis_url = redis_url.replace('redis://', 'rediss://', 1)
+    
+    # SSL Context for Upstash
+    ssl_context = ssl.create_default_context()
+    ssl_context.check_hostname = False
+    ssl_context.verify_mode = ssl.CERT_NONE
+    
+    app.config['SESSION_REDIS'] = redis.from_url(redis_url, ssl_cert_reqs=None)
+else:
+    # Local/Internal Redis (No SSL)
+    app.config['SESSION_REDIS'] = redis.from_url(redis_url)
+
 server_session = Session(app)
 
-# --- CONFIG: CELERY ---
+# --- 2. CONFIG: CELERY (SSL FIX) ---
 def make_celery(app):
-    celery = Celery(app.import_name, backend=os.environ.get('REDIS_URL', 'redis://localhost:6379'), broker=os.environ.get('REDIS_URL', 'redis://localhost:6379'))
+    # Ensure Celery uses the patched URL
+    celery = Celery(
+        app.import_name,
+        backend=redis_url,
+        broker=redis_url
+    )
+    
+    # Force SSL for Celery if needed
+    if 'rediss' in redis_url:
+        celery.conf.update(
+            broker_use_ssl={"ssl_cert_reqs": ssl.CERT_NONE},
+            redis_backend_use_ssl={"ssl_cert_reqs": ssl.CERT_NONE}
+        )
+        
     celery.conf.update(app.config)
     return celery
+
 celery_app = make_celery(app)
 
-# --- CONFIG: MONGODB ---
+# --- 3. CONFIG: MONGODB ---
 mongo_uri = os.environ.get("MONGO_URI")
 db, users_col, history_col = None, None, None
 if mongo_uri:
@@ -46,7 +79,7 @@ if mongo_uri:
         print("✅ Memory Core (MongoDB) Connected")
     except Exception as e: print(f"❌ Memory Core Error: {e}")
 
-# --- CONFIG: AI CORE ---
+# --- 4. CONFIG: AI CORE ---
 api_key = os.environ.get("GEMINI_API_KEY")
 if api_key:
     try: genai.configure(api_key=api_key.strip().replace("'", "").replace('"', ""))
@@ -71,7 +104,6 @@ def login_page():
         username = request.form.get('username')
         password = request.form.get('password')
         
-        # --- FIX 1: Strict None check ---
         if users_col is None: return jsonify({"status": "error", "error": "Database Offline"})
         
         user = users_col.find_one({"username": username})
@@ -90,7 +122,6 @@ def logout():
 @app.route('/api/register', methods=['POST'])
 def register():
     try:
-        # --- FIX 2: Strict None check ---
         if users_col is None: return jsonify({"status": "error", "error": "Database Offline"})
 
         data = request.json
