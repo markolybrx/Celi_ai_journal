@@ -32,10 +32,12 @@
         .header-pfp img { width: 100%; height: 100%; object-fit: cover; }
         .header-pfp.pulse-anim { animation: pfpPulse 0.5s ease-in-out; border-color: var(--mood); box-shadow: 0 0 15px var(--mood); }
         
-        /* CARDS */
+        /* RANK CARD */
         .rank-card, .calendar-card { background: var(--glass); border: 1px solid var(--border); border-radius: 20px; padding: 15px; margin-bottom: 15px; backdrop-filter: blur(20px); }
-        .rank-card { display: flex; align-items: center; gap: 12px; position: relative; overflow: hidden; }
-        .rank-icon { width: 45px; height: 45px; border-radius: 50%; background: rgba(255,255,255,0.03); border: 2px solid var(--mood); display: flex; align-items: center; justify-content: center; color: #fff; transition: all 0.5s; z-index: 10; }
+        .rank-card { display: flex; align-items: center; gap: 12px; position: relative; overflow: hidden; cursor: pointer; }
+        .rank-icon-container { width: 50px; height: 50px; display: flex; align-items: center; justify-content: center; color: #fff; transition: all 0.5s; z-index: 10; }
+        .rank-icon-container svg { width: 100%; height: 100%; filter: drop-shadow(0 0 5px var(--mood)); }
+        
         .progress-bar { height: 3px; background: var(--mood); width: 0%; box-shadow: 0 0 5px var(--mood); transition: width 0.5s ease-out; }
         .stardust-particle { position: fixed; width: 4px; height: 4px; background: #fff; border-radius: 50%; pointer-events: none; z-index: 9999; box-shadow: 0 0 4px #fff; animation: fadeParticle 1s forwards; }
         
@@ -61,16 +63,12 @@
         .chat-fab { width: 60px; height: 60px; border-radius: 50%; background: linear-gradient(135deg, #f9a8d4, #c084fc); display: flex; align-items: center; justify-content: center; animation: pastelPulse 3s infinite; }
         .void-container { position: fixed; bottom: 100px; left: 20px; z-index: 40; } .fab-container { position: fixed; bottom: 100px; right: 20px; z-index: 40; }
         
-        /* CHAT & ARCHIVE MODALS */
-        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 2000; display: none; align-items: center; justify-content: center; backdrop-filter: blur(5px); opacity: 0; transition: opacity 0.3s; }
+        /* MODALS */
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 2000; display: none; align-items: center; justify-content: center; backdrop-filter: blur(10px); opacity: 0; transition: opacity 0.3s; }
         .modal-overlay.active { display: flex; opacity: 1; }
         
         .chat-window { width: 90%; max-width: 500px; height: 80vh; background: #111; border: 1px solid var(--border); border-radius: 25px; display: flex; flex-direction: column; overflow: hidden; transform: scale(0); opacity: 0; transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s; }
         .modal-overlay.active .chat-window { transform: scale(1); opacity: 1; margin: 0; }
-        
-        .chat-window.origin-void { transform-origin: bottom left; margin-left: 20px; margin-bottom: 100px; }
-        .chat-window.origin-ai { transform-origin: bottom right; margin-right: 20px; margin-bottom: 100px; }
-        .chat-window.origin-center { transform-origin: center; } /* For Archive */
         
         .chat-header { height: 60px; padding: 0 20px; display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.02); border-bottom: 1px solid var(--border); }
         .chat-history { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 16px; }
@@ -84,12 +82,21 @@
         .media-btn { width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; border-radius: 50%; background: rgba(255,255,255,0.1); color: #fff; cursor: pointer; }
         .media-btn.recording { background: #ef4444; animation: pulse 1s infinite; }
         
+        /* RANK TABLE STYLES */
+        .rank-row { display: flex; align-items: center; padding: 12px; border-bottom: 1px solid rgba(255,255,255,0.05); transition: background 0.2s; }
+        .rank-row.locked { opacity: 0.4; filter: grayscale(1); }
+        .rank-row.active { background: rgba(255,255,255,0.05); border-left: 2px solid var(--mood); }
+        .rank-row-icon { width: 30px; height: 30px; margin-right: 12px; }
+        
         /* ANIMATIONS */
         @keyframes voidGlow { from { box-shadow: 0 0 10px rgba(245, 158, 11, 0.3); } to { box-shadow: 0 0 25px rgba(99, 102, 241, 0.6); } }
         @keyframes pastelPulse { 0% { box-shadow: 0 0 0 0 rgba(192, 132, 252, 0.6); } 100% { box-shadow: 0 0 0 15px rgba(192, 132, 252, 0); } }
         @keyframes pfpPulse { 0% { transform: scale(1); } 50% { transform: scale(1.15); } 100% { transform: scale(1); } }
         @keyframes fadeParticle { 0% { opacity: 1; transform: scale(1); } 100% { opacity: 0; transform: scale(0.5); } }
         @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+        
+        .star-rating { display: flex; gap: 2px; justify-content: center; margin-top: 5px; }
+        .star-point { width: 10px; height: 10px; fill: var(--mood); filter: drop-shadow(0 0 2px var(--mood)); }
     </style>
 </head>
 <body>
@@ -99,13 +106,13 @@
     <div id="static-background"></div>
 
     <div class="app-header">
-        <div class="header-left"><div class="logo">Celi</div><div class="version-tag">v5.0.0</div></div>
+        <div class="header-left"><div class="logo">Celi</div><div class="version-tag">v5.2.0</div></div>
         <div class="header-right"><div class="header-pfp" id="nav-pfp" onclick="openModal('profile-modal')"><img id="pfp-img" src=""></div></div>
     </div>
 
     <div id="main-view">
-        <div id="rank-card-ui" class="rank-card" onclick="openModal('ranks-modal')">
-            <div class="rank-icon" id="rank-icon-slot"></div>
+        <div id="rank-card-ui" class="rank-card" onclick="openRanksModal()">
+            <div class="rank-icon-container" id="main-rank-icon"></div>
             <div class="rank-details w-full">
                 <div id="greeting-text" class="greeting">Good Morning</div>
                 <div class="flex justify-between items-end">
@@ -133,7 +140,7 @@
         </div>
         <div class="nav-group">
             <button class="nav-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M13 10V3L4 14h7v7l9-11h-7z" /></svg></button>
-            <button class="nav-btn" onclick="toggleGalaxy()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="5" cy="5" r="1.5"/><circle cx="19" cy="5" r="1.5"/><circle cx="5" cy="19" r="1.5"/><circle cx="19" cy="19" r="1.5"/><path d="M5 5l14 14M5 19L19 5"/></svg></button>
+            <button class="nav-btn" id="constellation-btn" onclick="toggleGalaxy()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="5" cy="5" r="1.5"/><circle cx="19" cy="5" r="1.5"/><circle cx="5" cy="19" r="1.5"/><circle cx="19" cy="19" r="1.5"/><path d="M5 5l14 14M5 19L19 5"/></svg></button>
         </div>
     </div>
 
@@ -154,12 +161,33 @@
         </div>
     </div>
 
+    <div id="ranks-modal" class="modal-overlay" onclick="if(event.target.id==='ranks-modal') closeModal('ranks-modal')">
+        <div class="bg-[#111] border border-white/10 p-0 rounded-3xl w-full max-w-sm relative max-h-[85vh] flex flex-col overflow-hidden">
+            <div class="flex flex-col items-center pt-8 pb-4 px-6 bg-gradient-to-b from-white/5 to-transparent">
+                <div id="modal-rank-icon" class="w-20 h-20 text-[var(--mood)] drop-shadow-[0_0_10px_var(--mood)]"></div>
+                <div id="modal-stars" class="star-rating my-2"></div>
+                <h2 id="modal-rank-name" class="text-2xl font-bold tracking-wide mt-1">Observer III</h2>
+                
+                <div class="w-full h-1.5 bg-white/10 rounded-full mt-4 overflow-hidden relative">
+                    <div id="modal-progress-bar" class="h-full bg-[var(--mood)] shadow-[0_0_10px_var(--mood)] absolute top-0 left-0 transition-all duration-1000" style="width: 0%"></div>
+                </div>
+                <p id="modal-sd-text" class="text-[10px] text-white/50 mt-1 font-mono">0/20 SD</p>
+            </div>
+
+            <div class="flex-1 overflow-y-auto" id="ranks-list-container">
+                </div>
+
+            <div class="p-4 border-t border-white/5">
+                <button onclick="closeModal('ranks-modal')" class="w-full py-3 bg-[#ef4444] text-black font-bold uppercase rounded-xl shadow-lg active:scale-95 transition-transform text-xs tracking-widest">
+                    Close Terminal
+                </button>
+            </div>
+        </div>
+    </div>
+
     <div id="archive-modal" class="modal-overlay">
         <div class="chat-window origin-center" style="height: 60vh; background: #0a0a0a; border: 1px solid rgba(255,255,255,0.2);">
-            <div class="chat-header">
-                <span id="archive-date" class="font-mono text-xs opacity-50 tracking-widest">ARCHIVE</span>
-                <div onclick="closeArchive()" class="cursor-pointer">✕</div>
-            </div>
+            <div class="chat-header"><span id="archive-date" class="font-mono text-xs opacity-50 tracking-widest">ARCHIVE</span><div onclick="closeArchive()" class="cursor-pointer">✕</div></div>
             <div class="p-6 overflow-y-auto flex flex-col gap-4 items-center">
                 <div id="archive-image-container" class="w-full rounded-xl overflow-hidden hidden"><img id="archive-image" class="w-full object-cover"></div>
                 <h3 class="text-xs font-bold uppercase tracking-widest text-[var(--mood)] w-full">Soul Synthesis</h3>
@@ -171,11 +199,41 @@
     </div>
 
     <div id="profile-modal" class="fixed inset-0 bg-black/90 z-50 hidden items-center justify-center p-5 backdrop-blur-sm"><div class="bg-[#111] border border-white/10 p-6 rounded-3xl w-full max-w-sm relative"><div class="absolute top-4 right-4 cursor-pointer" onclick="closeModal('profile-modal')">✕</div><div class="flex flex-col items-center"><img id="profile-pfp-large" class="w-20 h-20 rounded-full border border-white/20 mb-4" src=""></div><h2 id="profile-username" class="text-2xl font-bold text-center">User</h2><p id="profile-rank-badge" class="text-center text-[10px] uppercase tracking-widest text-[var(--mood)] mt-1">Observer III</p><div class="bg-white/5 p-4 rounded-xl mt-4 border border-white/5"><h3 class="text-[9px] uppercase tracking-widest text-white/50 mb-2">Psychological State</h3><p id="profile-desc" class="text-xs italic text-gray-300 leading-relaxed"></p></div><button onclick="clearMemory()" class="w-full mt-6 py-3 bg-red-500/10 border border-red-500/30 text-red-400 rounded-xl text-xs font-bold uppercase">Wipe Memory</button><button onclick="window.location.href='/logout'" class="w-full mt-3 py-3 bg-white/5 border border-white/10 text-white/50 rounded-xl text-xs font-bold uppercase">Disconnect</button></div></div>
-    <div id="ranks-modal" class="fixed inset-0 bg-black/90 z-50 hidden items-center justify-center p-5 backdrop-blur-sm"><div class="bg-[#111] border border-white/10 p-6 rounded-3xl w-full max-w-sm relative max-h-[80vh] flex flex-col"><div class="absolute top-4 right-4 cursor-pointer" onclick="closeModal('ranks-modal')">✕</div><h2 class="text-xl font-bold text-center mb-6 tracking-wide text-white">Constellation Path</h2><div id="ranks-grid" class="flex flex-col gap-3 overflow-y-auto pr-2"></div></div></div>
 
     <script>
         let isProcessing = false; let currentCalendarDate = new Date(); let fullChatHistory = {}; let userHistoryDates = []; let currentMode = 'journal'; let activeMedia = null;
+        
+        // --- SVG ASSETS (Geometric & Symmetric) ---
+        const RANK_SVGS = {
+            'Observer': `<svg viewBox="0 0 24 24" fill="currentColor"><path fill-rule="evenodd" clip-rule="evenodd" d="M12 1C5.9 1 1 5.9 1 12C1 18.1 5.9 23 12 23C18.1 23 23 18.1 23 12C23 5.9 18.1 1 12 1ZM12 18C15.5 18 18.5 15.5 19 12C18.5 8.5 15.5 6 12 6C8.5 6 5.5 8.5 5 12C5.5 15.5 8.5 18 12 18ZM12 15C13.65 15 15 13.65 15 12C15 10.35 13.65 9 12 9C10.35 9 9 10.35 9 12C9 13.65 10.35 15 12 15Z"/></svg>`,
+            'Moonwalker': `<svg viewBox="0 0 24 24" fill="currentColor"><path fill-rule="evenodd" clip-rule="evenodd" d="M12 1L1 22H23L12 1ZM12 18.5C13.6 18.5 15 17.1 15 15.5C15 13.5 13.5 12 12 12C10.5 12 9 13.5 9 15.5C9 17.1 10.4 18.5 12 18.5ZM12 6.5L16 13.5H8L12 6.5Z"/></svg>`,
+            'Celestial': `<svg viewBox="0 0 24 24" fill="currentColor"><path fill-rule="evenodd" clip-rule="evenodd" d="M12 0L23 12L12 24L1 12L12 0ZM12 6.5C8.9 6.5 6.5 9 6.5 12C6.5 15 8.9 17.5 12 17.5C15.1 17.5 17.5 15 17.5 12C17.5 9 15.1 6.5 12 6.5ZM4.5 12C4.5 10.8 4.8 10 5.5 9C4.2 9.8 3.5 10.8 3.5 12C3.5 13.2 4.2 14.2 5.5 15C4.8 14 4.5 13.2 4.5 12ZM18.5 15C20 14.2 20.5 13.2 20.5 12C20.5 10.8 20 9.8 18.5 9C19.2 10 19.5 10.8 19.5 12C19.5 13.2 19.2 14 18.5 15Z"/></svg>`,
+            'Stellar': `<svg viewBox="0 0 24 24" fill="currentColor"><path fill-rule="evenodd" clip-rule="evenodd" d="M12 1L23 9L17 22H7L1 9L12 1ZM12 16L15.5 18.5L14.5 13.5L18.5 10.5L14 10L12 5.5L10 10L5.5 10.5L9.5 13.5L8.5 18.5L12 16Z"/></svg>`,
+            'Interstellar': `<svg viewBox="0 0 24 24" fill="currentColor"><path fill-rule="evenodd" clip-rule="evenodd" d="M12 0.5L22.5 6.5V17.5L12 23.5L1.5 17.5V6.5L12 0.5ZM12 10.5L8 6.5H16L12 10.5ZM12 13.5L16 17.5H8L12 13.5ZM9 12C9 13.6 10.3 15 12 15C13.7 15 15 13.6 15 12C15 10.4 13.7 9 12 9C10.3 9 9 10.4 9 12Z"/></svg>`,
+            'Galactic': `<svg viewBox="0 0 24 24" fill="currentColor"><path fill-rule="evenodd" clip-rule="evenodd" d="M12 0.5L21.5 5L23 15L17 23.5H7L1 15L2.5 5L12 0.5ZM12 15.5C13.9 15.5 15.5 13.9 15.5 12C15.5 10.1 13.9 8.5 12 8.5C10.1 8.5 8.5 10.1 8.5 12C8.5 13.9 10.1 15.5 12 15.5ZM12 6.5C8.4 6.5 5.5 9.4 5.5 12H7.5C7.5 9.5 9.5 7.5 12 7.5V6.5ZM12 17.5C15.6 17.5 18.5 14.6 18.5 12H16.5C16.5 14.5 14.5 16.5 12 16.5V17.5Z"/></svg>`,
+            'Intergalactic': `<svg viewBox="0 0 24 24" fill="currentColor"><path fill-rule="evenodd" clip-rule="evenodd" d="M7.5 0.5H16.5L23.5 7.5V16.5L16.5 23.5H7.5L0.5 16.5V7.5L7.5 0.5ZM12 9C10.3 9 9 10.3 9 12C9 13.7 10.3 15 12 15C13.7 15 15 13.7 15 12C15 10.3 13.7 9 12 9ZM12 5C12.8 5 13.5 5.7 13.5 6.5V8.5C14.5 9 15 9.5 15.5 10.5H17.5C18.3 10.5 19 11.2 19 12C19 12.8 18.3 13.5 17.5 13.5H15.5C15 14.5 14.5 15 13.5 15.5V17.5C13.5 18.3 12.8 19 12 19C11.2 19 10.5 18.3 10.5 17.5V15.5C9.5 15 9 14.5 8.5 13.5H6.5C5.7 13.5 5 12.8 5 12C5 11.2 5.7 10.5 6.5 10.5H8.5C9 9.5 9.5 9 10.5 8.5V6.5C10.5 5.7 11.2 5 12 5Z"/></svg>`,
+            'Ethereal': `<svg viewBox="0 0 24 24" fill="currentColor"><path fill-rule="evenodd" clip-rule="evenodd" d="M12 0L19.5 3L23 9.5L21.5 17.5L15.5 23.5H8.5L2.5 17.5L1 9.5L4.5 3L12 0ZM12 6L17 12L12 18L7 12L12 6ZM12 9.5L9 12L12 14.5L15 12L12 9.5Z"/></svg>`,
+            'Lock': `<svg viewBox="0 0 24 24" fill="currentColor"><rect x="7" y="11" width="10" height="10" rx="2" /><path d="M12 16v2" stroke="black" stroke-width="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4" fill="none" stroke="currentColor" stroke-width="2"/></svg>`
+        };
 
+        const STAR_SVG = `<svg class="star-point" viewBox="0 0 24 24"><path d="M12 2l2.4 7.2h7.6l-6 4.8 2.4 7.2-6-4.8-6 4.8 2.4-7.2-6-4.8h7.6z"/></svg>`;
+
+        // RANK DATA MIRROR (For Modal Logic)
+        const RANK_LIST = [
+            {name: "Observer III", req: 20, desc: "The Telescope"}, {name: "Observer II", req: 20, desc: "The Constellation"}, {name: "Observer I", req: 20, desc: "The Overview Effect"},
+            {name: "Moonwalker III", req: 50, desc: "The Launch"}, {name: "Moonwalker II", req: 50, desc: "The Dark Side"}, {name: "Moonwalker I", req: 50, desc: "The Earthrise"},
+            {name: "Celestial IV", req: 80, desc: "Accretion"}, {name: "Celestial III", req: 80, desc: "Atmosphere"}, {name: "Celestial II", req: 80, desc: "Axial Tilt"}, {name: "Celestial I", req: 80, desc: "Gravity"},
+            {name: "Stellar IV", req: 100, desc: "Protostar"}, {name: "Stellar III", req: 100, desc: "Nuclear Fusion"}, {name: "Stellar II", req: 100, desc: "Photosphere"}, {name: "Stellar I", req: 100, desc: "Main Sequence"},
+            {name: "Interstellar IV", req: 120, desc: "Heliopause"}, {name: "Interstellar III", req: 120, desc: "The Void"}, {name: "Interstellar II", req: 120, desc: "Time Dilation"}, {name: "Interstellar I", req: 120, desc: "New Horizons"},
+            {name: "Galactic V", req: 150, desc: "The Spiral Arm"}, {name: "Galactic IV", req: 150, desc: "Rotation Curve"}, {name: "Galactic III", req: 150, desc: "Dark Matter"}, {name: "Galactic II", req: 150, desc: "Supermassive Core"}, {name: "Galactic I", req: 150, desc: "The Ecosystem"},
+            {name: "Intergalactic V", req: 180, desc: "The Filament"}, {name: "Intergalactic IV", req: 180, desc: "The Great Void"}, {name: "Intergalactic III", req: 180, desc: "Redshift"}, {name: "Intergalactic II", req: 180, desc: "The Great Attractor"}, {name: "Intergalactic I", req: 180, desc: "Cosmic Scale"},
+            {name: "Ethereal I", req: 200, desc: "The Nebula"}, {name: "Ethereal II", req: 300, desc: "Quantum Superposition"}, {name: "Ethereal III", req: 400, desc: "Entanglement"}, {name: "Ethereal IV", req: 500, desc: "Relativity"}, {name: "Ethereal V", req: 600, desc: "The Singularity"},
+            {name: "Ethereal VI", req: 700, desc: "The Big Bang"}, {name: "Ethereal VII", req: 800, desc: "Dark Energy"}, {name: "Ethereal VIII", req: 900, desc: "Cosmic Background"}, {name: "Ethereal IX", req: 1000, desc: "The Multiverse"}, {name: "Ethereal X", req: 1100, desc: "The Source"}
+        ];
+
+        let currentUserRankIndex = 0;
+
+        // --- GALAXY ENGINE (Same as previous) ---
         const canvas = document.getElementById('starfield');
         const ctx = canvas.getContext('2d');
         let stars = []; let animationFrameId; let isGalaxyActive = false; let galaxyData = [];
@@ -188,32 +246,129 @@
             const rect = canvas.getBoundingClientRect();
             const x = e.clientX - rect.left;
             const y = e.clientY - rect.top;
-            galaxyData.forEach(star => {
-                const dx = x - star.x; const dy = y - star.y;
-                if(dx*dx + dy*dy < 100) openArchive(star.id);
-            });
+            galaxyData.forEach(star => { if(Math.hypot(x-star.x, y-star.y) < 15) openArchive(star.id); });
         });
 
+        // --- RANK LOGIC ---
+        function getRankIconName(rankTitle) {
+            return rankTitle.split(' ')[0]; // "Observer III" -> "Observer"
+        }
+
+        function getStarsHTML(rankTitle) {
+            // Count stars based on roman numeral
+            let count = 0;
+            if (rankTitle.includes("VI")) count = 6;
+            else if (rankTitle.includes("IV")) count = 4;
+            else if (rankTitle.includes("V")) count = 5;
+            else if (rankTitle.includes("III")) count = 3;
+            else if (rankTitle.includes("II")) count = 2;
+            else if (rankTitle.includes("I")) count = 1;
+            
+            // For Ethereal, cap visual stars at 5 to avoid clutter, or just numerals
+            if(rankTitle.includes("Ethereal") && count > 5) count = 5; 
+            
+            return Array(count).fill(STAR_SVG).join('');
+        }
+
+        function getPhaseColor(rankTitle) {
+            if(rankTitle.includes("Observer")||rankTitle.includes("Moonwalker")) return "#00f2fe"; 
+            if(rankTitle.includes("Celestial")||rankTitle.includes("Stellar")||rankTitle.includes("Interstellar")) return "#facc15"; 
+            if(rankTitle.includes("Galactic")||rankTitle.includes("Intergalactic")) return "#a855f7"; 
+            if(rankTitle.includes("Ethereal")) return "#ffffff"; 
+            return "#00f2fe";
+        }
+
+        function openRanksModal() {
+            const list = document.getElementById('ranks-list-container');
+            list.innerHTML = '';
+            const modal = document.getElementById('ranks-modal');
+            modal.classList.add('active');
+
+            // Set Header Info based on current user rank (stored globally or from DOM)
+            const currentRankName = document.getElementById('rank-display').innerText;
+            const currentBase = getRankIconName(currentRankName);
+            
+            document.getElementById('modal-rank-icon').innerHTML = RANK_SVGS[currentBase];
+            document.getElementById('modal-rank-name').innerText = currentRankName;
+            document.getElementById('modal-stars').innerHTML = getStarsHTML(currentRankName);
+            document.getElementById('modal-progress-bar').style.width = document.getElementById('rank-progress-bar').style.width;
+            document.getElementById('modal-sd-text').innerText = document.getElementById('stardust-cnt').innerText;
+
+            // Generate List
+            RANK_LIST.forEach((rank, index) => {
+                const isUnlocked = index <= currentUserRankIndex;
+                const isNext = index === currentUserRankIndex + 1;
+                const baseName = getRankIconName(rank.name);
+                const color = getPhaseColor(rank.name);
+                
+                const row = document.createElement('div');
+                row.className = `rank-row ${!isUnlocked && !isNext ? 'locked' : ''} ${index === currentUserRankIndex ? 'active' : ''}`;
+                
+                let iconHtml = isUnlocked ? RANK_SVGS[baseName] : RANK_SVGS['Lock'];
+                let statusText = rank.desc;
+                if(isNext) statusText = `Unlock: ${rank.req} SD`;
+                if(index > currentUserRankIndex + 1) statusText = "Locked";
+
+                row.innerHTML = `
+                    <div class="rank-row-icon" style="color: ${isUnlocked ? color : '#555'}">${iconHtml}</div>
+                    <div class="flex-1">
+                        <div class="flex justify-between items-center">
+                            <span class="font-bold text-sm" style="color: ${isUnlocked ? '#fff' : '#777'}">${rank.name}</span>
+                            ${index === currentUserRankIndex ? `<span class="text-[10px] bg-white/10 px-2 rounded text-[${color}]">CURRENT</span>` : ''}
+                        </div>
+                        <div class="text-[10px] opacity-60 font-mono tracking-wide">${statusText}</div>
+                    </div>
+                `;
+                list.appendChild(row);
+            });
+            
+            // Auto scroll to current rank
+            setTimeout(() => {
+                const active = list.querySelector('.active');
+                if(active) active.scrollIntoView({behavior: 'smooth', block: 'center'});
+            }, 100);
+        }
+
+        // --- CORE LOAD LOGIC ---
+        async function loadData() {
+            const res = await fetch('/api/data'); const data = await res.json();
+            if(data.status === 'guest') { window.location.href='/login'; return; }
+            
+            // Find index in local list for modal logic
+            currentUserRankIndex = RANK_LIST.findIndex(r => r.name === data.rank);
+            if(currentUserRankIndex === -1) currentUserRankIndex = 0; // Fallback
+
+            document.getElementById('greeting-text').innerText = `Good Day, ${data.first_name}`;
+            document.getElementById('rank-display').innerText = data.rank;
+            document.getElementById('rank-psyche').innerText = data.rank_psyche;
+            document.getElementById('rank-progress-bar').style.width = `${data.rank_progress}%`;
+            document.getElementById('stardust-cnt').innerText = `${data.stardust_current}/${data.stardust_max} SD`;
+            
+            document.getElementById('profile-username').innerText = data.username;
+            document.getElementById('profile-rank-badge').innerText = data.rank;
+            document.getElementById('profile-desc').innerText = data.rank_desc;
+            document.getElementById('pfp-img').src = data.profile_pic || '';
+            document.getElementById('profile-pfp-large').src = data.profile_pic || '';
+
+            if(data.history) fullChatHistory = data.history; userHistoryDates = Object.values(data.history).map(e=>e.date); renderCalendar();
+            
+            const base = getRankIconName(data.rank);
+            document.documentElement.style.setProperty('--mood', getPhaseColor(data.rank));
+            // Inject Main SVG
+            document.getElementById('main-rank-icon').innerHTML = RANK_SVGS[base];
+        }
+
+        // ... [Keeping previous toggleGalaxy, animateStars, sendMessage, etc functions] ...
         async function toggleGalaxy() {
             const btn = document.getElementById('galaxy-btn');
             isGalaxyActive = !isGalaxyActive;
-            
             if (isGalaxyActive) {
                 btn.classList.add('galaxy-open'); btn.innerHTML = '✕';
                 document.body.classList.add('galaxy-mode');
                 document.getElementById('bottom-dock').style.transform = "translateX(-50%) translateY(100px)";
-                
                 const res = await fetch('/api/galaxy_map');
                 const data = await res.json();
-                
-                // Randomly distribute stars but keep group indices
-                galaxyData = data.map(d => ({
-                    ...d,
-                    x: Math.random() * (canvas.width - 40) + 20,
-                    y: Math.random() * (canvas.height - 40) + 20,
-                    r: d.type === 'void' ? 2 : 4,
-                    color: d.type === 'void' ? '#ef4444' : '#ffffff'
-                }));
+                galaxyData = data.map(d => ({ ...d, x: Math.random() * (canvas.width - 40) + 20, y: Math.random() * (canvas.height - 40) + 20, r: d.type === 'void' ? 2 : 4, color: d.type === 'void' ? '#ef4444' : '#ffffff' }));
                 animateStars();
             } else {
                 btn.classList.remove('galaxy-open');
@@ -223,65 +378,20 @@
                 cancelAnimationFrame(animationFrameId);
             }
         }
-
         function animateStars() {
             if(!isGalaxyActive) return;
             ctx.clearRect(0,0,canvas.width,canvas.height);
-            
-            // Draw Constellation Lines (Connect stars in same group)
             ctx.lineWidth = 0.5; ctx.strokeStyle = "rgba(255,255,255,0.15)";
-            galaxyData.forEach((star, i) => {
-                // If next star exists AND is in same group, draw connection
-                if (galaxyData[i+1] && galaxyData[i+1].group === star.group) {
-                    ctx.beginPath(); ctx.moveTo(star.x, star.y); ctx.lineTo(galaxyData[i+1].x, galaxyData[i+1].y); ctx.stroke();
-                }
-            });
-
-            galaxyData.forEach(star => {
-                ctx.beginPath(); ctx.arc(star.x, star.y, star.r, 0, Math.PI*2); ctx.fillStyle = star.color;
-                ctx.shadowBlur = 10; ctx.shadowColor = star.color; ctx.fill();
-            });
+            galaxyData.forEach((star, i) => { if (galaxyData[i+1] && galaxyData[i+1].group === star.group) { ctx.beginPath(); ctx.moveTo(star.x, star.y); ctx.lineTo(galaxyData[i+1].x, galaxyData[i+1].y); ctx.stroke(); } });
+            galaxyData.forEach(star => { ctx.beginPath(); ctx.arc(star.x, star.y, star.r, 0, Math.PI*2); ctx.fillStyle = star.color; ctx.shadowBlur = 10; ctx.shadowColor = star.color; ctx.fill(); });
             animationFrameId = requestAnimationFrame(animateStars);
         }
-
-        async function openArchive(id) {
-            const modal = document.getElementById('archive-modal'); modal.classList.add('active');
-            const res = await fetch('/api/star_detail', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({id})});
-            const d = await res.json();
-            document.getElementById('archive-date').innerText = d.date;
-            document.getElementById('archive-analysis').innerText = d.analysis || "Analysis corrupted.";
-            const imgContainer = document.getElementById('archive-image-container');
-            if(d.media) { imgContainer.classList.remove('hidden'); document.getElementById('archive-image').src = d.media; } 
-            else { imgContainer.classList.add('hidden'); }
-        }
-        function closeArchive() { document.getElementById('archive-modal').classList.remove('active'); }
-
-        function handleFileSelect() {
-            const input = document.getElementById('img-upload');
-            if(input.files && input.files[0]) {
-                const reader = new FileReader();
-                reader.onload = function(e) { activeMedia = e.target.result; document.getElementById('chat-input').placeholder = "Image attached. Add context..."; };
-                reader.readAsDataURL(input.files[0]);
-            }
-        }
-        function toggleMic() {
-            if (!('webkitSpeechRecognition' in window)) { alert("Voice not supported in this browser."); return; }
-            const recognition = new webkitSpeechRecognition();
-            recognition.continuous = false; recognition.interimResults = false;
-            const btn = document.getElementById('mic-btn'); btn.classList.add('recording');
-            recognition.onresult = function(event) { document.getElementById('chat-input').value += event.results[0][0].transcript + " "; btn.classList.remove('recording'); };
-            recognition.onerror = () => btn.classList.remove('recording');
-            recognition.start();
-        }
-
         async function sendMessage() {
             if(isProcessing) return;
             const input = document.getElementById('chat-input');
             const msg = input.value.trim();
             if(!msg && !activeMedia) return;
-            
             appendMsg(msg || "[Image Sent]", 'user'); input.value=''; isProcessing=true;
-            
             try {
                 const res = await fetch('/api/process', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({message:msg, mode:currentMode, media:activeMedia}) });
                 const data = await res.json();
@@ -293,36 +403,29 @@
             } catch(e) { appendMsg("Transmission failed.", 'ai'); }
             isProcessing=false;
         }
-
         function appendMsg(txt, sender) { const div = document.createElement('div'); div.className = `msg msg-${sender}`; div.innerText = txt; document.getElementById('chat-history').appendChild(div); document.getElementById('chat-history').scrollTop = 9999; }
         function openChat(mode) { currentMode = mode; document.getElementById('chat-overlay').classList.add('active'); const w = document.getElementById('chat-modal-window'); w.className = `chat-window origin-${mode === 'rant' ? 'void' : 'ai'}`; document.getElementById('chat-header-title').innerText = mode === 'rant' ? "THE VOID" : "CELI AI"; renderChatHistory(fullChatHistory); }
         function closeChat() { document.getElementById('chat-overlay').classList.remove('active'); }
         function openModal(id) { document.getElementById(id).style.display='flex'; }
         function closeModal(id) { document.getElementById(id).style.display='none'; }
-        async function loadData() { 
-            const res = await fetch('/api/data'); const data = await res.json();
-            if(data.status === 'guest') { window.location.href='/login'; return; }
-            document.getElementById('greeting-text').innerText = `Good Day, ${data.first_name}`;
-            document.getElementById('rank-display').innerText = data.rank;
-            document.getElementById('rank-psyche').innerText = data.rank_psyche;
-            document.getElementById('rank-progress-bar').style.width = `${data.rank_progress}%`;
-            document.getElementById('stardust-cnt').innerText = `${data.stardust_current}/${data.stardust_max} SD`;
-            document.getElementById('profile-username').innerText = data.username;
-            document.getElementById('profile-rank-badge').innerText = data.rank;
-            document.getElementById('profile-desc').innerText = data.rank_desc;
-            document.getElementById('pfp-img').src = data.profile_pic || '';
-            document.getElementById('profile-pfp-large').src = data.profile_pic || '';
-            if(data.history) fullChatHistory = data.history; userHistoryDates = Object.values(data.history).map(e=>e.date); renderCalendar();
-            const base = data.rank.split(' ')[0]; document.documentElement.style.setProperty('--mood', getRankColor(base));
-            document.getElementById('rank-icon-slot').innerHTML = `<div class="text-[8px] uppercase tracking-widest">${base.substring(0,2)}</div>`;
+        async function openArchive(id) {
+            const modal = document.getElementById('archive-modal'); modal.classList.add('active');
+            const res = await fetch('/api/star_detail', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({id})});
+            const d = await res.json();
+            document.getElementById('archive-date').innerText = d.date;
+            document.getElementById('archive-analysis').innerText = d.analysis || "Analysis corrupted.";
+            const imgContainer = document.getElementById('archive-image-container');
+            if(d.media) { imgContainer.classList.remove('hidden'); document.getElementById('archive-image').src = d.media; } else { imgContainer.classList.add('hidden'); }
         }
-        window.onload = loadData;
-        function getRankColor(r) { if(r.includes("Observer")||r.includes("Moonwalker")) return "#00f2fe"; if(r.includes("Celestial")||r.includes("Stellar")) return "#facc15"; if(r.includes("Interstellar")||r.includes("Galactic")) return "#a855f7"; return "#ffffff"; }
+        function closeArchive() { document.getElementById('archive-modal').classList.remove('active'); }
+        function handleFileSelect() { const input = document.getElementById('img-upload'); if(input.files && input.files[0]) { const reader = new FileReader(); reader.onload = function(e) { activeMedia = e.target.result; document.getElementById('chat-input').placeholder = "Image attached. Add context..."; }; reader.readAsDataURL(input.files[0]); } }
+        function toggleMic() { if (!('webkitSpeechRecognition' in window)) { alert("Voice not supported."); return; } const recognition = new webkitSpeechRecognition(); recognition.continuous = false; recognition.interimResults = false; const btn = document.getElementById('mic-btn'); btn.classList.add('recording'); recognition.onresult = function(event) { document.getElementById('chat-input').value += event.results[0][0].transcript + " "; btn.classList.remove('recording'); }; recognition.onerror = () => btn.classList.remove('recording'); recognition.start(); }
         function spawnStardust() { const s=document.getElementById('nav-pfp').getBoundingClientRect(); const t=document.getElementById('rank-progress-bar').getBoundingClientRect(); const pfp=document.getElementById('nav-pfp'); pfp.classList.remove('pulse-anim'); void pfp.offsetWidth; pfp.classList.add('pulse-anim'); for(let i=0;i<8;i++){ setTimeout(()=>{ const p=document.createElement('div'); p.className='stardust-particle'; p.style.left=(s.left+s.width/2)+'px'; p.style.top=(s.top+s.height/2)+'px'; document.body.appendChild(p); const tx=t.left+Math.random()*t.width; const ty=t.top+t.height/2; p.animate([{transform:'translate(0,0) scale(1)',opacity:1},{transform:`translate(${tx-parseFloat(p.style.left)}px, ${ty-parseFloat(p.style.top)}px) scale(0.5)`,opacity:0}],{duration:800+Math.random()*400,easing:'cubic-bezier(0.25,1,0.5,1)'}).onfinish=()=>p.remove(); },i*100); } }
         function renderCalendar() { const g=document.getElementById('cal-grid'); g.innerHTML=''; const m=currentCalendarDate.getMonth(); const y=currentCalendarDate.getFullYear(); document.getElementById('cal-month-year').innerText=new Date(y,m).toLocaleString('default',{month:'long',year:'numeric'}); ["S","M","T","W","T","F","S"].forEach(d=>g.innerHTML+=`<div>${d}</div>`); const days=new Date(y,m+1,0).getDate(); const f=new Date(y,m,1).getDay(); for(let i=0;i<f;i++)g.innerHTML+=`<div></div>`; for(let i=1;i<=days;i++){ const d=document.createElement('div'); d.className='cal-day'; d.innerText=i; if(userHistoryDates.includes(`${y}-${String(m+1).padStart(2,'0')}-${String(i).padStart(2,'0')}`)) d.classList.add('has-entry'); g.appendChild(d); } }
         function changeMonth(d) { currentCalendarDate.setMonth(currentCalendarDate.getMonth()+d); renderCalendar(); }
         function renderChatHistory(h) { const c = document.getElementById('chat-history'); c.innerHTML=''; Object.keys(h).sort().slice(-50).forEach(k => { appendMsg(h[k].summary||"Entry", 'user'); appendMsg(h[k].reply, 'ai'); }); }
         async function clearMemory() { if(confirm("Wipe?")) { await fetch('/api/clear_history',{method:'POST'}); window.location.reload(); } }
+        window.onload = loadData;
     </script>
 </body>
 </html>
