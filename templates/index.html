@@ -16,8 +16,14 @@
     <div id="static-background"></div>
 
     <div class="app-header">
-        <div class="header-left logo-group"><div class="logo">Celi</div><div class="version-tag">v8.1.0</div></div>
-        <div class="header-right"><div class="header-pfp" id="nav-pfp" onclick="openModal('profile-modal')"><img id="pfp-img" src=""></div></div>
+        <div class="header-left logo-group">
+            <div class="logo">Celi</div><div class="version-tag">v8.3.0</div>
+        </div>
+        <div class="header-right">
+            <div class="header-pfp" id="nav-pfp" onclick="openModal('profile-modal')">
+                <img id="pfp-img" src="">
+            </div>
+        </div>
     </div>
 
     <div id="main-view">
@@ -26,14 +32,23 @@
             <div class="rank-details w-full">
                 <div id="greeting-text" class="greeting">Good Morning</div>
                 <div class="flex justify-between items-end">
-                    <div><div id="rank-display" class="rank-title font-bold text-sm">Loading...</div><div id="rank-psyche" class="text-[10px] text-[var(--mood)] uppercase tracking-wide opacity-80">...</div></div>
+                    <div>
+                        <div id="rank-display" class="rank-title font-bold text-sm">Loading...</div>
+                        <div id="rank-psyche" class="text-[10px] text-[var(--mood)] uppercase tracking-wide opacity-80">...</div>
+                    </div>
                     <div id="stardust-cnt" class="text-[9px] opacity-50 font-mono">0 SD</div>
                 </div>
-                <div class="progress-container mt-2"><div id="rank-progress-bar" class="progress-bar"></div></div>
+                <div class="progress-container mt-2">
+                    <div id="rank-progress-bar" class="progress-bar"></div>
+                </div>
             </div>
         </div>
         <div class="calendar-card">
-            <div class="cal-header"><button class="cal-btn" onclick="changeMonth(-1)">‹</button><div id="cal-month-year" class="cal-title">Loading...</div><button class="cal-btn" onclick="changeMonth(1)">›</button></div>
+            <div class="cal-header">
+                <button class="cal-btn" onclick="changeMonth(-1)">‹</button>
+                <div id="cal-month-year" class="cal-title">Loading...</div>
+                <button class="cal-btn" onclick="changeMonth(1)">›</button>
+            </div>
             <div class="cal-grid" id="cal-grid"></div>
         </div>
     </div>
@@ -45,54 +60,127 @@
     </div>
 
     <div class="bottom-dock" id="bottom-dock">
-        <div class="nav-group"><button class="nav-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" /></svg></button><button class="nav-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" /></svg></button></div>
+        <div class="nav-group">
+            <button class="nav-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" /></svg></button>
+            <button class="nav-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" /></svg></button>
+        </div>
         <div style="width: 70px;"></div>
-        <div class="nav-group"><button class="nav-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M13 10V3L4 14h7v7l9-11h-7z" /></svg></button><button class="nav-btn" onclick="toggleGalaxy()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="5" cy="5" r="1.5"/><circle cx="19" cy="5" r="1.5"/><circle cx="5" cy="19" r="1.5"/><circle cx="19" cy="19" r="1.5"/><path d="M5 5l14 14M5 19L19 5"/></svg></button></div>
+        <div class="nav-group">
+            <button class="nav-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M13 10V3L4 14h7v7l9-11h-7z" /></svg></button>
+            <button class="nav-btn" onclick="toggleGalaxy()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="5" cy="5" r="1.5"/><circle cx="19" cy="5" r="1.5"/><circle cx="5" cy="19" r="1.5"/><circle cx="19" cy="19" r="1.5"/><path d="M5 5l14 14M5 19L19 5"/></svg></button>
+        </div>
     </div>
 
     <div class="void-container" onclick="openChat('rant')"><div class="void-fab"><svg width="44" height="44" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="11" fill="url(#voidGradient)" /><circle cx="12" cy="12" r="5" fill="black" /><defs><linearGradient id="voidGradient" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#facc15" /><stop offset="40%" stop-color="#f97316" /><stop offset="100%" stop-color="#9333ea" /></linearGradient></defs></svg></div></div>
     <div class="fab-container" onclick="openChat('journal')"><div class="chat-fab"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/></svg></div></div>
 
-    <div id="chat-overlay" class="modal-overlay" onclick="if(event.target.id==='chat-overlay') closeChat()"><div id="chat-modal-window" class="chat-window"><div class="chat-header"><span id="chat-header-title">Celi Neural Link</span><div onclick="closeChat()" class="cursor-pointer">✕</div></div><div id="chat-history" class="chat-history"></div><div class="input-area"><input type="file" id="img-upload" accept="image/*" hidden onchange="handleFileSelect()"><input type="file" id="audio-upload" accept="audio/*" hidden onchange="handleAudioSelect()"><button class="media-btn" onclick="document.getElementById('img-upload').click()"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg></button><button class="media-btn" id="mic-btn" onclick="toggleMic()"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg></button><input type="text" id="chat-input" class="chat-input" placeholder="Signal..." onkeypress="if(event.key==='Enter') sendMessage()"><button onclick="sendMessage()" class="ml-2 text-white">➤</button></div></div></div>
+    <div id="chat-overlay" class="modal-overlay" onclick="if(event.target.id==='chat-overlay') closeChat()">
+        <div id="chat-modal-window" class="chat-window">
+            <div class="chat-header"><span id="chat-header-title">Celi Neural Link</span><div onclick="closeChat()" class="cursor-pointer">✕</div></div>
+            <div id="chat-history" class="chat-history"></div>
+            <div class="input-area">
+                <input type="file" id="img-upload" accept="image/*" hidden onchange="handleFileSelect()">
+                <input type="file" id="audio-upload" accept="audio/*" hidden onchange="handleAudioSelect()">
+                <button class="media-btn" onclick="document.getElementById('img-upload').click()"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg></button>
+                <button class="media-btn" id="mic-btn" onclick="toggleMic()"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg></button>
+                <input type="text" id="chat-input" class="chat-input" placeholder="Signal..." onkeypress="if(event.key==='Enter') sendMessage()">
+                <button onclick="sendMessage()" class="ml-2 text-white">➤</button>
+            </div>
+        </div>
+    </div>
     
-    <div id="ranks-modal" class="modal-overlay" onclick="if(event.target.id==='ranks-modal') closeModal('ranks-modal')"><div class="bg-theme-card border-theme p-0 rounded-3xl w-full max-w-sm relative max-h-[85vh] flex flex-col overflow-visible"><div class="floating-close-btn" onclick="closeModal('ranks-modal')">✕</div><div class="flex flex-col items-center pt-8 pb-4 px-6 bg-gradient-to-b from-white/5 to-transparent"><div id="modal-rank-icon" class="w-20 h-20 text-[var(--mood)] drop-shadow-[0_0_10px_var(--mood)]"></div><div id="modal-stars" class="star-rating my-2"></div><h2 id="modal-rank-name" class="text-2xl font-bold tracking-wide mt-1">...</h2><div class="w-full h-1.5 bg-white/10 rounded-full mt-4 overflow-hidden relative"><div id="modal-progress-bar" class="h-full bg-[var(--mood)] shadow-[0_0_10px_var(--mood)] absolute top-0 left-0 transition-all duration-1000" style="width: 0%"></div></div><p id="modal-sd-text" class="text-[10px] text-theme-muted mt-1 font-mono">0 SD</p></div><div class="flex-1 overflow-y-auto" id="ranks-list-container"></div></div></div>
+    <div id="ranks-modal" class="modal-overlay" onclick="if(event.target.id==='ranks-modal') closeModal('ranks-modal')">
+        <div class="bg-theme-card border-theme p-0 rounded-3xl w-full max-w-sm relative max-h-[85vh] flex flex-col overflow-visible">
+            <div class="floating-close-btn" onclick="closeModal('ranks-modal')">✕</div>
+            <div class="flex flex-col items-center pt-8 pb-4 px-6 bg-gradient-to-b from-white/5 to-transparent">
+                <div id="modal-rank-icon" class="w-20 h-20 text-[var(--mood)] drop-shadow-[0_0_10px_var(--mood)]"></div>
+                <div id="modal-stars" class="star-rating my-2"></div>
+                <h2 id="modal-rank-name" class="text-2xl font-bold tracking-wide mt-1">...</h2>
+                <div class="w-full h-1.5 bg-white/10 rounded-full mt-4 overflow-hidden relative"><div id="modal-progress-bar" class="h-full bg-[var(--mood)] shadow-[0_0_10px_var(--mood)] absolute top-0 left-0 transition-all duration-1000" style="width: 0%"></div></div>
+                <p id="modal-sd-text" class="text-[10px] text-theme-muted mt-1 font-mono">0 SD</p>
+            </div>
+            <div class="flex-1 overflow-y-auto" id="ranks-list-container"></div>
+        </div>
+    </div>
     
-    <div id="archive-modal" class="modal-overlay"><div class="chat-window origin-center" style="height: 60vh; background: var(--card-bg); border: 1px solid var(--border);"><div class="chat-header"><span id="archive-date" class="font-mono text-xs opacity-50 tracking-widest">ARCHIVE</span><div onclick="closeArchive()" class="cursor-pointer">✕</div></div><div class="p-6 overflow-y-auto flex flex-col gap-4 items-center"><div id="archive-image-container" class="w-full rounded-xl overflow-hidden hidden"><img id="archive-image" class="w-full object-cover"></div><div id="archive-audio-container" class="w-full hidden"><audio id="archive-audio" controls class="w-full"></audio></div><h3 class="text-xs font-bold uppercase tracking-widest text-[var(--mood)] w-full text-center">Soul Synthesis</h3><p id="archive-analysis" class="text-sm italic text-theme-muted leading-relaxed text-center"></p><div class="w-full h-px bg-white/10 my-2"></div><div class="w-full text-[9px] text-center opacity-30 uppercase">Recorded Memory</div></div></div></div>
+    <div id="archive-modal" class="modal-overlay">
+        <div class="chat-window origin-center" style="height: 60vh; background: var(--card-bg); border: 1px solid var(--border);">
+            <div class="chat-header"><span id="archive-date" class="font-mono text-xs opacity-50 tracking-widest">ARCHIVE</span><div onclick="closeArchive()" class="cursor-pointer">✕</div></div>
+            <div class="p-6 overflow-y-auto flex flex-col gap-4 items-center">
+                <div id="archive-image-container" class="w-full rounded-xl overflow-hidden hidden"><img id="archive-image" class="w-full object-cover"></div>
+                <div id="archive-audio-container" class="w-full hidden"><audio id="archive-audio" controls class="w-full"></audio></div>
+                <h3 class="text-xs font-bold uppercase tracking-widest text-[var(--mood)] w-full text-center">Soul Synthesis</h3>
+                <p id="archive-analysis" class="text-sm italic text-theme-muted leading-relaxed text-center"></p>
+                <div class="w-full h-px bg-white/10 my-2"></div>
+                <div class="w-full text-[9px] text-center opacity-30 uppercase">Recorded Memory</div>
+            </div>
+        </div>
+    </div>
 
     <div id="profile-modal" class="fixed inset-0 bg-black/90 z-50 hidden items-center justify-center p-5 backdrop-blur-sm">
         <div class="bg-theme-card border-theme p-0 rounded-3xl w-full max-w-sm relative max-h-[85vh] flex flex-col overflow-visible">
+            
             <div class="floating-close-btn" onclick="closeModal('profile-modal')">✕</div>
-            <div class="p-6 border-b border-theme"><h2 class="text-xl font-bold tracking-wide">Profile</h2></div>
+            
+            <div class="p-6 border-b border-theme-color" style="border-bottom: 1px solid var(--border);">
+                <h2 class="text-xl font-bold tracking-wide">Profile</h2>
+            </div>
             
             <div class="flex-1 overflow-y-auto p-6 flex flex-col items-center gap-6">
-                <div class="flex flex-col items-center relative"><img id="profile-pfp-large" class="w-24 h-24 rounded-full border-2 border-theme object-cover" src=""><input type="file" id="pfp-upload-input" accept="image/*" hidden onchange="handlePfpUpload()"><button onclick="document.getElementById('pfp-upload-input').click()" class="mt-3 text-xs text-[var(--mood)] border border-[var(--mood)] px-3 py-1 rounded-full uppercase tracking-widest hover:bg-[var(--mood)] hover:text-black transition-colors">Update Photo</button></div>
+                <div class="flex flex-col items-center relative">
+                    <img id="profile-pfp-large" class="w-24 h-24 rounded-full border-2 border-theme object-cover" src="">
+                    <input type="file" id="pfp-upload-input" accept="image/*" hidden onchange="handlePfpUpload()">
+                    <button onclick="document.getElementById('pfp-upload-input').click()" class="mt-3 text-xs text-[var(--mood)] border border-[var(--mood)] px-3 py-1 rounded-full uppercase tracking-widest hover:bg-[var(--mood)] hover:text-black transition-colors">Update Photo</button>
+                </div>
                 
                 <div class="w-full space-y-4">
-                    <div class="bg-theme-input p-4 rounded-xl border border-theme"><label class="block text-[9px] uppercase tracking-widest text-theme-muted mb-1">Full Name</label><div id="profile-fullname" class="text-sm font-semibold">Loading...</div></div>
-                    <div class="bg-theme-input p-4 rounded-xl border border-theme"><label class="block text-[9px] uppercase tracking-widest text-theme-muted mb-1">User ID</label><div id="profile-id" class="text-xs font-mono opacity-70 break-all">...</div></div>
+                    <div class="bg-theme-input p-4 rounded-xl border-theme">
+                        <label class="block text-[9px] uppercase tracking-widest text-theme-muted mb-1">Full Name</label>
+                        <div id="profile-fullname" class="text-sm font-semibold">Loading...</div>
+                    </div>
+                    <div class="bg-theme-input p-4 rounded-xl border-theme">
+                        <label class="block text-[9px] uppercase tracking-widest text-theme-muted mb-1">User ID</label>
+                        <div id="profile-id" class="text-xs font-mono opacity-70 break-all">...</div>
+                    </div>
                     <div class="flex gap-4">
-                        <div class="bg-theme-input p-4 rounded-xl border border-theme flex-1"><label class="block text-[9px] uppercase tracking-widest text-theme-muted mb-1">Aura Color</label><div class="flex items-center gap-2"><div id="profile-color-dot" class="w-3 h-3 rounded-full bg-white"></div><span id="profile-color-text" class="text-xs opacity-70">...</span></div></div>
-                        <div class="bg-theme-input p-4 rounded-xl border border-theme flex-1"><label class="block text-[9px] uppercase tracking-widest text-theme-muted mb-1">Secret Question</label><div id="profile-secret-q" class="text-xs opacity-70 break-words leading-tight">...</div></div>
+                        <div class="bg-theme-input p-4 rounded-xl border-theme flex-1">
+                            <label class="block text-[9px] uppercase tracking-widest text-theme-muted mb-1">Aura Color</label>
+                            <div class="flex items-center gap-2">
+                                <div id="profile-color-dot" class="w-3 h-3 rounded-full bg-white"></div>
+                                <span id="profile-color-text" class="text-xs opacity-70">...</span>
+                            </div>
+                        </div>
+                        <div class="bg-theme-input p-4 rounded-xl border-theme flex-1">
+                            <label class="block text-[9px] uppercase tracking-widest text-theme-muted mb-1">Secret Question</label>
+                            <div id="profile-secret-q" class="text-xs opacity-70 break-words leading-tight">...</div>
+                        </div>
                     </div>
                     <div class="w-full text-center">
                         <button onclick="openModal('edit-info-modal')" class="text-[10px] uppercase tracking-widest text-[var(--mood)] hover:underline">Edit User Information</button>
                     </div>
                 </div>
 
-                <div class="w-full h-px bg-white/10 my-1"></div>
-
-                <div class="w-full flex justify-between items-center bg-theme-input p-3 rounded-xl border border-theme">
-                    <span class="text-xs font-bold uppercase tracking-widest opacity-70">App Theme</span>
-                    <button onclick="toggleTheme()" id="theme-btn" class="text-[10px] bg-white/10 px-3 py-1 rounded-full uppercase tracking-widest border border-theme">Dark</button>
+                <div class="w-full">
+                    <div class="w-full h-px bg-theme-border my-4"></div>
+                    
+                    <div class="flex justify-between items-center bg-theme-input p-3 rounded-xl border-theme">
+                        <span class="text-xs font-bold uppercase tracking-widest opacity-70">App Theme</span>
+                        <button onclick="toggleTheme()" id="theme-btn" class="text-[10px] bg-white/10 px-3 py-1 rounded-full uppercase tracking-widest border-theme">Dark</button>
+                    </div>
                 </div>
 
                 <div class="w-full space-y-3 pt-2">
                     <button onclick="openModal('logout-confirm-modal')" class="w-full py-3 bg-white/5 hover:bg-white/10 border-theme rounded-xl text-xs font-bold uppercase tracking-widest transition-colors">Log Out</button>
-                    <div class="flex gap-3"><button onclick="openModal('change-pass-modal')" class="flex-1 py-3 bg-white/5 hover:bg-white/10 border-theme rounded-xl text-[10px] font-bold uppercase tracking-widest">Change Pass</button><button onclick="openModal('change-secret-modal')" class="flex-1 py-3 bg-white/5 hover:bg-white/10 border-theme rounded-xl text-[10px] font-bold uppercase tracking-widest">Change SQA</button></div>
+                    <div class="flex gap-3">
+                        <button onclick="openModal('change-pass-modal')" class="flex-1 py-3 bg-white/5 hover:bg-white/10 border-theme rounded-xl text-[10px] font-bold uppercase tracking-widest">Change Pass</button>
+                        <button onclick="openModal('change-secret-modal')" class="flex-1 py-3 bg-white/5 hover:bg-white/10 border-theme rounded-xl text-[10px] font-bold uppercase tracking-widest">Change SQA</button>
+                    </div>
                     <button onclick="openModal('delete-confirm-modal')" class="w-full py-3 bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-400 rounded-xl text-xs font-bold uppercase tracking-widest transition-colors">Delete Data</button>
                 </div>
                 
-                <div class="w-full pt-4 border-t border-theme text-center"><button onclick="openModal('policy-modal')" class="text-[10px] uppercase tracking-widest text-blue-400 hover:text-blue-300 underline">View User Data & Privacy Policy</button></div>
+                <div class="w-full pt-4 border-t-theme text-center">
+                    <button onclick="openModal('policy-modal')" class="text-[10px] uppercase tracking-widest text-blue-400 hover:text-blue-300 underline">View User Data & Privacy Policy</button>
+                </div>
             </div>
         </div>
     </div>
@@ -140,24 +228,69 @@
 
     <div id="logout-confirm-modal" class="fixed inset-0 bg-black/90 z-[80] hidden items-center justify-center p-5 backdrop-blur-sm">
         <div class="bg-theme-card border-theme p-6 rounded-2xl w-full max-w-xs relative text-center">
-            <h3 class="text-lg font-bold mb-2">Disconnect?</h3><p class="text-sm opacity-60 mb-6">Are you sure you want to log out of your session?</p>
-            <div class="flex gap-3"><button onclick="closeModal('logout-confirm-modal')" class="flex-1 py-3 bg-white/5 rounded-lg text-xs font-bold uppercase">Cancel</button><button onclick="window.location.href='/logout'" class="flex-1 py-3 bg-white text-black rounded-lg text-xs font-bold uppercase">Confirm</button></div>
+            <h3 class="text-lg font-bold mb-2">Disconnect?</h3>
+            <p class="text-sm opacity-60 mb-6">Are you sure you want to log out of your session?</p>
+            <div class="flex gap-3">
+                <button onclick="closeModal('logout-confirm-modal')" class="flex-1 py-3 bg-white/5 rounded-lg text-xs font-bold uppercase">Cancel</button>
+                <button onclick="window.location.href='/logout'" class="flex-1 py-3 bg-white text-black rounded-lg text-xs font-bold uppercase">Confirm</button>
+            </div>
         </div>
     </div>
+
     <div id="delete-confirm-modal" class="fixed inset-0 bg-black/95 z-[80] hidden items-center justify-center p-5 backdrop-blur-md">
         <div class="bg-theme-card border border-red-500/30 p-6 rounded-2xl w-full max-w-xs relative text-center shadow-[0_0_30px_rgba(239,68,68,0.2)]">
-            <h3 class="text-xl font-bold mb-2 text-red-500">WIPE MEMORY?</h3><p class="text-sm opacity-80 mb-6 leading-relaxed">This action is <strong>irreversible</strong>.<br>All journal entries, photos, and rank progress will be permanently destroyed. You cannot undo this.</p>
-            <div class="flex gap-3"><button onclick="closeModal('delete-confirm-modal')" class="flex-1 py-3 bg-white/5 rounded-lg text-xs font-bold uppercase">Cancel</button><button onclick="performWipe()" class="flex-1 py-3 bg-red-500 text-black rounded-lg text-xs font-bold uppercase">Wipe</button></div>
+            <h3 class="text-xl font-bold mb-2 text-red-500">WIPE MEMORY?</h3>
+            <p class="text-sm opacity-80 mb-6 leading-relaxed">This action is <strong>irreversible</strong>.<br>All journal entries, photos, and rank progress will be permanently destroyed. You cannot undo this.</p>
+            <div class="flex gap-3">
+                <button onclick="closeModal('delete-confirm-modal')" class="flex-1 py-3 bg-white/5 rounded-lg text-xs font-bold uppercase">Cancel</button>
+                <button onclick="performWipe()" class="flex-1 py-3 bg-red-500 text-black rounded-lg text-xs font-bold uppercase">Wipe</button>
+            </div>
         </div>
     </div>
+    
     <div id="status-modal" class="fixed inset-0 bg-black/90 z-[90] hidden items-center justify-center p-5 backdrop-blur-sm">
         <div class="bg-theme-card border border-[var(--mood)] p-6 rounded-2xl w-full max-w-xs relative text-center shadow-[0_0_20px_rgba(0,242,254,0.3)]">
-            <div id="status-icon" class="text-4xl mb-3">✅</div><h3 id="status-title" class="text-lg font-bold mb-2">Success</h3><p id="status-msg" class="text-sm opacity-80 mb-6">Action completed successfully.</p><button onclick="closeModal('status-modal')" class="w-full py-3 bg-white/10 rounded-lg text-xs font-bold uppercase">Acknowledge</button>
+            <div id="status-icon" class="text-4xl mb-3">✅</div>
+            <h3 id="status-title" class="text-lg font-bold mb-2">Success</h3>
+            <p id="status-msg" class="text-sm opacity-80 mb-6">Action completed successfully.</p>
+            <button onclick="closeModal('status-modal')" class="w-full py-3 bg-white/10 rounded-lg text-xs font-bold uppercase">Acknowledge</button>
         </div>
     </div>
-    <div id="change-pass-modal" class="fixed inset-0 bg-black/90 z-[60] hidden items-center justify-center p-5 backdrop-blur-sm"><div class="bg-theme-card border-theme p-6 rounded-2xl w-full max-w-xs relative"><div class="absolute top-2 right-2 cursor-pointer p-2" onclick="closeModal('change-pass-modal')">✕</div><h3 class="text-lg font-bold mb-4">New Password</h3><input type="password" id="new-pass-input" class="w-full bg-theme-input border-theme rounded-lg p-3 text-sm mb-2 outline-none focus:border-[var(--mood)]" placeholder="Enter new password"><input type="password" id="confirm-pass-input" class="w-full bg-theme-input border-theme rounded-lg p-3 text-sm mb-4 outline-none focus:border-[var(--mood)]" placeholder="Confirm new password"><button id="btn-update-pass" onclick="updateSecurity('pass')" class="w-full py-3 bg-[var(--mood)] text-black font-bold rounded-lg text-xs uppercase tracking-widest flex items-center justify-center">Update</button></div></div>
-    <div id="change-secret-modal" class="fixed inset-0 bg-black/90 z-[60] hidden items-center justify-center p-5 backdrop-blur-sm"><div class="bg-theme-card border-theme p-6 rounded-2xl w-full max-w-xs relative"><div class="absolute top-2 right-2 cursor-pointer p-2" onclick="closeModal('change-secret-modal')">✕</div><h3 class="text-lg font-bold mb-4">Update SQA</h3><select id="new-secret-q" class="w-full bg-theme-input border-theme rounded-lg p-3 text-sm mb-2 outline-none focus:border-[var(--mood)] text-white"><option value="" disabled selected>Select a Question</option><option value="mother_maiden">What is your mother's maiden name?</option><option value="first_pet">What was the name of your first pet?</option><option value="birth_city">In what city were you born?</option><option value="favorite_book">What is your favorite book?</option><option value="first_school">What was the name of your first school?</option></select><input type="text" id="new-secret-a" class="w-full bg-theme-input border-theme rounded-lg p-3 text-sm mb-4 outline-none focus:border-[var(--mood)]" placeholder="Secret Answer"><button id="btn-update-secret" onclick="updateSecurity('secret')" class="w-full py-3 bg-[var(--mood)] text-black font-bold rounded-lg text-xs uppercase tracking-widest flex items-center justify-center">Update</button></div></div>
-    <div id="policy-modal" class="fixed inset-0 bg-black/90 z-[70] hidden items-center justify-center p-5 backdrop-blur-sm"><div class="bg-white text-black p-0 rounded-xl w-full max-w-md h-[80vh] flex flex-col overflow-visible relative"><div class="floating-close-btn" onclick="closeModal('policy-modal')">✕</div><div class="p-4 border-b border-gray-200 bg-gray-50 rounded-t-xl"><h2 class="text-md font-bold text-center uppercase tracking-wide">User Data & Privacy Policy</h2></div><div class="flex-1 overflow-y-auto"><iframe src="/privacy_policy" class="w-full h-full border-none"></iframe></div></div></div>
+
+    <div id="change-pass-modal" class="fixed inset-0 bg-black/90 z-[60] hidden items-center justify-center p-5 backdrop-blur-sm">
+        <div class="bg-theme-card border-theme p-6 rounded-2xl w-full max-w-xs relative">
+            <div class="absolute top-2 right-2 cursor-pointer p-2" onclick="closeModal('change-pass-modal')">✕</div>
+            <h3 class="text-lg font-bold mb-4">New Password</h3>
+            <input type="password" id="new-pass-input" class="w-full bg-theme-input border-theme rounded-lg p-3 text-sm mb-2 outline-none focus:border-[var(--mood)]" placeholder="Enter new password">
+            <input type="password" id="confirm-pass-input" class="w-full bg-theme-input border-theme rounded-lg p-3 text-sm mb-4 outline-none focus:border-[var(--mood)]" placeholder="Confirm new password">
+            <button id="btn-update-pass" onclick="updateSecurity('pass')" class="w-full py-3 bg-[var(--mood)] text-black font-bold rounded-lg text-xs uppercase tracking-widest flex items-center justify-center">Update</button>
+        </div>
+    </div>
+
+    <div id="change-secret-modal" class="fixed inset-0 bg-black/90 z-[60] hidden items-center justify-center p-5 backdrop-blur-sm">
+        <div class="bg-theme-card border-theme p-6 rounded-2xl w-full max-w-xs relative">
+            <div class="absolute top-2 right-2 cursor-pointer p-2" onclick="closeModal('change-secret-modal')">✕</div>
+            <h3 class="text-lg font-bold mb-4">Update SQA</h3>
+            <select id="new-secret-q" class="w-full bg-theme-input border-theme rounded-lg p-3 text-sm mb-2 outline-none focus:border-[var(--mood)] text-white">
+                <option value="" disabled selected>Select a Question</option>
+                <option value="mother_maiden">What is your mother's maiden name?</option>
+                <option value="first_pet">What was the name of your first pet?</option>
+                <option value="birth_city">In what city were you born?</option>
+                <option value="favorite_book">What is your favorite book?</option>
+                <option value="first_school">What was the name of your first school?</option>
+            </select>
+            <input type="text" id="new-secret-a" class="w-full bg-theme-input border-theme rounded-lg p-3 text-sm mb-4 outline-none focus:border-[var(--mood)]" placeholder="Secret Answer">
+            <button id="btn-update-secret" onclick="updateSecurity('secret')" class="w-full py-3 bg-[var(--mood)] text-black font-bold rounded-lg text-xs uppercase tracking-widest flex items-center justify-center">Update</button>
+        </div>
+    </div>
+    
+    <div id="policy-modal" class="fixed inset-0 bg-black/90 z-[70] hidden items-center justify-center p-5 backdrop-blur-sm">
+        <div class="bg-white text-black p-0 rounded-xl w-full max-w-md h-[80vh] flex flex-col overflow-visible relative">
+            <div class="floating-close-btn" onclick="closeModal('policy-modal')">✕</div>
+            <div class="p-4 border-b border-gray-200 bg-gray-50 rounded-t-xl"><h2 class="text-md font-bold text-center uppercase tracking-wide">User Data & Privacy Policy</h2></div>
+            <div class="flex-1 overflow-y-auto"><iframe src="/privacy_policy" class="w-full h-full border-none"></iframe></div>
+        </div>
+    </div>
 
     <script src="/static/script.js"></script>
 </body>
