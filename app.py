@@ -416,3 +416,21 @@ def service_worker(): return send_from_directory('static', 'sw.js', mimetype='ap
 def manifest(): return send_from_directory('static', 'manifest.json', mimetype='application/json')
 
 if __name__ == '__main__': app.run(debug=True, port=5000)
+
+# --- ADD THIS NEW ROUTE ---
+@app.route('/api/update_profile', methods=['POST'])
+def update_profile():
+    if 'user_id' not in session: return jsonify({"status": "error", "message": "Auth required"}), 401
+    try:
+        data = request.json
+        updates = {}
+        
+        if 'first_name' in data: updates['first_name'] = data['first_name']
+        if 'last_name' in data: updates['last_name'] = data['last_name']
+        if 'aura_color' in data: updates['aura_color'] = data['aura_color']
+        
+        if updates:
+            users_col.update_one({"user_id": session['user_id']}, {"$set": updates})
+            return jsonify({"status": "success"})
+        return jsonify({"status": "error", "message": "No changes detected"})
+    except Exception as e: return jsonify({"status": "error", "message": str(e)})
