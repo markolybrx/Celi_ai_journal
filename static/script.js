@@ -2,7 +2,7 @@ const SQ_MAP = { "mother_maiden": "What is your mother's maiden name?", "first_p
 let isProcessing = false; let currentCalendarDate = new Date(); let fullChatHistory = {}; let userHistoryDates = []; let currentMode = 'journal'; let activeMediaFile = null; let activeAudioFile = null; let globalRankTree = null; let currentLockIcon = '';
 const STAR_SVG = `<svg class="star-point" viewBox="0 0 24 24"><path d="M12 2l2.4 7.2h7.6l-6 4.8 2.4 7.2-6-4.8-6 4.8 2.4-7.2-6-4.8h7.6z"/></svg>`;
 
-// --- SVG ICONS ---
+// --- ICONS ---
 const ICON_SUCCESS = `<svg class="w-10 h-10 text-green-500 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>`;
 const ICON_ERROR = `<svg class="w-10 h-10 text-red-500 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>`;
 const ICON_SPEAK = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>`;
@@ -20,9 +20,6 @@ function toggleTheme() {
         btn.innerText = "Light";
         localStorage.setItem('theme', 'light');
     }
-    if(typeof galaxyData !== 'undefined' && isGalaxyActive) {
-        galaxyData.forEach(d => { if(d.color !== '#ef4444') d.color = (html.getAttribute('data-theme') === 'light' ? '#000' : '#fff'); });
-    }
 }
 const savedTheme = localStorage.getItem('theme');
 if(savedTheme === 'light') { document.documentElement.setAttribute('data-theme', 'light'); }
@@ -35,9 +32,29 @@ const SonicAtmosphere = {
     stop: function() { this.nodes.forEach(n => n.stop()); this.nodes = []; } 
 };
 
-const canvas = document.getElementById('starfield'); const ctx = canvas.getContext('2d'); let stars = []; let animationFrameId; let isGalaxyActive = false; let galaxyData = [];
+// --- GALAXY ENGINE (DUAL LAYER V9.5) ---
+const canvas = document.getElementById('starfield'); const ctx = canvas.getContext('2d'); 
+let animationFrameId; let isGalaxyActive = false; 
+let galaxyData = []; 
+let ambientStars = []; 
+
 function resizeStars() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; } window.addEventListener('resize', resizeStars); resizeStars();
+
+function initAmbientStars() {
+    ambientStars = [];
+    for(let i=0; i<200; i++) {
+        ambientStars.push({
+            x: Math.random() * canvas.width,
+            y: Math.random() * canvas.height,
+            r: Math.random() * 1.2,
+            opacity: Math.random() * 0.4 + 0.1,
+            speed: Math.random() * 0.05 + 0.02
+        });
+    }
+}
+
 canvas.addEventListener('click', (e) => { if(!isGalaxyActive) return; const rect = canvas.getBoundingClientRect(); const x = e.clientX - rect.left; const y = e.clientY - rect.top; galaxyData.forEach(star => { if(Math.hypot(x-star.x, y-star.y) < 20) openArchive(star.id); }); });
+
 async function toggleGalaxy() { 
     const btn = document.getElementById('galaxy-btn'); 
     isGalaxyActive = !isGalaxyActive; 
@@ -48,14 +65,15 @@ async function toggleGalaxy() {
         document.body.classList.add('galaxy-mode'); 
         SonicAtmosphere.playMode('galaxy'); 
         
+        initAmbientStars();
         const res = await fetch('/api/galaxy_map'); 
         const data = await res.json(); 
         galaxyData = data.map(d => ({ 
             ...d, 
             x: Math.random() * (canvas.width - 40) + 20, 
             y: Math.random() * (canvas.height - 40) + 20, 
-            r: d.type === 'void' ? 2 : 4, 
-            color: d.type === 'void' ? '#ef4444' : (document.documentElement.getAttribute('data-theme') === 'light' ? '#000' : '#fff'), 
+            r: d.type === 'void' ? 3 : 5, 
+            color: d.type === 'void' ? '#ef4444' : '#ffffff', 
             vx: (Math.random() - 0.5) * 0.2, 
             vy: (Math.random() - 0.5) * 0.2 
         })); 
@@ -66,9 +84,45 @@ async function toggleGalaxy() {
         document.body.classList.remove('galaxy-mode'); 
         SonicAtmosphere.playMode('journal'); 
         cancelAnimationFrame(animationFrameId); 
+        ctx.clearRect(0,0,canvas.width,canvas.height); 
     } 
 }
-function animateStars() { if(!isGalaxyActive) return; ctx.clearRect(0,0,canvas.width,canvas.height); galaxyData.forEach(star => { star.x += star.vx; star.y += star.vy; if(star.x < 0 || star.x > canvas.width) star.vx *= -1; if(star.y < 0 || star.y > canvas.height) star.vy *= -1; if (star.type === 'void') { galaxyData.forEach(other => { if (other !== star && Math.hypot(star.x - other.x, star.y - other.y) < 150) { other.vx += (star.x - other.x) * 0.0001; other.vy += (star.y - other.y) * 0.0001; } }); } }); ctx.lineWidth = 0.5; ctx.strokeStyle = "rgba(255,255,255,0.15)"; galaxyData.forEach((star, i) => { if (star.x < -10 || star.x > canvas.width + 10 || star.y < -10 || star.y > canvas.height + 10) return; if (galaxyData[i+1] && galaxyData[i+1].group === star.group) { ctx.beginPath(); ctx.moveTo(star.x, star.y); ctx.lineTo(galaxyData[i+1].x, galaxyData[i+1].y); ctx.stroke(); } ctx.beginPath(); ctx.arc(star.x, star.y, star.r, 0, Math.PI*2); ctx.fillStyle = star.color; ctx.shadowBlur = 10; ctx.shadowColor = star.color; ctx.fill(); if (star.constellation_name) { ctx.font = "10px monospace"; ctx.fillStyle = "rgba(255,255,255,0.5)"; ctx.fillText(star.constellation_name, star.x + 10, star.y); } }); animationFrameId = requestAnimationFrame(animateStars); }
+
+function animateStars() { 
+    if(!isGalaxyActive) return; 
+    ctx.clearRect(0,0,canvas.width,canvas.height); 
+    
+    // Background Layer
+    ctx.fillStyle = "rgba(255, 255, 255, 0.3)"; 
+    ctx.shadowBlur = 0; 
+    ambientStars.forEach(star => {
+        star.y -= star.speed;
+        if(star.y < 0) star.y = canvas.height; 
+        ctx.beginPath(); ctx.arc(star.x, star.y, star.r, 0, Math.PI*2); ctx.fill();
+    });
+
+    // Foreground Layer
+    galaxyData.forEach(star => { 
+        star.x += star.vx; star.y += star.vy; 
+        if(star.x < 0 || star.x > canvas.width) star.vx *= -1; 
+        if(star.y < 0 || star.y > canvas.height) star.vy *= -1; 
+        if (star.type === 'void') { 
+            galaxyData.forEach(other => { if (other !== star && Math.hypot(star.x - other.x, star.y - other.y) < 150) { other.vx += (star.x - other.x) * 0.0001; other.vy += (star.y - other.y) * 0.0001; } }); 
+        } 
+    }); 
+
+    ctx.lineWidth = 0.5; ctx.strokeStyle = "rgba(255,255,255,0.15)"; 
+    galaxyData.forEach((star, i) => { 
+        if (star.x < -10 || star.x > canvas.width + 10 || star.y < -10 || star.y > canvas.height + 10) return; 
+        if (galaxyData[i+1] && galaxyData[i+1].group === star.group) { 
+            ctx.beginPath(); ctx.moveTo(star.x, star.y); ctx.lineTo(galaxyData[i+1].x, galaxyData[i+1].y); ctx.stroke(); 
+        } 
+        ctx.beginPath(); ctx.arc(star.x, star.y, star.r, 0, Math.PI*2); 
+        ctx.fillStyle = star.color; ctx.shadowBlur = 15; ctx.shadowColor = star.color; ctx.fill(); 
+        if (star.constellation_name) { ctx.font = "10px monospace"; ctx.fillStyle = "rgba(255,255,255,0.8)"; ctx.fillText(star.constellation_name, star.x + 10, star.y); } 
+    }); 
+    animationFrameId = requestAnimationFrame(animateStars); 
+}
 
 async function loadData() { 
     try { 
@@ -78,7 +132,13 @@ async function loadData() {
         
         globalRankTree = data.progression_tree; currentLockIcon = data.progression_tree.lock_icon; 
         
-        document.getElementById('greeting-text').innerText = `Good Day, ${data.first_name}!`; 
+        // V9.5: Time-based Greeting
+        const hour = new Date().getHours();
+        let timeGreet = "Good Morning";
+        if(hour >= 12) timeGreet = "Good Afternoon";
+        if(hour >= 18) timeGreet = "Good Evening";
+        
+        document.getElementById('greeting-text').innerText = `${timeGreet}, ${data.first_name}!`; 
         document.getElementById('rank-display').innerText = data.rank; 
         document.getElementById('rank-psyche').innerText = data.rank_psyche; 
         document.getElementById('rank-progress-bar').style.width = `${data.rank_progress}%`; 
@@ -119,7 +179,7 @@ async function confirmUpdateInfo() { const btn = document.getElementById('btn-co
 async function updateSecurity(type) { let body = {}; const btn = type === 'pass' ? document.getElementById('btn-update-pass') : document.getElementById('btn-update-secret'); const originalText = "Update"; btn.innerHTML = '<span class="spinner"></span> Loading...'; btn.disabled = true; if(type === 'pass') { const p1 = document.getElementById('new-pass-input').value; const p2 = document.getElementById('confirm-pass-input').value; if(p1 !== p2) { document.getElementById('new-pass-input').classList.add('input-error'); document.getElementById('confirm-pass-input').classList.add('input-error'); setTimeout(()=>{ document.getElementById('new-pass-input').classList.remove('input-error'); document.getElementById('confirm-pass-input').classList.remove('input-error'); }, 500); btn.innerHTML=originalText; btn.disabled=false; return; } body = { new_password: p1 }; } else { const q = document.getElementById('new-secret-q').value; if(!q) { showStatus(false, "Select a Question"); btn.innerHTML=originalText; btn.disabled=false; return; } body = { new_secret_q: q, new_secret_a: document.getElementById('new-secret-a').value }; } try { const res = await fetch('/api/update_security', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) }); const data = await res.json(); if(data.status === 'success') { closeModal('change-pass-modal'); closeModal('change-secret-modal'); showStatus(true, "Security details updated."); loadData(); } else { showStatus(false, data.message); } } catch(e) { showStatus(false, "Connection Failed"); } btn.innerHTML = originalText; btn.disabled = false; }
 async function performWipe() { const btn = document.querySelector('#delete-confirm-modal button.bg-red-500'); const originalText = btn.innerText; btn.innerText = "Deleting..."; btn.disabled = true; try { const res = await fetch('/api/clear_history', { method: 'POST' }); const data = await res.json(); if (data.status === 'success') { window.location.href = '/login'; } else { alert("Error: " + data.message); btn.innerText = originalText; btn.disabled = false; } } catch (e) { alert("Connection failed."); btn.innerText = originalText; btn.disabled = false; } }
 
-// --- RANK ACCORDION TREE (V9.4) ---
+// --- RANK MODAL LOGIC (V9.5: Fixed Header & Accordions) ---
 function openRanksModal() { 
     if (!globalRankTree) return; 
     
@@ -131,23 +191,26 @@ function openRanksModal() {
     modal.style.display = 'flex'; 
     setTimeout(() => modal.classList.add('active'), 10); 
     
-    // Header Data
+    // 1. Populate Fixed Header
     document.getElementById('modal-rank-icon').innerHTML = document.getElementById('main-rank-icon').innerHTML; 
     document.getElementById('modal-rank-name').innerText = document.getElementById('rank-display').innerText; 
-    document.getElementById('modal-stars').innerHTML = getStarsHTML(document.getElementById('rank-display').innerText); 
+    
+    // NEW: Pinned Psyche & Synthesis in Header
+    const currentPsyche = document.getElementById('rank-psyche').innerText;
+    document.getElementById('modal-psyche-display').innerText = currentPsyche;
+    document.getElementById('modal-synth-text').innerText = `"${currentPsyche}" - Exploring the depths of consciousness.`; // Placeholder synthesis text
+    
     document.getElementById('modal-progress-bar').style.width = document.getElementById('rank-progress-bar').style.width; 
     document.getElementById('modal-sd-text').innerText = document.getElementById('stardust-cnt').innerText; 
     
-    const currentPsyche = document.getElementById('rank-psyche').innerText;
     const currentRankTitle = document.getElementById('rank-display').innerText;
-    
-    // 1. Group Ranks by Main Name (e.g. "Observer I" -> "Observer")
-    const groupedRanks = {};
     const flatList = globalRankTree.ranks;
     const currentFlatIndex = flatList.findIndex(r => r.title === currentRankTitle);
 
+    // 2. Group Ranks for Accordion
+    const groupedRanks = {};
     flatList.forEach((rank, index) => {
-        const mainName = rank.title.split(' ')[0]; // Grab first word
+        const mainName = rank.title.split(' ')[0]; 
         if (!groupedRanks[mainName]) {
             groupedRanks[mainName] = { 
                 name: mainName, 
@@ -155,8 +218,6 @@ function openRanksModal() {
                 isActiveGroup: false 
             };
         }
-        
-        // Check if this specific node is the current user rank
         const isCurrentNode = (index === currentFlatIndex);
         if (isCurrentNode) groupedRanks[mainName].isActiveGroup = true;
 
@@ -168,22 +229,18 @@ function openRanksModal() {
         });
     });
 
-    // 2. Build Accordion
+    // 3. Build Accordion
     Object.values(groupedRanks).forEach(group => {
         const groupEl = document.createElement('div');
-        // If this group contains the current rank, expand it by default
         groupEl.className = `rank-group ${group.isActiveGroup ? 'open active' : ''}`;
         
-        // Header
         const header = document.createElement('div');
         header.className = 'group-header';
         header.innerHTML = `
             <span class="group-title">${group.name}</span>
             <div class="group-icon">${ICON_CHEVRON}</div>
         `;
-        // Toggle Logic
         header.onclick = () => {
-            // Close others (Optional, for accordion style)
             document.querySelectorAll('.rank-group').forEach(el => {
                 if (el !== groupEl) el.classList.remove('open');
             });
@@ -191,30 +248,21 @@ function openRanksModal() {
         };
         groupEl.appendChild(header);
 
-        // Sub-list Container
         const subList = document.createElement('div');
         subList.className = 'rank-sublist';
 
-        // Render Sub-nodes (Reversed to show III at top if preferred, or standard)
-        // Let's keep standard I -> II -> III order for logic
         group.subRanks.forEach(sub => {
             const node = document.createElement('div');
             node.className = `sub-node ${sub.isUnlocked ? 'unlocked' : ''} ${sub.isCurrent ? 'current' : ''}`;
             
             let status = sub.desc;
             if (sub.isCurrent) status = "Current Status";
-            else if (!sub.isUnlocked) status = `Locked`;
-
-            let synthHtml = '';
-            if (sub.isCurrent) {
-                synthHtml = `<div class="tree-synth">${currentPsyche}</div>`;
-            }
+            else if (!sub.isUnlocked) status = "Locked";
 
             node.innerHTML = `
                 <div class="flex-1">
                     <div class="sub-title">${sub.title}</div>
                     <div class="sub-desc">${status}</div>
-                    ${synthHtml}
                 </div>
                 ${sub.isUnlocked ? '<div class="text-[var(--mood)]">✔</div>' : '<div class="opacity-30">🔒</div>'}
             `;
@@ -225,7 +273,6 @@ function openRanksModal() {
         container.appendChild(groupEl);
     });
     
-    // Auto-scroll to active group
     setTimeout(() => { 
         const active = container.querySelector('.rank-group.active'); 
         if(active) active.scrollIntoView({behavior: 'smooth', block: 'center'}); 
