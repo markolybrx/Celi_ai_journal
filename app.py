@@ -387,8 +387,27 @@ def process():
 
 @app.route('/api/clear_history', methods=['POST'])
 def clear_history():
-    if 'user_id' in session: history_col.delete_many({"user_id": session['user_id']})
-    return jsonify({"status": "success"})
+    if 'user_id' not in session: 
+        return jsonify({"status": "error", "message": "No active session"}), 401
+    
+    try:
+        user_id = session['user_id']
+        
+        # 1. Delete all journal entries (History)
+        history_col.delete_many({"user_id": user_id})
+        
+        # 2. Delete the User Account (Profile)
+        users_col.delete_one({"user_id": user_id})
+        
+        # 3. Kill the Session (Log out)
+        session.clear()
+        
+        return jsonify({"status": "success"})
+        
+    except Exception as e:
+        print(f"Wipe Error: {e}")
+        return jsonify({"status": "error", "message": str(e)}), 500
+
 
 @app.route('/sw.js')
 def service_worker(): return send_from_directory('static', 'sw.js', mimetype='application/javascript')
