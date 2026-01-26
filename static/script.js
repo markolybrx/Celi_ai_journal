@@ -2,7 +2,10 @@ const SQ_MAP = { "mother_maiden": "What is your mother's maiden name?", "first_p
 let isProcessing = false; let currentCalendarDate = new Date(); let fullChatHistory = {}; let userHistoryDates = []; let currentMode = 'journal'; let activeMediaFile = null; let activeAudioFile = null; let globalRankTree = null; let currentLockIcon = '';
 const STAR_SVG = `<svg class="star-point" viewBox="0 0 24 24"><path d="M12 2l2.4 7.2h7.6l-6 4.8 2.4 7.2-6-4.8-6 4.8 2.4-7.2-6-4.8h7.6z"/></svg>`;
 
-// --- THEME ENGINE ---
+// --- SVG ICONS (NO EMOJIS) ---
+const ICON_SUCCESS = `<svg class="w-10 h-10 text-green-500 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>`;
+const ICON_ERROR = `<svg class="w-10 h-10 text-red-500 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>`;
+
 function toggleTheme() {
     const html = document.documentElement;
     const btn = document.getElementById('theme-btn');
@@ -15,7 +18,6 @@ function toggleTheme() {
         btn.innerText = "Light";
         localStorage.setItem('theme', 'light');
     }
-    // Force redraw for canvas color updates if needed
     if(typeof galaxyData !== 'undefined') {
         galaxyData.forEach(d => { if(d.color !== '#ef4444') d.color = (html.getAttribute('data-theme') === 'light' ? '#000' : '#fff'); });
     }
@@ -38,14 +40,19 @@ async function toggleGalaxy() { const btn = document.getElementById('galaxy-btn'
 function animateStars() { if(!isGalaxyActive) return; ctx.clearRect(0,0,canvas.width,canvas.height); galaxyData.forEach(star => { star.x += star.vx; star.y += star.vy; if(star.x < 0 || star.x > canvas.width) star.vx *= -1; if(star.y < 0 || star.y > canvas.height) star.vy *= -1; if (star.type === 'void') { galaxyData.forEach(other => { if (other !== star && Math.hypot(star.x - other.x, star.y - other.y) < 150) { other.vx += (star.x - other.x) * 0.0001; other.vy += (star.y - other.y) * 0.0001; } }); } }); ctx.lineWidth = 0.5; ctx.strokeStyle = "rgba(255,255,255,0.15)"; galaxyData.forEach((star, i) => { if (star.x < -10 || star.x > canvas.width + 10 || star.y < -10 || star.y > canvas.height + 10) return; if (galaxyData[i+1] && galaxyData[i+1].group === star.group) { ctx.beginPath(); ctx.moveTo(star.x, star.y); ctx.lineTo(galaxyData[i+1].x, galaxyData[i+1].y); ctx.stroke(); } ctx.beginPath(); ctx.arc(star.x, star.y, star.r, 0, Math.PI*2); ctx.fillStyle = star.color; ctx.shadowBlur = 10; ctx.shadowColor = star.color; ctx.fill(); if (star.constellation_name) { ctx.font = "10px monospace"; ctx.fillStyle = "rgba(255,255,255,0.5)"; ctx.fillText(star.constellation_name, star.x + 10, star.y); } }); animationFrameId = requestAnimationFrame(animateStars); }
 
 async function loadData() { try { const res = await fetch('/api/data'); if(!res.ok) return; const data = await res.json(); if(data.status === 'guest') { window.location.href='/login'; return; } globalRankTree = data.progression_tree; currentLockIcon = data.progression_tree.lock_icon; document.getElementById('greeting-text').innerText = `Good Day, ${data.first_name}`; document.getElementById('rank-display').innerText = data.rank; document.getElementById('rank-psyche').innerText = data.rank_psyche; document.getElementById('rank-progress-bar').style.width = `${data.rank_progress}%`; document.getElementById('stardust-cnt').innerText = `${data.stardust_current}/${data.stardust_max} SD`; document.getElementById('pfp-img').src = data.profile_pic || ''; document.documentElement.style.setProperty('--mood', data.current_color); document.getElementById('main-rank-icon').innerHTML = data.current_svg; document.getElementById('profile-pfp-large').src = data.profile_pic || ''; document.getElementById('profile-fullname').innerText = `${data.first_name} ${data.last_name}`; document.getElementById('profile-id').innerText = data.username; document.getElementById('profile-color-text').innerText = data.aura_color; document.getElementById('profile-color-dot').style.backgroundColor = data.aura_color; document.getElementById('profile-secret-q').innerText = SQ_MAP[data.secret_question] || data.secret_question;
-// PRE-FILL EDIT MODAL
 document.getElementById('edit-fname').value = data.first_name; document.getElementById('edit-lname').value = data.last_name; document.getElementById('edit-color').value = data.aura_color; document.getElementById('edit-uid-display').innerText = data.username;
-// CHECK THEME BTN STATE
 document.getElementById('theme-btn').innerText = document.documentElement.getAttribute('data-theme') === 'light' ? 'Light' : 'Dark';
 if(data.history) fullChatHistory = data.history; userHistoryDates = Object.values(data.history).map(e=>e.date); renderCalendar(); } catch(e) { console.error(e); } }
 
 async function handlePfpUpload() { const input = document.getElementById('pfp-upload-input'); if(input.files && input.files[0]) { const formData = new FormData(); formData.append('pfp', input.files[0]); const res = await fetch('/api/update_pfp', { method: 'POST', body: formData }); const data = await res.json(); if(data.status === 'success') { document.getElementById('pfp-img').src = data.url; document.getElementById('profile-pfp-large').src = data.url; } } }
-function showStatus(success, msg) { document.getElementById('status-icon').innerText = success ? "✅" : "⚠️"; document.getElementById('status-title').innerText = success ? "Success" : "Error"; document.getElementById('status-msg').innerText = msg; openModal('status-modal'); }
+
+// UPDATED STATUS FUNCTION (SVG)
+function showStatus(success, msg) {
+    document.getElementById('status-icon').innerHTML = success ? ICON_SUCCESS : ICON_ERROR; // Use InnerHTML for SVG
+    document.getElementById('status-title').innerText = success ? "Success" : "Error";
+    document.getElementById('status-msg').innerText = msg;
+    openModal('status-modal');
+}
 
 function askUpdateInfo() { openModal('info-confirm-modal'); }
 
@@ -83,5 +90,4 @@ function spawnStardust() { const s=document.getElementById('nav-pfp').getBoundin
 function renderCalendar() { const g=document.getElementById('cal-grid'); g.innerHTML=''; const m=currentCalendarDate.getMonth(); const y=currentCalendarDate.getFullYear(); document.getElementById('cal-month-year').innerText=new Date(y,m).toLocaleString('default',{month:'long',year:'numeric'}); ["S","M","T","W","T","F","S"].forEach(d=>g.innerHTML+=`<div>${d}</div>`); const days=new Date(y,m+1,0).getDate(); const f=new Date(y,m,1).getDay(); for(let i=0;i<f;i++)g.innerHTML+=`<div></div>`; for(let i=1;i<=days;i++){ const d=document.createElement('div'); d.className='cal-day'; d.innerText=i; if(userHistoryDates.includes(`${y}-${String(m+1).padStart(2,'0')}-${String(i).padStart(2,'0')}`)) d.classList.add('has-entry'); g.appendChild(d); } }
 function changeMonth(d) { currentCalendarDate.setMonth(currentCalendarDate.getMonth()+d); renderCalendar(); }
 function renderChatHistory(h) { const c = document.getElementById('chat-history'); c.innerHTML=''; Object.keys(h).sort().slice(-50).forEach(k => { appendMsg(h[k].summary||"Entry", 'user'); appendMsg(h[k].reply, 'ai'); }); }
-async function clearMemory() { openModal('delete-confirm-modal'); }
 window.onload = loadData;
