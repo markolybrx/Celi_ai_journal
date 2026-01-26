@@ -81,7 +81,7 @@ async function loadData() {
         document.getElementById('rank-display').innerText = data.rank; 
         document.getElementById('rank-psyche').innerText = data.rank_psyche; 
         document.getElementById('rank-progress-bar').style.width = `${data.rank_progress}%`; 
-        document.getElementById('stardust-cnt').innerText = `${data.stardust_current}/${data.stardust_max} SD`; 
+        document.getElementById('stardust-cnt').innerText = `${data.stardust_current}/${data.stardust_max} Stardust`; 
         
         document.getElementById('pfp-img').src = data.profile_pic || ''; 
         
@@ -97,7 +97,6 @@ async function loadData() {
         // --- AURA DOT FALLBACK ---
         const dot = document.getElementById('profile-color-dot');
         dot.style.backgroundColor = data.aura_color;
-        // If the color isn't valid, it shows as empty. Fallback to rank color.
         if (!data.aura_color || dot.style.backgroundColor === '') {
              dot.style.backgroundColor = data.current_color;
         }
@@ -146,7 +145,7 @@ async function confirmUpdateInfo() {
 async function updateSecurity(type) { let body = {}; const btn = type === 'pass' ? document.getElementById('btn-update-pass') : document.getElementById('btn-update-secret'); const originalText = "Update"; btn.innerHTML = '<span class="spinner"></span> Loading...'; btn.disabled = true; if(type === 'pass') { const p1 = document.getElementById('new-pass-input').value; const p2 = document.getElementById('confirm-pass-input').value; if(p1 !== p2) { document.getElementById('new-pass-input').classList.add('input-error'); document.getElementById('confirm-pass-input').classList.add('input-error'); setTimeout(()=>{ document.getElementById('new-pass-input').classList.remove('input-error'); document.getElementById('confirm-pass-input').classList.remove('input-error'); }, 500); btn.innerHTML=originalText; btn.disabled=false; return; } body = { new_password: p1 }; } else { const q = document.getElementById('new-secret-q').value; if(!q) { showStatus(false, "Select a Question"); btn.innerHTML=originalText; btn.disabled=false; return; } body = { new_secret_q: q, new_secret_a: document.getElementById('new-secret-a').value }; } try { const res = await fetch('/api/update_security', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) }); const data = await res.json(); if(data.status === 'success') { closeModal('change-pass-modal'); closeModal('change-secret-modal'); showStatus(true, "Security details updated."); loadData(); } else { showStatus(false, data.message); } } catch(e) { showStatus(false, "Connection Failed"); } btn.innerHTML = originalText; btn.disabled = false; }
 async function performWipe() { const btn = document.querySelector('#delete-confirm-modal button.bg-red-500'); const originalText = btn.innerText; btn.innerText = "Deleting..."; btn.disabled = true; try { const res = await fetch('/api/clear_history', { method: 'POST' }); const data = await res.json(); if (data.status === 'success') { window.location.href = '/login'; } else { alert("Error: " + data.message); btn.innerText = originalText; btn.disabled = false; } } catch (e) { alert("Connection failed."); btn.innerText = originalText; btn.disabled = false; } }
 
-// --- RANK TREE LOGIC (V9.1) ---
+// --- RANK TREE LOGIC (V9.2 FIX) ---
 function openRanksModal() { 
     if (!globalRankTree) return; 
     
@@ -184,7 +183,7 @@ function openRanksModal() {
         
         let iconHtml = isUnlocked ? rank.svg : currentLockIcon; 
         let statusText = rank.desc; 
-        if(isNext) statusText = `Next Goal: ${rank.req} SD`; 
+        if(isNext) statusText = `Next Goal: ${rank.req} Stardust`; 
         if(index > currentIndex + 1) statusText = "Locked"; 
         if(isCurrent) statusText = "Current Status";
 
@@ -289,7 +288,10 @@ function openArchive(id) { const modal = document.getElementById('archive-modal'
 function openChat(mode) { currentMode = mode; SonicAtmosphere.playMode(mode); document.getElementById('chat-overlay').classList.add('active'); const w = document.getElementById('chat-modal-window'); w.className = `chat-window origin-${mode === 'rant' ? 'void' : 'ai'}`; document.getElementById('chat-header-title').innerText = mode === 'rant' ? "THE VOID" : "CELI AI"; renderChatHistory(fullChatHistory); }
 function closeChat() { document.getElementById('chat-overlay').classList.remove('active'); SonicAtmosphere.playMode('journal'); }
 function openModal(id) { document.getElementById(id).style.display='flex'; }
-function closeModal(id) { document.getElementById(id).style.display='none'; }
+function closeModal(id) { 
+    document.getElementById(id).classList.remove('active'); 
+    document.getElementById(id).style.display='none'; 
+}
 function closeArchive() { document.getElementById('archive-modal').classList.remove('active'); document.getElementById('archive-audio').pause(); }
 function spawnStardust() { const s=document.getElementById('nav-pfp').getBoundingClientRect(); const t=document.getElementById('rank-progress-bar').getBoundingClientRect(); const pfp=document.getElementById('nav-pfp'); pfp.classList.remove('pulse-anim'); void pfp.offsetWidth; pfp.classList.add('pulse-anim'); for(let i=0;i<8;i++){ setTimeout(()=>{ const p=document.createElement('div'); p.className='stardust-particle'; p.style.left=(s.left+s.width/2)+'px'; p.style.top=(s.top+s.height/2)+'px'; document.body.appendChild(p); const tx=t.left+Math.random()*t.width; const ty=t.top+t.height/2; p.animate([{transform:'translate(0,0) scale(1)',opacity:1},{transform:`translate(${tx-parseFloat(p.style.left)}px, ${ty-parseFloat(p.style.top)}px) scale(0.5)`,opacity:0}],{duration:800+Math.random()*400,easing:'cubic-bezier(0.25,1,0.5,1)'}).onfinish=()=>p.remove(); },i*100); } }
 function renderCalendar() { const g=document.getElementById('cal-grid'); g.innerHTML=''; const m=currentCalendarDate.getMonth(); const y=currentCalendarDate.getFullYear(); document.getElementById('cal-month-year').innerText=new Date(y,m).toLocaleString('default',{month:'long',year:'numeric'}); ["S","M","T","W","T","F","S"].forEach(d=>g.innerHTML+=`<div>${d}</div>`); const days=new Date(y,m+1,0).getDate(); const f=new Date(y,m,1).getDay(); for(let i=0;i<f;i++)g.innerHTML+=`<div></div>`; for(let i=1;i<=days;i++){ const d=document.createElement('div'); d.className='cal-day'; d.innerText=i; if(userHistoryDates.includes(`${y}-${String(m+1).padStart(2,'0')}-${String(i).padStart(2,'0')}`)) d.classList.add('has-entry'); g.appendChild(d); } }
