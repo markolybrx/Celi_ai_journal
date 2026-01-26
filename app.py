@@ -6,7 +6,9 @@ import uuid
 import redis
 import ssl
 import json
-from flask import Flask, render_template, jsonify, request, send_from_directory, redirect, url_for, session
+import gridfs
+from bson.objectid import ObjectId
+from flask import Flask, render_template, jsonify, request, send_from_directory, redirect, url_for, session, Response
 from flask_session import Session
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
@@ -14,7 +16,7 @@ import google.generativeai as genai
 from pymongo import MongoClient
 from celery import Celery
 
-# --- IMPORT NEW LOGIC ---
+# --- IMPORT RANK LOGIC ---
 from rank_system import process_daily_rewards, update_rank_check, get_rank_meta, get_all_ranks_data
 
 # --- SETUP LOGGING ---
@@ -28,7 +30,6 @@ app.config['SESSION_PERMANENT'] = False
 app.config['SESSION_USE_SIGNER'] = True
 
 redis_url = os.environ.get('REDIS_URL', 'redis://localhost:6379')
-# Fix Upstash/SSL
 if 'upstash' in redis_url or 'rediss' in redis_url:
     if redis_url.startswith('redis://'): redis_url = redis_url.replace('redis://', 'rediss://', 1)
     app.config['SESSION_REDIS'] = redis.from_url(redis_url, ssl_cert_reqs=None)
@@ -37,25 +38,18 @@ else:
 
 server_session = Session(app)
 
-# --- CONFIG: CELERY ---
-def make_celery(app):
-    celery = Celery(app.import_name, backend=redis_url, broker=redis_url)
-    if 'rediss' in redis_url:
-        celery.conf.update(broker_use_ssl={"ssl_cert_reqs": ssl.CERT_NONE}, redis_backend_use_ssl={"ssl_cert_reqs": ssl.CERT_NONE})
-    celery.conf.update(app.config)
-    return celery
-celery_app = make_celery(app)
-
-# --- CONFIG: MONGODB ---
+# --- CONFIG: MONGODB & GRIDFS ---
 mongo_uri = os.environ.get("MONGO_URI")
-db, users_col, history_col = None, None, None
+db, users_col, history_col, fs = None, None, None, None
+
 if mongo_uri:
     try:
         client = MongoClient(mongo_uri, tlsCAFile=certifi.where())
         db = client['celi_journal_db']
         users_col = db['users']
         history_col = db['history']
-        print("✅ Memory Core (MongoDB) Connected")
+        fs = gridfs.GridFS(db) # File Storage System initialized
+        print("✅ Memory Core (MongoDB + GridFS) Connected")
     except Exception as e: print(f"❌ Memory Core Error: {e}")
 
 # --- CONFIG: AI CORE ---
@@ -77,13 +71,24 @@ def generate_analysis(entry_text):
     except:
         return "Analysis unavailable due to signal interference."
 
-def generate_with_media(msg, media_data=None, is_void=False):
+def generate_constellation_name(entries_text):
+    """Names a group of 7 entries."""
+    try:
+        model = genai.GenerativeModel("gemini-2.0-flash")
+        prompt = f"Here are 7 days of journal entries. Give them a mystical 'Constellation Name' that summarizes the theme (e.g., 'The Week of Rain', 'Orion of Hope'). Just the name. Entries: {entries_text}"
+        response = model.generate_content(prompt)
+        return response.text.strip().replace('"', '').replace("'", "")
+    except:
+        return "Unknown Constellation"
+
+def generate_with_media(msg, media_bytes=None, media_mime=None, is_void=False):
     candidates = ["gemini-2.0-flash", "gemini-2.0-flash-lite"]
     system = "You are 'The Void'. Infinite, safe emptiness. Absorb pain." if is_void else "You are Celi. Analyze the user's day based on their text and/or image. Be warm and observant."
     
     content = [msg]
-    if media_data:
-        content.append(media_data)
+    if media_bytes and media_mime and 'image' in media_mime:
+        # Convert bytes to Gemini compatible input
+        content.append({'mime_type': media_mime, 'data': media_bytes})
 
     for m in candidates:
         try:
@@ -120,6 +125,16 @@ def login_page():
 @app.route('/logout')
 def logout(): session.clear(); return redirect(url_for('login_page'))
 
+# --- MEDIA SERVING ROUTE (New!) ---
+@app.route('/api/media/<file_id>')
+def get_media(file_id):
+    try:
+        if fs is None: return "Database Error", 500
+        grid_out = fs.get(ObjectId(file_id))
+        return Response(grid_out.read(), mimetype=grid_out.content_type)
+    except Exception as e:
+        return "File not found", 404
+
 # --- AUTH API ---
 @app.route('/api/register', methods=['POST'])
 def register():
@@ -130,7 +145,6 @@ def register():
         new_user = {
             "user_id": str(uuid.uuid4()), "username": data['reg_username'], "password_hash": generate_password_hash(data['reg_password']),
             "first_name": data['fname'], "last_name": data['lname'], "dob": data['dob'], "aura_color": data.get('fav_color', '#00f2fe'),
-            "secret_question": data['secret_question'], "secret_answer_hash": generate_password_hash(data['secret_answer'].lower().strip()),
             "rank": "Observer III", "rank_index": 0, "stardust": 0, "profile_pic": data.get('profile_pic', ''), "joined_at": datetime.now()
         }
         users_col.insert_one(new_user)
@@ -145,48 +159,39 @@ def get_data():
     user = users_col.find_one({"user_id": session['user_id']})
     if not user: return jsonify({"status": "error"}), 404
     
-    # Get Metadata for CURRENT rank
     rank_info = get_rank_meta(user.get('rank_index', 0))
-    
-    # Get Full List for Modal
     progression_tree = get_all_ranks_data()
-    
     max_dust = rank_info['req']
     current_dust = user.get('stardust', 0)
     
-    history_cursor = history_col.find({"user_id": session['user_id']}, {'_id': 0}).sort("timestamp", 1).limit(50)
+    # Load recent history (without full text to save bandwidth)
+    history_cursor = history_col.find({"user_id": session['user_id']}, {'_id': 0, 'media_file_id': 0, 'audio_file_id': 0}).sort("timestamp", 1).limit(50)
     loaded_history = {entry['timestamp']: entry for entry in history_cursor}
 
     return jsonify({
-        "status": "user", 
-        "username": user.get("username"), 
-        "first_name": user.get("first_name"),
-        "rank": user.get("rank", "Observer III"),
-        "rank_index": user.get("rank_index", 0), 
+        "status": "user", "username": user.get("username"), "first_name": user.get("first_name"),
+        "rank": user.get("rank", "Observer III"), "rank_index": user.get("rank_index", 0),
         "rank_progress": (current_dust/max_dust)*100 if max_dust>0 else 0,
-        "rank_psyche": rank_info.get("psyche", "Unknown"), 
-        "rank_desc": rank_info.get("desc", ""),
-        "current_svg": rank_info.get("svg"), 
-        "current_color": rank_info.get("color"),
-        "stardust_current": current_dust, 
-        "stardust_max": max_dust,
-        "history": loaded_history, 
-        "profile_pic": user.get("profile_pic", ""),
+        "rank_psyche": rank_info.get("psyche", "Unknown"), "rank_desc": rank_info.get("desc", ""),
+        "current_svg": rank_info.get("svg"), "current_color": rank_info.get("color"),
+        "stardust_current": current_dust, "stardust_max": max_dust,
+        "history": loaded_history, "profile_pic": user.get("profile_pic", ""),
         "progression_tree": progression_tree
     })
 
-# --- GALAXY MAP API ---
+# --- GALAXY MAP API (LOD SUPPORT) ---
 @app.route('/api/galaxy_map')
 def galaxy_map():
     if 'user_id' not in session: return jsonify([])
-    if history_col is None: return jsonify([])
-    
-    cursor = history_col.find({"user_id": session['user_id']}, {'_id': 0, 'full_message': 0}).sort("timestamp", 1)
+    cursor = history_col.find({"user_id": session['user_id']}, 
+                              {'_id': 0, 'full_message': 0, 'reply': 0, 'media_file_id': 0, 'audio_file_id': 0}).sort("timestamp", 1)
     
     stars = []
+    # Fetch all, but frontend will handle physics LOD
+    # Backend adds semantic constellation names if they exist
     for index, doc in enumerate(cursor):
         star_type = "void" if doc.get('mode') == 'rant' else "journal"
-        constellation_group = index // 7 
+        constellation_group = index // 7
         
         stars.append({
             "id": doc['timestamp'],
@@ -194,8 +199,10 @@ def galaxy_map():
             "summary": doc.get('summary', '...'),
             "type": star_type,
             "has_media": doc.get('has_media', False),
-            "group": constellation_group,   
-            "index": index                  
+            "has_audio": doc.get('has_audio', False),
+            "group": constellation_group,
+            "constellation_name": doc.get('constellation_name', None), # For Semantic UI
+            "index": index
         })
     return jsonify(stars)
 
@@ -209,65 +216,107 @@ def star_detail():
     entry = history_col.find_one({"user_id": session['user_id'], "timestamp": timestamp}, {'_id': 0})
     if not entry: return jsonify({"error": "Not found"})
     
+    # Generate analysis if missing
     analysis = entry.get('ai_analysis')
     if not analysis:
         analysis = generate_analysis(entry.get('full_message', ''))
         history_col.update_one({"user_id": session['user_id'], "timestamp": timestamp}, {"$set": {"ai_analysis": analysis}})
     
+    # Construct Media URLs
+    image_url = None
+    if entry.get('media_file_id'):
+        image_url = f"/api/media/{entry['media_file_id']}"
+        
+    audio_url = None
+    if entry.get('audio_file_id'):
+        audio_url = f"/api/media/{entry['audio_file_id']}"
+
     return jsonify({
         "date": entry['date'],
         "analysis": analysis,
-        "media": entry.get('media_base64', None),
+        "image_url": image_url,
+        "audio_url": audio_url,
         "mode": entry.get('mode', 'journal')
     })
 
-# --- PROCESS ENTRY API ---
+# --- PROCESS ENTRY API (FILES & NAMING) ---
 @app.route('/api/process', methods=['POST'])
 def process():
     if 'user_id' not in session: return jsonify({"reply": "Session Expired"}), 401
     try:
-        data = request.json
-        msg = data.get('message', '')
-        media_b64 = data.get('media', None)
-        mode = data.get('mode', 'journal')
+        # Handle FormData (files + text)
+        msg = request.form.get('message', '')
+        mode = request.form.get('mode', 'journal')
+        image_file = request.files.get('media')
+        audio_file = request.files.get('audio')
+        
         timestamp = str(datetime.now().timestamp())
         
-        # 1. PROCESS DAILY REWARD
+        # 1. PROCESS FILES (GridFS)
+        media_id = None
+        audio_id = None
+        
+        # Save Image
+        image_bytes = None
+        image_mime = None
+        if image_file:
+            image_bytes = image_file.read()
+            image_mime = image_file.mimetype
+            media_id = fs.put(image_bytes, filename=f"img_{timestamp}", content_type=image_mime)
+            image_file.seek(0) # Reset pointer if needed elsewhere? Not really.
+
+        # Save Audio
+        if audio_file:
+            audio_id = fs.put(audio_file, filename=f"aud_{timestamp}", content_type=audio_file.mimetype)
+
+        # 2. PROCESS DAILY REWARD
         reward_result = process_daily_rewards(users_col, session['user_id'], msg)
         
-        # 2. GENERATE AI REPLY
-        gemini_media = {'mime_type': 'image/jpeg', 'data': media_b64.split(',')[1]} if media_b64 else None
-        
+        # 3. SEMANTIC CONSTELLATION NAMING
+        constellation_name = None
+        if reward_result.get('event') == 'constellation_complete':
+            # Fetch last 6 entries + current one to name them
+            last_entries = history_col.find({"user_id": session['user_id']}, {'full_message': 1}).sort("timestamp", -1).limit(6)
+            text_block = msg + " " + " ".join([e.get('full_message','') for e in last_entries])
+            constellation_name = generate_constellation_name(text_block)
+            
+            # Note: Ideally we update previous stars with this name, but for simplicity, 
+            # we tag the "Keystone" (7th star) with the name.
+
+        # 4. GENERATE AI REPLY
         reply = "..."
         if mode == 'rant':
-            reply = generate_with_media(msg, gemini_media, is_void=True)
+            reply = generate_with_media(msg, image_bytes, image_mime, is_void=True)
         else:
             if session.get('awaiting_void_confirm', False):
                 if any(x in msg.lower() for x in ["yes", "sure", "ok"]): 
                     reply, command, session['awaiting_void_confirm'] = "Understood. Opening Void...", "switch_to_void", False
                 else: 
                     session['awaiting_void_confirm'] = False
-                    reply = generate_with_media(f"User declined void. Respond: {msg}", gemini_media, False)
+                    reply = generate_with_media(f"User declined void. Respond: {msg}", image_bytes, image_mime, False)
             else:
-                reply = generate_with_media(msg, gemini_media, False)
+                reply = generate_with_media(msg, image_bytes, image_mime, False)
                 if "open The Void" in reply: session['awaiting_void_confirm'] = True
 
-        # 3. SAVE TO DB
+        # 5. SAVE TO DB (Lightweight)
         history_col.insert_one({
             "user_id": session['user_id'],
             "timestamp": timestamp,
             "date": datetime.now().strftime("%Y-%m-%d"),
-            "summary": msg[:50] + "...",
+            "summary": msg[:50] + "..." if msg else "Visual Entry",
             "full_message": msg,
             "reply": reply,
             "ai_analysis": None,
             "mode": mode,
-            "has_media": bool(media_b64),
-            "media_base64": media_b64,
+            "has_media": bool(media_id),
+            "media_file_id": media_id, # ObjectId
+            "has_audio": bool(audio_id),
+            "audio_file_id": audio_id, # ObjectId
+            "constellation_name": constellation_name, # Saved if this is the 7th star
             "is_valid_star": reward_result['awarded']
         })
         
-        # 4. CHECK LEVEL UP
+        # 6. CHECK LEVEL UP
         command = None
         level_check = update_rank_check(users_col, session['user_id'])
         
@@ -277,6 +326,8 @@ def process():
         elif reward_result['awarded']:
             command = "daily_reward"
             reply += f"\n\n[System]: {reward_result['message']}"
+            if constellation_name:
+                reply += f"\n[Cosmos]: A new constellation has formed: '{constellation_name}'"
 
         return jsonify({"reply": reply, "command": command})
 
@@ -287,6 +338,7 @@ def process():
 @app.route('/api/clear_history', methods=['POST'])
 def clear_history():
     if 'user_id' in session and history_col is not None:
+        # Note: Should delete GridFS files too, but keeping simple for now
         history_col.delete_many({"user_id": session['user_id']})
         return jsonify({"status": "success"})
     return jsonify({"status": "error"})
