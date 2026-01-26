@@ -104,3 +104,10 @@ body.galaxy-mode .app-header { transform: translateY(-100%); }
 .bg-theme-card { background-color: var(--card-bg); border-color: var(--border); color: var(--text); }
 .bg-theme-input { background-color: var(--input-bg); border-color: var(--border); color: var(--text); }
 .text-theme-muted { color: var(--text-muted); }
+
+/* DYNAMIC BORDER UTILITIES */
+.border-theme { border: 1px solid var(--border); } /* Full Border */
+.border-t-theme { border-top: 1px solid var(--border); } /* Top Border Only */
+
+/* DYNAMIC BACKGROUND UTILITY (For Dividers) */
+.bg-theme-border { background-color: var(--border); }
