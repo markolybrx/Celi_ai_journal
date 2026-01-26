@@ -15,9 +15,11 @@ function toggleTheme() {
         btn.innerText = "Light";
         localStorage.setItem('theme', 'light');
     }
+    // Force redraw for canvas color updates if needed
+    if(typeof galaxyData !== 'undefined') {
+        galaxyData.forEach(d => { if(d.color !== '#ef4444') d.color = (html.getAttribute('data-theme') === 'light' ? '#000' : '#fff'); });
+    }
 }
-
-// Load saved theme
 const savedTheme = localStorage.getItem('theme');
 if(savedTheme === 'light') { document.documentElement.setAttribute('data-theme', 'light'); }
 
@@ -37,7 +39,7 @@ function animateStars() { if(!isGalaxyActive) return; ctx.clearRect(0,0,canvas.w
 
 async function loadData() { try { const res = await fetch('/api/data'); if(!res.ok) return; const data = await res.json(); if(data.status === 'guest') { window.location.href='/login'; return; } globalRankTree = data.progression_tree; currentLockIcon = data.progression_tree.lock_icon; document.getElementById('greeting-text').innerText = `Good Day, ${data.first_name}`; document.getElementById('rank-display').innerText = data.rank; document.getElementById('rank-psyche').innerText = data.rank_psyche; document.getElementById('rank-progress-bar').style.width = `${data.rank_progress}%`; document.getElementById('stardust-cnt').innerText = `${data.stardust_current}/${data.stardust_max} SD`; document.getElementById('pfp-img').src = data.profile_pic || ''; document.documentElement.style.setProperty('--mood', data.current_color); document.getElementById('main-rank-icon').innerHTML = data.current_svg; document.getElementById('profile-pfp-large').src = data.profile_pic || ''; document.getElementById('profile-fullname').innerText = `${data.first_name} ${data.last_name}`; document.getElementById('profile-id').innerText = data.username; document.getElementById('profile-color-text').innerText = data.aura_color; document.getElementById('profile-color-dot').style.backgroundColor = data.aura_color; document.getElementById('profile-secret-q').innerText = SQ_MAP[data.secret_question] || data.secret_question;
 // PRE-FILL EDIT MODAL
-document.getElementById('edit-fname').value = data.first_name; document.getElementById('edit-lname').value = data.last_name; document.getElementById('edit-color').value = data.aura_color;
+document.getElementById('edit-fname').value = data.first_name; document.getElementById('edit-lname').value = data.last_name; document.getElementById('edit-color').value = data.aura_color; document.getElementById('edit-uid-display').innerText = data.username;
 // CHECK THEME BTN STATE
 document.getElementById('theme-btn').innerText = document.documentElement.getAttribute('data-theme') === 'light' ? 'Light' : 'Dark';
 if(data.history) fullChatHistory = data.history; userHistoryDates = Object.values(data.history).map(e=>e.date); renderCalendar(); } catch(e) { console.error(e); } }
@@ -45,14 +47,19 @@ if(data.history) fullChatHistory = data.history; userHistoryDates = Object.value
 async function handlePfpUpload() { const input = document.getElementById('pfp-upload-input'); if(input.files && input.files[0]) { const formData = new FormData(); formData.append('pfp', input.files[0]); const res = await fetch('/api/update_pfp', { method: 'POST', body: formData }); const data = await res.json(); if(data.status === 'success') { document.getElementById('pfp-img').src = data.url; document.getElementById('profile-pfp-large').src = data.url; } } }
 function showStatus(success, msg) { document.getElementById('status-icon').innerText = success ? "✅" : "⚠️"; document.getElementById('status-title').innerText = success ? "Success" : "Error"; document.getElementById('status-msg').innerText = msg; openModal('status-modal'); }
 
-async function updateInfo() {
-    const btn = document.getElementById('btn-update-info'); const originalText = "Update"; btn.innerHTML = '<span class="spinner"></span> Loading...'; btn.disabled = true;
+function askUpdateInfo() { openModal('info-confirm-modal'); }
+
+async function confirmUpdateInfo() {
+    const btn = document.getElementById('btn-confirm-info'); const originalText = "Confirm"; btn.innerHTML = '<span class="spinner"></span>'; btn.disabled = true;
     const body = { first_name: document.getElementById('edit-fname').value, last_name: document.getElementById('edit-lname').value, aura_color: document.getElementById('edit-color').value };
     try {
         const res = await fetch('/api/update_profile', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) });
         const data = await res.json();
-        if(data.status === 'success') { closeModal('edit-info-modal'); showStatus(true, "Profile Updated"); loadData(); }
-        else { showStatus(false, data.message); }
+        if(data.status === 'success') { 
+            closeModal('info-confirm-modal'); closeModal('edit-info-modal'); 
+            showStatus(true, "Profile Updated"); 
+            loadData(); 
+        } else { showStatus(false, data.message); }
     } catch(e) { showStatus(false, "Connection Failed"); }
     btn.innerHTML = originalText; btn.disabled = false;
 }
@@ -76,4 +83,5 @@ function spawnStardust() { const s=document.getElementById('nav-pfp').getBoundin
 function renderCalendar() { const g=document.getElementById('cal-grid'); g.innerHTML=''; const m=currentCalendarDate.getMonth(); const y=currentCalendarDate.getFullYear(); document.getElementById('cal-month-year').innerText=new Date(y,m).toLocaleString('default',{month:'long',year:'numeric'}); ["S","M","T","W","T","F","S"].forEach(d=>g.innerHTML+=`<div>${d}</div>`); const days=new Date(y,m+1,0).getDate(); const f=new Date(y,m,1).getDay(); for(let i=0;i<f;i++)g.innerHTML+=`<div></div>`; for(let i=1;i<=days;i++){ const d=document.createElement('div'); d.className='cal-day'; d.innerText=i; if(userHistoryDates.includes(`${y}-${String(m+1).padStart(2,'0')}-${String(i).padStart(2,'0')}`)) d.classList.add('has-entry'); g.appendChild(d); } }
 function changeMonth(d) { currentCalendarDate.setMonth(currentCalendarDate.getMonth()+d); renderCalendar(); }
 function renderChatHistory(h) { const c = document.getElementById('chat-history'); c.innerHTML=''; Object.keys(h).sort().slice(-50).forEach(k => { appendMsg(h[k].summary||"Entry", 'user'); appendMsg(h[k].reply, 'ai'); }); }
+async function clearMemory() { openModal('delete-confirm-modal'); }
 window.onload = loadData;
