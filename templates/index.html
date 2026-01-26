@@ -10,98 +10,79 @@
     <style>
         :root { --mood: #00f2fe; --bg: #000; --glass: rgba(20, 20, 25, 0.6); --border: rgba(255, 255, 255, 0.08); }
         
-        /* CORE LAYOUT */
-        html, body { margin: 0; padding: 0; width: 100%; height: 100%; color: #fff; background-color: #000; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; overflow: hidden; position: fixed; }
+        /* LAYOUT & BASICS */
+        html, body { margin: 0; padding: 0; width: 100%; height: 100dvh; color: #fff; background-color: #000; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; overflow: hidden; position: fixed; }
         
-        /* BACKGROUND LAYERS */
+        /* BACKGROUNDS */
         #static-background { position: fixed; inset: 0; z-index: -2; background: var(--bg); transition: opacity 0.8s ease; }
         #starfield { position: fixed; inset: 0; z-index: -1; opacity: 0; transition: opacity 0.8s ease; pointer-events: none; }
         
-        /* GALAXY MODE STATES */
+        /* GALAXY MODE TRANSITIONS */
         body.galaxy-mode #static-background { opacity: 0; }
         body.galaxy-mode #starfield { opacity: 1; pointer-events: auto; }
         
         /* UI COLLAPSE ANIMATION */
-        /* When galaxy active: Main view goes UP, Dock goes DOWN */
         #main-view { position: absolute; top: 60px; bottom: 0; left: 0; right: 0; overflow-y: auto; padding: 15px 20px 120px 20px; z-index: 10; transition: transform 0.8s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.5s; }
         body.galaxy-mode #main-view { transform: translateY(-120vh); opacity: 0; }
         
         #bottom-dock { transition: transform 0.6s cubic-bezier(0.2, 0.8, 0.2, 1); }
         body.galaxy-mode #bottom-dock { transform: translateX(-50%) translateY(150px) !important; }
 
-        /* HEADER */
         .app-header { position: fixed; top: 0; left: 0; width: 100%; height: 60px; background: rgba(10, 10, 15, 0.7); backdrop-filter: blur(20px); border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; padding: 0 20px; z-index: 50; transition: transform 0.5s; }
-        body.galaxy-mode .app-header { transform: translateY(-100%); } /* Hide header too for full immersion */
+        body.galaxy-mode .app-header { transform: translateY(-100%); } 
         
+        /* TEXT STYLES */
         .logo { font-size: 22px; font-weight: 900; letter-spacing: -1px; } .version-tag { font-size: 10px; opacity: 0.5; font-family: monospace; }
+        
+        /* PFP & RANK CARDS */
         .header-pfp { width: 36px; height: 36px; border-radius: 50%; background: #222; overflow: hidden; border: 1px solid rgba(255,255,255,0.3); position: relative; z-index: 100; transition: transform 0.2s; } 
         .header-pfp img { width: 100%; height: 100%; object-fit: cover; }
         .header-pfp.pulse-anim { animation: pfpPulse 0.5s ease-in-out; border-color: var(--mood); box-shadow: 0 0 15px var(--mood); }
         
-        /* RANK CARD */
         .rank-card, .calendar-card { background: var(--glass); border: 1px solid var(--border); border-radius: 20px; padding: 15px; margin-bottom: 15px; backdrop-filter: blur(20px); }
         .rank-card { display: flex; align-items: center; gap: 12px; position: relative; overflow: hidden; cursor: pointer; }
         .rank-icon-container { width: 50px; height: 50px; display: flex; align-items: center; justify-content: center; color: #fff; transition: all 0.5s; z-index: 10; }
         .rank-icon-container svg { width: 100%; height: 100%; filter: drop-shadow(0 0 5px var(--mood)); }
         .progress-bar { height: 3px; background: var(--mood); width: 0%; box-shadow: 0 0 5px var(--mood); transition: width 0.5s ease-out; }
         
-        /* BOTTOM DOCK & BUTTONS */
-        .bottom-dock { 
-            position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); 
-            width: 90%; max-width: 450px; height: 65px; 
-            background: rgba(15, 15, 20, 0.9); backdrop-filter: blur(25px); 
-            border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 35px; 
-            z-index: 30; display: flex; align-items: center; justify-content: space-between; 
-            padding: 0 30px; /* Space for the center gap */
-        }
+        /* BOTTOM DOCK */
+        .bottom-dock { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); width: 90%; max-width: 450px; height: 65px; background: rgba(15, 15, 20, 0.9); backdrop-filter: blur(25px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 35px; z-index: 30; display: flex; align-items: center; justify-content: space-between; padding: 0 30px; }
         .nav-group { display: flex; gap: 25px; width: 40%; justify-content: center; }
         .nav-btn { display: flex; flex-direction: column; align-items: center; color: rgba(255,255,255,0.4); background: none; border: none; gap: 4px; }
         .nav-btn svg { width: 22px; height: 22px; }
         
-        /* GALAXY BUTTON (INDEPENDENT LAYER) */
-        .galaxy-btn-wrapper {
-            position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
-            z-index: 40; /* Above Dock */
-            height: 65px; width: 70px; display: flex; align-items: center; justify-content: center;
-        }
-        
-        .galaxy-btn { 
-            width: 70px; height: 70px; border-radius: 50%; 
-            background: #fff; border: 4px solid #000; 
-            color: #000; display: flex; align-items: center; justify-content: center; 
-            box-shadow: 0 0 20px rgba(255, 255, 255, 0.2); 
-            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            /* Perfect centering adjustment */
-            margin-bottom: 25px; 
-        }
+        /* GALAXY BUTTON */
+        .galaxy-btn-wrapper { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); z-index: 40; height: 65px; width: 70px; display: flex; align-items: center; justify-content: center; }
+        .galaxy-btn { width: 70px; height: 70px; border-radius: 50%; background: #fff; border: 4px solid #000; color: #000; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 20px rgba(255, 255, 255, 0.2); transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); margin-bottom: 25px; }
         .galaxy-btn svg { width: 40px; height: 40px; fill: none; transition: fill 0.3s; }
-        
-        /* Galaxy Active State */
-        .galaxy-btn.galaxy-open { 
-            background-color: #ef4444; border-color: rgba(20,20,20,0.8); 
-            transform: rotate(90deg) scale(1.1); 
-            box-shadow: 0 0 30px rgba(239, 68, 68, 0.6); 
-        }
+        .galaxy-btn.galaxy-open { background-color: #ef4444; border-color: rgba(20,20,20,0.8); transform: rotate(90deg) scale(1.1); box-shadow: 0 0 30px rgba(239, 68, 68, 0.6); }
         .galaxy-btn.galaxy-open svg { stroke: #fff; width: 32px; height: 32px; }
 
-        /* CALENDAR */
+        /* CALENDAR & MISC */
         .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; text-align: center; font-size: 10px; }
         .cal-day { aspect-ratio: 1; display: flex; align-items: center; justify-content: center; border-radius: 6px; color: rgba(255,255,255,0.7); }
         .cal-day.today { background: rgba(255,255,255,0.1); color: #fff; font-weight: 900; }
         .cal-day.has-entry { color: var(--mood); font-weight: bold; }
 
-        /* MODALS & CHAT */
+        /* MODALS */
         .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 2000; display: none; align-items: center; justify-content: center; backdrop-filter: blur(10px); opacity: 0; transition: opacity 0.3s; }
         .modal-overlay.active { display: flex; opacity: 1; }
         .chat-window { width: 90%; max-width: 500px; height: 80vh; background: #111; border: 1px solid var(--border); border-radius: 25px; display: flex; flex-direction: column; overflow: hidden; transform: scale(0); opacity: 0; transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s; }
         .modal-overlay.active .chat-window { transform: scale(1); opacity: 1; margin: 0; }
+        .chat-window.origin-void { transform-origin: bottom left; margin-left: 20px; margin-bottom: 100px; }
+        .chat-window.origin-ai { transform-origin: bottom right; margin-right: 20px; margin-bottom: 100px; }
+        .chat-window.origin-center { transform-origin: center; } 
+        
         .chat-header { height: 60px; padding: 0 20px; display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.02); border-bottom: 1px solid var(--border); }
         .chat-history { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 16px; }
         .msg { max-width: 85%; padding: 14px 18px; border-radius: 20px; font-size: 13.5px; animation: pop 0.4s forwards; }
         .msg-user { align-self: flex-end; background: var(--mood); color: #000; font-weight: 600; }
         .msg-ai { align-self: flex-start; background: rgba(255,255,255,0.08); color: #eee; }
+        
         .input-area { padding: 15px; background: rgba(0,0,0,0.95); border-top: 1px solid var(--border); display: flex; align-items: center; gap: 8px; }
         .chat-input { flex: 1; background: rgba(255,255,255,0.05); border: 1px solid var(--border); border-radius: 25px; padding: 12px 20px; color: #fff; outline: none; }
+        .media-btn { width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; border-radius: 50%; background: rgba(255,255,255,0.1); color: #fff; cursor: pointer; }
+        .media-btn.recording { background: #ef4444; animation: pulse 1s infinite; }
         
         .void-fab { width: 60px; height: 60px; border-radius: 50%; background: #000; display: flex; align-items: center; justify-content: center; animation: voidGlow 3s infinite alternate; }
         .chat-fab { width: 60px; height: 60px; border-radius: 50%; background: linear-gradient(135deg, #f9a8d4, #c084fc); display: flex; align-items: center; justify-content: center; animation: pastelPulse 3s infinite; }
@@ -114,8 +95,6 @@
         .star-rating { display: flex; gap: 2px; justify-content: center; margin-top: 5px; }
         .star-point { width: 10px; height: 10px; fill: var(--mood); filter: drop-shadow(0 0 2px var(--mood)); }
         
-        /* PARTICLES */
-        .stardust-particle { position: fixed; width: 4px; height: 4px; background: #fff; border-radius: 50%; pointer-events: none; z-index: 9999; box-shadow: 0 0 4px #fff; animation: fadeParticle 1s forwards; }
         @keyframes voidGlow { from { box-shadow: 0 0 10px rgba(245, 158, 11, 0.3); } to { box-shadow: 0 0 25px rgba(99, 102, 241, 0.6); } }
         @keyframes pastelPulse { 0% { box-shadow: 0 0 0 0 rgba(192, 132, 252, 0.6); } 100% { box-shadow: 0 0 0 15px rgba(192, 132, 252, 0); } }
         @keyframes pfpPulse { 0% { transform: scale(1); } 50% { transform: scale(1.15); } 100% { transform: scale(1); } }
@@ -130,7 +109,7 @@
     <div id="static-background"></div>
 
     <div class="app-header">
-        <div class="header-left"><div class="logo">Celi</div><div class="version-tag">v5.5.0</div></div>
+        <div class="header-left"><div class="logo">Celi</div><div class="version-tag">v6.0.0</div></div>
         <div class="header-right"><div class="header-pfp" id="nav-pfp" onclick="openModal('profile-modal')"><img id="pfp-img" src=""></div></div>
     </div>
 
@@ -163,8 +142,7 @@
             <button class="nav-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" /></svg></button>
             <button class="nav-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" /></svg></button>
         </div>
-        <div style="width: 70px;"></div>
-        <div class="nav-group">
+        <div style="width: 70px;"></div> <div class="nav-group">
             <button class="nav-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M13 10V3L4 14h7v7l9-11h-7z" /></svg></button>
             <button class="nav-btn" onclick="toggleGalaxy()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="5" cy="5" r="1.5"/><circle cx="19" cy="5" r="1.5"/><circle cx="5" cy="19" r="1.5"/><circle cx="19" cy="19" r="1.5"/><path d="M5 5l14 14M5 19L19 5"/></svg></button>
         </div>
@@ -173,8 +151,21 @@
     <div class="void-container" onclick="openChat('rant')"><div class="void-fab"><svg width="44" height="44" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="11" fill="url(#voidGradient)" /><circle cx="12" cy="12" r="5" fill="black" /><defs><linearGradient id="voidGradient" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#facc15" /><stop offset="40%" stop-color="#f97316" /><stop offset="100%" stop-color="#9333ea" /></linearGradient></defs></svg></div></div>
     <div class="fab-container" onclick="openChat('journal')"><div class="chat-fab"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/></svg></div></div>
 
-    <div id="chat-overlay" class="modal-overlay" onclick="if(event.target.id==='chat-overlay') closeChat()"><div id="chat-modal-window" class="chat-window"><div class="chat-header"><span id="chat-header-title">Celi Neural Link</span><div onclick="closeChat()" class="cursor-pointer">✕</div></div><div id="chat-history" class="chat-history"></div><div class="input-area"><input type="file" id="img-upload" accept="image/*" hidden onchange="handleFileSelect()"><button class="media-btn" onclick="document.getElementById('img-upload').click()"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg></button><button class="media-btn" id="mic-btn" onclick="toggleMic()"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg></button><input type="text" id="chat-input" class="chat-input" placeholder="Signal..." onkeypress="if(event.key==='Enter') sendMessage()"><button onclick="sendMessage()" class="ml-2 text-white">➤</button></div></div></div>
-    
+    <div id="chat-overlay" class="modal-overlay" onclick="if(event.target.id==='chat-overlay') closeChat()">
+        <div id="chat-modal-window" class="chat-window">
+            <div class="chat-header"><span id="chat-header-title">Celi Neural Link</span><div onclick="closeChat()" class="cursor-pointer">✕</div></div>
+            <div id="chat-history" class="chat-history"></div>
+            <div class="input-area">
+                <input type="file" id="img-upload" accept="image/*" hidden onchange="handleFileSelect()">
+                <input type="file" id="audio-upload" accept="audio/*" hidden onchange="handleAudioSelect()">
+                <button class="media-btn" onclick="document.getElementById('img-upload').click()"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg></button>
+                <button class="media-btn" id="mic-btn" onclick="toggleMic()"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg></button>
+                <input type="text" id="chat-input" class="chat-input" placeholder="Signal..." onkeypress="if(event.key==='Enter') sendMessage()">
+                <button onclick="sendMessage()" class="ml-2 text-white">➤</button>
+            </div>
+        </div>
+    </div>
+
     <div id="ranks-modal" class="modal-overlay" onclick="if(event.target.id==='ranks-modal') closeModal('ranks-modal')">
         <div class="bg-[#111] border border-white/10 p-0 rounded-3xl w-full max-w-sm relative max-h-[85vh] flex flex-col overflow-hidden">
             <div class="flex flex-col items-center pt-8 pb-4 px-6 bg-gradient-to-b from-white/5 to-transparent">
@@ -189,16 +180,29 @@
         </div>
     </div>
 
-    <div id="archive-modal" class="modal-overlay"><div class="chat-window origin-center" style="height: 60vh; background: #0a0a0a; border: 1px solid rgba(255,255,255,0.2);"><div class="chat-header"><span id="archive-date" class="font-mono text-xs opacity-50 tracking-widest">ARCHIVE</span><div onclick="closeArchive()" class="cursor-pointer">✕</div></div><div class="p-6 overflow-y-auto flex flex-col gap-4 items-center"><div id="archive-image-container" class="w-full rounded-xl overflow-hidden hidden"><img id="archive-image" class="w-full object-cover"></div><h3 class="text-xs font-bold uppercase tracking-widest text-[var(--mood)] w-full">Soul Synthesis</h3><p id="archive-analysis" class="text-sm italic text-gray-300 leading-relaxed text-center"></p><div class="w-full h-px bg-white/10 my-2"></div><div class="w-full text-[9px] text-center opacity-30 uppercase">Recorded Memory</div></div></div></div>
+    <div id="archive-modal" class="modal-overlay">
+        <div class="chat-window origin-center" style="height: 60vh; background: #0a0a0a; border: 1px solid rgba(255,255,255,0.2);">
+            <div class="chat-header"><span id="archive-date" class="font-mono text-xs opacity-50 tracking-widest">ARCHIVE</span><div onclick="closeArchive()" class="cursor-pointer">✕</div></div>
+            <div class="p-6 overflow-y-auto flex flex-col gap-4 items-center">
+                <div id="archive-image-container" class="w-full rounded-xl overflow-hidden hidden"><img id="archive-image" class="w-full object-cover"></div>
+                <div id="archive-audio-container" class="w-full hidden"><audio id="archive-audio" controls class="w-full"></audio></div>
+                <h3 class="text-xs font-bold uppercase tracking-widest text-[var(--mood)] w-full text-center">Soul Synthesis</h3>
+                <p id="archive-analysis" class="text-sm italic text-gray-300 leading-relaxed text-center"></p>
+                <div class="w-full h-px bg-white/10 my-2"></div>
+                <div class="w-full text-[9px] text-center opacity-30 uppercase">Recorded Memory</div>
+            </div>
+        </div>
+    </div>
+
     <div id="profile-modal" class="fixed inset-0 bg-black/90 z-50 hidden items-center justify-center p-5 backdrop-blur-sm"><div class="bg-[#111] border border-white/10 p-6 rounded-3xl w-full max-w-sm relative"><div class="absolute top-4 right-4 cursor-pointer" onclick="closeModal('profile-modal')">✕</div><div class="flex flex-col items-center"><img id="profile-pfp-large" class="w-20 h-20 rounded-full border border-white/20 mb-4" src=""></div><h2 id="profile-username" class="text-2xl font-bold text-center">User</h2><p id="profile-rank-badge" class="text-center text-[10px] uppercase tracking-widest text-[var(--mood)] mt-1">Observer III</p><div class="bg-white/5 p-4 rounded-xl mt-4 border border-white/5"><h3 class="text-[9px] uppercase tracking-widest text-white/50 mb-2">Psychological State</h3><p id="profile-desc" class="text-xs italic text-gray-300 leading-relaxed"></p></div><button onclick="clearMemory()" class="w-full mt-6 py-3 bg-red-500/10 border border-red-500/30 text-red-400 rounded-xl text-xs font-bold uppercase">Wipe Memory</button><button onclick="window.location.href='/logout'" class="w-full mt-3 py-3 bg-white/5 border border-white/10 text-white/50 rounded-xl text-xs font-bold uppercase">Disconnect</button></div></div>
 
     <script>
-        // GLOBAL STATE
-        let isProcessing = false; let currentCalendarDate = new Date(); let fullChatHistory = {}; let userHistoryDates = []; let currentMode = 'journal'; let activeMedia = null;
+        let isProcessing = false; let currentCalendarDate = new Date(); let fullChatHistory = {}; let userHistoryDates = []; let currentMode = 'journal'; 
+        let activeMediaFile = null; let activeAudioFile = null;
         let globalRankTree = null; let currentLockIcon = '';
         const STAR_SVG = `<svg class="star-point" viewBox="0 0 24 24"><path d="M12 2l2.4 7.2h7.6l-6 4.8 2.4 7.2-6-4.8-6 4.8 2.4-7.2-6-4.8h7.6z"/></svg>`;
 
-        // --- GALAXY ENGINE (Fixed Draw Logic) ---
+        // --- PHYSICS GALAXY ENGINE (LOD + GRAVITY) ---
         const canvas = document.getElementById('starfield');
         const ctx = canvas.getContext('2d');
         let stars = []; let animationFrameId; let isGalaxyActive = false; let galaxyData = [];
@@ -206,7 +210,6 @@
         function resizeStars() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
         window.addEventListener('resize', resizeStars); resizeStars();
 
-        // Starfield Click Handler
         canvas.addEventListener('click', (e) => {
             if(!isGalaxyActive) return;
             const rect = canvas.getBoundingClientRect();
@@ -218,26 +221,24 @@
         async function toggleGalaxy() {
             const btn = document.getElementById('galaxy-btn');
             isGalaxyActive = !isGalaxyActive;
-            
             if (isGalaxyActive) {
-                // ACTIVATE: UI Moves
                 btn.classList.add('galaxy-open'); btn.innerHTML = '✕';
                 document.body.classList.add('galaxy-mode');
+                const res = await fetch('/api/galaxy_map');
+                const data = await res.json();
                 
-                // Fetch Data
-                const res = await fetch('/api/galaxy_map'); const data = await res.json();
-                
-                // Setup Stars
+                // Initialize Stars
                 galaxyData = data.map(d => ({
                     ...d,
                     x: Math.random() * (canvas.width - 40) + 20,
                     y: Math.random() * (canvas.height - 40) + 20,
                     r: d.type === 'void' ? 2 : 4,
-                    color: d.type === 'void' ? '#ef4444' : '#ffffff'
+                    color: d.type === 'void' ? '#ef4444' : '#ffffff',
+                    vx: (Math.random() - 0.5) * 0.2, // Small movement
+                    vy: (Math.random() - 0.5) * 0.2
                 }));
                 animateStars();
             } else {
-                // DEACTIVATE
                 btn.classList.remove('galaxy-open');
                 btn.innerHTML = `<svg id="galaxy-icon-svg" viewBox="0 0 24 24"><g fill="currentColor" stroke="currentColor" stroke-width="0.8"><circle cx="12" cy="12" r="2.5" fill="black" stroke="none" /><path d="M12 12 C14.5 12 16 10 16 8 C16 6 14 5 12 5" fill="none" stroke-linecap="round" stroke-dasharray="1 1" /><path d="M12 12 C12 14.5 14 16 16 16 C18 16 19 14 19 12" fill="none" stroke-linecap="round" stroke-dasharray="1 1" /><path d="M12 12 C9.5 12 8 14 8 16 C8 18 10 19 12 19" fill="none" stroke-linecap="round" stroke-dasharray="1 1" /><path d="M12 12 C12 9.5 10 8 8 8 C6 8 5 10 5 12" fill="none" stroke-linecap="round" stroke-dasharray="1 1" /><circle cx="8" cy="8" r="0.5" fill="black" stroke="none" /><circle cx="16" cy="16" r="0.5" fill="black" stroke="none" /><circle cx="16" cy="8" r="0.5" fill="black" stroke="none" /><circle cx="8" cy="16" r="0.5" fill="black" stroke="none" /></g></svg>`;
                 document.body.classList.remove('galaxy-mode');
@@ -249,18 +250,53 @@
             if(!isGalaxyActive) return;
             ctx.clearRect(0,0,canvas.width,canvas.height);
             
-            // Draw Constellation Lines
-            ctx.lineWidth = 0.5; ctx.strokeStyle = "rgba(255,255,255,0.15)";
-            galaxyData.forEach((star, i) => {
-                if (galaxyData[i+1] && galaxyData[i+1].group === star.group) {
-                    ctx.beginPath(); ctx.moveTo(star.x, star.y); ctx.lineTo(galaxyData[i+1].x, galaxyData[i+1].y); ctx.stroke();
+            // PHYSICS & LOD LOOP
+            galaxyData.forEach(star => {
+                // 1. Position Update
+                star.x += star.vx; star.y += star.vy;
+                
+                // 2. Bound Check (Bounce)
+                if(star.x < 0 || star.x > canvas.width) star.vx *= -1;
+                if(star.y < 0 || star.y > canvas.height) star.vy *= -1;
+
+                // 3. GRAVITY (Void Stars pull others)
+                if (star.type === 'void') {
+                    galaxyData.forEach(other => {
+                        if (other !== star) {
+                            let dx = star.x - other.x;
+                            let dy = star.y - other.y;
+                            let dist = Math.sqrt(dx*dx + dy*dy);
+                            if (dist < 150 && dist > 10) { // Gravity Range
+                                other.vx += dx * 0.0001; // Tiny pull
+                                other.vy += dy * 0.0001;
+                            }
+                        }
+                    });
                 }
             });
 
-            // Draw Stars
-            galaxyData.forEach(star => {
-                ctx.beginPath(); ctx.arc(star.x, star.y, star.r, 0, Math.PI*2);
+            // RENDER LOOP (LOD: Only draw if on screen)
+            ctx.lineWidth = 0.5; ctx.strokeStyle = "rgba(255,255,255,0.15)";
+            
+            galaxyData.forEach((star, i) => {
+                // LOD Check: Off-screen stars are skipped
+                if (star.x < -10 || star.x > canvas.width + 10 || star.y < -10 || star.y > canvas.height + 10) return;
+
+                // Draw Constellation Lines
+                if (galaxyData[i+1] && galaxyData[i+1].group === star.group) {
+                    ctx.beginPath(); ctx.moveTo(star.x, star.y); ctx.lineTo(galaxyData[i+1].x, galaxyData[i+1].y); ctx.stroke();
+                }
+
+                // Draw Star
+                ctx.beginPath(); 
+                ctx.arc(star.x, star.y, star.r, 0, Math.PI*2); 
                 ctx.fillStyle = star.color; ctx.shadowBlur = 10; ctx.shadowColor = star.color; ctx.fill();
+                
+                // Draw Semantic Name (If exists)
+                if (star.constellation_name) {
+                    ctx.font = "10px monospace"; ctx.fillStyle = "rgba(255,255,255,0.5)"; 
+                    ctx.fillText(star.constellation_name, star.x + 10, star.y);
+                }
             });
             animationFrameId = requestAnimationFrame(animateStars);
         }
@@ -268,10 +304,8 @@
         // --- CORE LOAD LOGIC ---
         async function loadData() {
             try {
-                const res = await fetch('/api/data'); 
-                if(!res.ok) { console.error("API Error"); return; }
+                const res = await fetch('/api/data'); if(!res.ok) return;
                 const data = await res.json();
-                
                 if(data.status === 'guest') { window.location.href='/login'; return; }
                 
                 globalRankTree = data.progression_tree;
@@ -282,18 +316,16 @@
                 document.getElementById('rank-psyche').innerText = data.rank_psyche;
                 document.getElementById('rank-progress-bar').style.width = `${data.rank_progress}%`;
                 document.getElementById('stardust-cnt').innerText = `${data.stardust_current}/${data.stardust_max} SD`;
-                
                 document.getElementById('profile-username').innerText = data.username;
                 document.getElementById('profile-rank-badge').innerText = data.rank;
                 document.getElementById('profile-desc').innerText = data.rank_desc;
                 document.getElementById('pfp-img').src = data.profile_pic || '';
                 document.getElementById('profile-pfp-large').src = data.profile_pic || '';
-
-                if(data.history) fullChatHistory = data.history; userHistoryDates = Object.values(data.history).map(e=>e.date); renderCalendar();
-                
                 document.documentElement.style.setProperty('--mood', data.current_color);
                 document.getElementById('main-rank-icon').innerHTML = data.current_svg;
-            } catch(e) { console.error("Load Error", e); }
+
+                if(data.history) fullChatHistory = data.history; userHistoryDates = Object.values(data.history).map(e=>e.date); renderCalendar();
+            } catch(e) { console.error(e); }
         }
 
         function openRanksModal() {
@@ -307,42 +339,88 @@
             document.getElementById('modal-progress-bar').style.width = document.getElementById('rank-progress-bar').style.width;
             document.getElementById('modal-sd-text').innerText = document.getElementById('stardust-cnt').innerText;
 
-            const currentUserRankIndex = data.rank_index || globalRankTree.ranks.findIndex(r => r.title === document.getElementById('rank-display').innerText);
+            const currentUserRankIndex = globalRankTree.ranks.findIndex(r => r.title === document.getElementById('rank-display').innerText);
 
             globalRankTree.ranks.forEach((rank, index) => {
                 const isUnlocked = index <= currentUserRankIndex;
                 const isNext = index === currentUserRankIndex + 1;
                 const row = document.createElement('div');
                 row.className = `rank-row ${!isUnlocked && !isNext ? 'locked' : ''} ${index === currentUserRankIndex ? 'active' : ''}`;
-                
                 let iconHtml = isUnlocked ? rank.svg : currentLockIcon;
                 let statusText = rank.desc;
                 if(isNext) statusText = `Unlock: ${rank.req} SD`;
                 if(index > currentUserRankIndex + 1) statusText = "Locked";
-
                 row.innerHTML = `<div class="rank-row-icon" style="color: ${isUnlocked ? rank.color : '#555'}">${iconHtml}</div><div class="flex-1"><div class="flex justify-between items-center"><span class="font-bold text-sm" style="color: ${isUnlocked ? '#fff' : '#777'}">${rank.title}</span>${index === currentUserRankIndex ? `<span class="text-[10px] bg-white/10 px-2 rounded text-[${rank.color}]">CURRENT</span>` : ''}</div><div class="text-[10px] opacity-60 font-mono tracking-wide">${statusText}</div></div>`;
                 list.appendChild(row);
             });
             setTimeout(() => { const active = list.querySelector('.active'); if(active) active.scrollIntoView({behavior: 'smooth', block: 'center'}); }, 100);
         }
 
-        // --- HELPERS (Keep strict) ---
         function getStarsHTML(rankTitle) {
-            let count = 0;
-            if (rankTitle.includes("VI")) count = 6; else if (rankTitle.includes("IV")) count = 4; else if (rankTitle.includes("V")) count = 5; else if (rankTitle.includes("III")) count = 3; else if (rankTitle.includes("II")) count = 2; else if (rankTitle.includes("I")) count = 1;
-            if(rankTitle.includes("Ethereal") && count > 5) count = 5; 
-            return Array(count).fill(STAR_SVG).join('');
+            let count = 0; if (rankTitle.includes("VI")) count = 6; else if (rankTitle.includes("IV")) count = 4; else if (rankTitle.includes("V")) count = 5; else if (rankTitle.includes("III")) count = 3; else if (rankTitle.includes("II")) count = 2; else if (rankTitle.includes("I")) count = 1;
+            if(rankTitle.includes("Ethereal") && count > 5) count = 5; return Array(count).fill(STAR_SVG).join('');
         }
+
+        // --- MEDIA HANDLERS ---
+        function handleFileSelect() { const input = document.getElementById('img-upload'); if(input.files && input.files[0]) { activeMediaFile = input.files[0]; document.getElementById('chat-input').placeholder = "Image attached. Add context..."; } }
+        function handleAudioSelect() { const input = document.getElementById('audio-upload'); if(input.files && input.files[0]) { activeAudioFile = input.files[0]; document.getElementById('chat-input').placeholder = "Audio attached. Transmitting..."; sendMessage(); } }
+        function toggleMic() { 
+            // Fallback for demo: use File API for now as SpeechRecog is text-only
+            document.getElementById('audio-upload').click(); 
+        }
+
+        async function sendMessage() {
+            if(isProcessing) return;
+            const input = document.getElementById('chat-input');
+            const msg = input.value.trim();
+            if(!msg && !activeMediaFile && !activeAudioFile) return;
+            
+            appendMsg(msg || "[Media Transmitting...]", 'user'); 
+            input.value=''; isProcessing=true;
+            
+            // USE FORMDATA FOR FILES
+            const formData = new FormData();
+            formData.append('message', msg);
+            formData.append('mode', currentMode);
+            if(activeMediaFile) formData.append('media', activeMediaFile);
+            if(activeAudioFile) formData.append('audio', activeAudioFile);
+
+            try {
+                const res = await fetch('/api/process', { method:'POST', body: formData });
+                const data = await res.json();
+                appendMsg(data.reply, 'ai');
+                if(data.command === 'daily_reward' || data.command === 'level_up') spawnStardust();
+                if(data.command === 'switch_to_void') setTimeout(()=>openChat('rant'), 1000);
+                activeMediaFile = null; activeAudioFile = null; document.getElementById('chat-input').placeholder = "Signal...";
+                await loadData();
+            } catch(e) { appendMsg("Transmission failed.", 'ai'); }
+            isProcessing=false;
+        }
+
+        async function openArchive(id) {
+            const modal = document.getElementById('archive-modal'); modal.classList.add('active');
+            const res = await fetch('/api/star_detail', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({id})});
+            const d = await res.json();
+            document.getElementById('archive-date').innerText = d.date;
+            document.getElementById('archive-analysis').innerText = d.analysis || "Analysis corrupted.";
+            
+            const imgContainer = document.getElementById('archive-image-container');
+            if(d.image_url) { imgContainer.classList.remove('hidden'); document.getElementById('archive-image').src = d.image_url; } 
+            else { imgContainer.classList.add('hidden'); }
+            
+            const audioContainer = document.getElementById('archive-audio-container');
+            const audioEl = document.getElementById('archive-audio');
+            if(d.audio_url) { audioContainer.classList.remove('hidden'); audioEl.src = d.audio_url; }
+            else { audioContainer.classList.add('hidden'); }
+        }
+
+        // --- HELPERS ---
+        function appendMsg(txt, sender) { const div = document.createElement('div'); div.className = `msg msg-${sender}`; div.innerText = txt; document.getElementById('chat-history').appendChild(div); document.getElementById('chat-history').scrollTop = 9999; }
         function openChat(mode) { currentMode = mode; document.getElementById('chat-overlay').classList.add('active'); const w = document.getElementById('chat-modal-window'); w.className = `chat-window origin-${mode === 'rant' ? 'void' : 'ai'}`; document.getElementById('chat-header-title').innerText = mode === 'rant' ? "THE VOID" : "CELI AI"; renderChatHistory(fullChatHistory); }
         function closeChat() { document.getElementById('chat-overlay').classList.remove('active'); }
         function openModal(id) { document.getElementById(id).style.display='flex'; }
         function closeModal(id) { document.getElementById(id).style.display='none'; }
-        async function openArchive(id) { const modal = document.getElementById('archive-modal'); modal.classList.add('active'); const res = await fetch('/api/star_detail', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({id})}); const d = await res.json(); document.getElementById('archive-date').innerText = d.date; document.getElementById('archive-analysis').innerText = d.analysis || "Analysis corrupted."; const imgContainer = document.getElementById('archive-image-container'); if(d.media) { imgContainer.classList.remove('hidden'); document.getElementById('archive-image').src = d.media; } else { imgContainer.classList.add('hidden'); } }
-        function closeArchive() { document.getElementById('archive-modal').classList.remove('active'); }
-        function handleFileSelect() { const input = document.getElementById('img-upload'); if(input.files && input.files[0]) { const reader = new FileReader(); reader.onload = function(e) { activeMedia = e.target.result; document.getElementById('chat-input').placeholder = "Image attached. Add context..."; }; reader.readAsDataURL(input.files[0]); } }
-        function toggleMic() { if (!('webkitSpeechRecognition' in window)) { alert("Voice not supported."); return; } const recognition = new webkitSpeechRecognition(); recognition.continuous = false; recognition.interimResults = false; const btn = document.getElementById('mic-btn'); btn.classList.add('recording'); recognition.onresult = function(event) { document.getElementById('chat-input').value += event.results[0][0].transcript + " "; btn.classList.remove('recording'); }; recognition.onerror = () => btn.classList.remove('recording'); recognition.start(); }
-        async function sendMessage() { if(isProcessing) return; const input = document.getElementById('chat-input'); const msg = input.value.trim(); if(!msg && !activeMedia) return; appendMsg(msg || "[Image Sent]", 'user'); input.value=''; isProcessing=true; try { const res = await fetch('/api/process', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({message:msg, mode:currentMode, media:activeMedia}) }); const data = await res.json(); appendMsg(data.reply, 'ai'); if(data.command === 'daily_reward' || data.command === 'level_up') spawnStardust(); if(data.command === 'switch_to_void') setTimeout(()=>openChat('rant'), 1000); activeMedia = null; document.getElementById('chat-input').placeholder = "Signal..."; await loadData(); } catch(e) { appendMsg("Transmission failed.", 'ai'); } isProcessing=false; }
-        function appendMsg(txt, sender) { const div = document.createElement('div'); div.className = `msg msg-${sender}`; div.innerText = txt; document.getElementById('chat-history').appendChild(div); document.getElementById('chat-history').scrollTop = 9999; }
+        function closeArchive() { document.getElementById('archive-modal').classList.remove('active'); document.getElementById('archive-audio').pause(); }
         function spawnStardust() { const s=document.getElementById('nav-pfp').getBoundingClientRect(); const t=document.getElementById('rank-progress-bar').getBoundingClientRect(); const pfp=document.getElementById('nav-pfp'); pfp.classList.remove('pulse-anim'); void pfp.offsetWidth; pfp.classList.add('pulse-anim'); for(let i=0;i<8;i++){ setTimeout(()=>{ const p=document.createElement('div'); p.className='stardust-particle'; p.style.left=(s.left+s.width/2)+'px'; p.style.top=(s.top+s.height/2)+'px'; document.body.appendChild(p); const tx=t.left+Math.random()*t.width; const ty=t.top+t.height/2; p.animate([{transform:'translate(0,0) scale(1)',opacity:1},{transform:`translate(${tx-parseFloat(p.style.left)}px, ${ty-parseFloat(p.style.top)}px) scale(0.5)`,opacity:0}],{duration:800+Math.random()*400,easing:'cubic-bezier(0.25,1,0.5,1)'}).onfinish=()=>p.remove(); },i*100); } }
         function renderCalendar() { const g=document.getElementById('cal-grid'); g.innerHTML=''; const m=currentCalendarDate.getMonth(); const y=currentCalendarDate.getFullYear(); document.getElementById('cal-month-year').innerText=new Date(y,m).toLocaleString('default',{month:'long',year:'numeric'}); ["S","M","T","W","T","F","S"].forEach(d=>g.innerHTML+=`<div>${d}</div>`); const days=new Date(y,m+1,0).getDate(); const f=new Date(y,m,1).getDay(); for(let i=0;i<f;i++)g.innerHTML+=`<div></div>`; for(let i=1;i<=days;i++){ const d=document.createElement('div'); d.className='cal-day'; d.innerText=i; if(userHistoryDates.includes(`${y}-${String(m+1).padStart(2,'0')}-${String(i).padStart(2,'0')}`)) d.classList.add('has-entry'); g.appendChild(d); } }
         function changeMonth(d) { currentCalendarDate.setMonth(currentCalendarDate.getMonth()+d); renderCalendar(); }
