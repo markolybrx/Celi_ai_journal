@@ -17,7 +17,7 @@
 
     <div class="app-header">
         <div class="header-left logo-group">
-            <div class="logo">Celi</div><div class="version-tag">v9.1.0</div>
+            <div class="logo">Celi</div><div class="version-tag">v9.2.0</div>
         </div>
         <div class="header-right">
             <div class="header-pfp" id="nav-pfp" onclick="openModal('profile-modal')">
@@ -37,7 +37,7 @@
                     <div id="rank-psyche" class="rank-psyche">...</div>
                 </div>
                 <div class="progress-wrapper">
-                    <div id="stardust-cnt" class="stardust-floater">0/0 SD</div>
+                    <div id="stardust-cnt" class="stardust-floater">0/0 Stardust</div>
                     <div class="progress-bg">
                         <div id="rank-progress-bar" class="progress-bar"></div>
                     </div>
@@ -94,20 +94,24 @@
     </div>
     
     <div id="ranks-modal" class="modal-overlay" onclick="if(event.target.id==='ranks-modal') closeModal('ranks-modal')">
-        <div class="bg-theme-card border-theme p-0 rounded-3xl w-full max-w-sm relative max-h-[85vh] flex flex-col overflow-hidden">
-            <div class="floating-close-btn" onclick="closeModal('ranks-modal')">✕</div>
-            <div class="flex flex-col items-center pt-6 pb-4 px-6 bg-gradient-to-b from-white/5 to-transparent z-10 border-b border-theme-color" style="border-bottom: 1px solid var(--border);">
-                <div class="flex items-center gap-4 w-full">
-                    <div id="modal-rank-icon" class="w-12 h-12 text-[var(--mood)] drop-shadow-[0_0_10px_var(--mood)]"></div>
-                    <div class="flex-1">
-                        <h2 id="modal-rank-name" class="text-xl font-bold tracking-wide">...</h2>
-                        <div id="modal-stars" class="star-rating justify-start my-1 opacity-70 scale-75 origin-left"></div>
-                        <p id="modal-sd-text" class="text-[10px] text-theme-muted font-mono">0 SD</p>
+        <div class="relative w-full max-w-sm flex flex-col items-center">
+            
+            <div class="bg-theme-card border-theme p-0 rounded-3xl w-full max-h-[85vh] flex flex-col overflow-hidden relative">
+                <div class="flex flex-col items-center pt-6 pb-4 px-6 bg-gradient-to-b from-white/5 to-transparent z-10 border-b border-theme-color" style="border-bottom: 1px solid var(--border);">
+                    <div class="flex items-center gap-4 w-full">
+                        <div id="modal-rank-icon" class="w-12 h-12 text-[var(--mood)] drop-shadow-[0_0_10px_var(--mood)]"></div>
+                        <div class="flex-1">
+                            <h2 id="modal-rank-name" class="text-xl font-bold tracking-wide">...</h2>
+                            <div id="modal-stars" class="star-rating justify-start my-1 opacity-70 scale-75 origin-left"></div>
+                            <p id="modal-sd-text" class="text-[10px] text-theme-muted font-mono">0 Stardust</p>
+                        </div>
                     </div>
+                    <div class="w-full h-1 bg-white/10 rounded-full mt-3 overflow-hidden relative"><div id="modal-progress-bar" class="h-full bg-[var(--mood)] shadow-[0_0_10px_var(--mood)] absolute top-0 left-0 transition-all duration-1000" style="width: 0%"></div></div>
                 </div>
-                <div class="w-full h-1 bg-white/10 rounded-full mt-3 overflow-hidden relative"><div id="modal-progress-bar" class="h-full bg-[var(--mood)] shadow-[0_0_10px_var(--mood)] absolute top-0 left-0 transition-all duration-1000" style="width: 0%"></div></div>
+                <div class="flex-1 overflow-y-auto relative" id="ranks-list-container"></div>
             </div>
-            <div class="flex-1 overflow-y-auto relative" id="ranks-list-container"></div>
+            
+            <div class="floating-close-btn" onclick="closeModal('ranks-modal')">✕</div>
         </div>
     </div>
     
@@ -126,37 +130,41 @@
     </div>
 
     <div id="profile-modal" class="fixed inset-0 bg-black/90 z-50 hidden items-center justify-center p-5 backdrop-blur-sm">
-        <div class="bg-theme-card border-theme p-0 rounded-3xl w-full max-w-sm relative max-h-[85vh] flex flex-col overflow-visible">
-            <div class="floating-close-btn" onclick="closeModal('profile-modal')">✕</div>
-            <div class="p-6 border-b border-theme-color" style="border-bottom: 1px solid var(--border);">
-                <h2 class="text-xl font-bold tracking-wide">Profile</h2>
-            </div>
-            <div class="flex-1 overflow-y-auto p-6 flex flex-col items-center gap-6">
-                <div class="flex flex-col items-center relative">
-                    <img id="profile-pfp-large" class="w-24 h-24 rounded-full border-2 border-theme object-cover" src="">
-                    <input type="file" id="pfp-upload-input" accept="image/*" hidden onchange="handlePfpUpload()">
-                    <button onclick="document.getElementById('pfp-upload-input').click()" class="mt-3 text-xs text-[var(--mood)] border border-[var(--mood)] px-3 py-1 rounded-full uppercase tracking-widest hover:bg-[var(--mood)] hover:text-black transition-colors">Update Photo</button>
+        <div class="relative w-full max-w-sm flex flex-col items-center">
+            
+            <div class="bg-theme-card border-theme p-0 rounded-3xl w-full max-h-[85vh] flex flex-col overflow-visible">
+                <div class="p-6 border-b border-theme-color" style="border-bottom: 1px solid var(--border);">
+                    <h2 class="text-xl font-bold tracking-wide">Profile</h2>
                 </div>
-                <div class="w-full space-y-4">
-                    <div class="bg-theme-input p-4 rounded-xl border-theme"><label class="block text-[9px] uppercase tracking-widest text-theme-muted mb-1">Full Name</label><div id="profile-fullname" class="text-sm font-semibold">Loading...</div></div>
-                    <div class="bg-theme-input p-4 rounded-xl border-theme"><label class="block text-[9px] uppercase tracking-widest text-theme-muted mb-1">User ID</label><div id="profile-id" class="text-xs font-mono opacity-70 break-all">...</div></div>
-                    <div class="flex gap-4">
-                        <div class="bg-theme-input p-4 rounded-xl border-theme flex-1"><label class="block text-[9px] uppercase tracking-widest text-theme-muted mb-1">Aura Color</label><div class="flex items-center gap-2"><div id="profile-color-dot" class="w-3 h-3 rounded-full bg-white shrink-0"></div><span id="profile-color-text" class="text-xs opacity-70 truncate">...</span></div></div>
-                        <div class="bg-theme-input p-4 rounded-xl border-theme flex-1"><label class="block text-[9px] uppercase tracking-widest text-theme-muted mb-1">Secret Question</label><div id="profile-secret-q" class="text-xs opacity-70 break-words leading-tight">...</div></div>
+                <div class="flex-1 overflow-y-auto p-6 flex flex-col items-center gap-6">
+                    <div class="flex flex-col items-center relative">
+                        <img id="profile-pfp-large" class="w-24 h-24 rounded-full border-2 border-theme object-cover" src="">
+                        <input type="file" id="pfp-upload-input" accept="image/*" hidden onchange="handlePfpUpload()">
+                        <button onclick="document.getElementById('pfp-upload-input').click()" class="mt-3 text-xs text-[var(--mood)] border border-[var(--mood)] px-3 py-1 rounded-full uppercase tracking-widest hover:bg-[var(--mood)] hover:text-black transition-colors">Update Photo</button>
                     </div>
-                    <div class="w-full text-center -mt-1"><button onclick="openModal('edit-info-modal')" class="text-[10px] uppercase tracking-widest text-blue-400 underline hover:text-blue-300">Edit User Information</button></div>
+                    <div class="w-full space-y-4">
+                        <div class="bg-theme-input p-4 rounded-xl border-theme"><label class="block text-[9px] uppercase tracking-widest text-theme-muted mb-1">Full Name</label><div id="profile-fullname" class="text-sm font-semibold">Loading...</div></div>
+                        <div class="bg-theme-input p-4 rounded-xl border-theme"><label class="block text-[9px] uppercase tracking-widest text-theme-muted mb-1">User ID</label><div id="profile-id" class="text-xs font-mono opacity-70 break-all">...</div></div>
+                        <div class="flex gap-4">
+                            <div class="bg-theme-input p-4 rounded-xl border-theme flex-1"><label class="block text-[9px] uppercase tracking-widest text-theme-muted mb-1">Aura Color</label><div class="flex items-center gap-2"><div id="profile-color-dot" class="w-3 h-3 rounded-full bg-white shrink-0"></div><span id="profile-color-text" class="text-xs opacity-70 truncate">...</span></div></div>
+                            <div class="bg-theme-input p-4 rounded-xl border-theme flex-1"><label class="block text-[9px] uppercase tracking-widest text-theme-muted mb-1">Secret Question</label><div id="profile-secret-q" class="text-xs opacity-70 break-words leading-tight">...</div></div>
+                        </div>
+                        <div class="w-full text-center -mt-1"><button onclick="openModal('edit-info-modal')" class="text-[10px] uppercase tracking-widest text-blue-400 underline hover:text-blue-300">Edit User Information</button></div>
+                    </div>
+                    <div class="w-full mt-2">
+                        <div class="w-full h-px bg-theme-border mb-4 mt-2"></div>
+                        <div class="flex justify-between items-center bg-theme-input p-3 rounded-xl border-theme"><span class="text-xs font-bold uppercase tracking-widest opacity-70">App Theme</span><button onclick="toggleTheme()" id="theme-btn" class="text-[10px] bg-white/10 px-3 py-1 rounded-full uppercase tracking-widest border-theme">Dark</button></div>
+                    </div>
+                    <div class="w-full space-y-3 pt-2">
+                        <button onclick="openModal('logout-confirm-modal')" class="w-full py-3 bg-white/5 hover:bg-white/10 border-theme rounded-xl text-xs font-bold uppercase tracking-widest transition-colors">Log Out</button>
+                        <div class="flex gap-3"><button onclick="openModal('change-pass-modal')" class="flex-1 py-3 bg-white/5 hover:bg-white/10 border-theme rounded-xl text-[10px] font-bold uppercase tracking-widest">Change Pass</button><button onclick="openModal('change-secret-modal')" class="flex-1 py-3 bg-white/5 hover:bg-white/10 border-theme rounded-xl text-[10px] font-bold uppercase tracking-widest">Change SQA</button></div>
+                        <button onclick="openModal('delete-confirm-modal')" class="w-full py-3 bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-400 rounded-xl text-xs font-bold uppercase tracking-widest transition-colors">Delete Data</button>
+                    </div>
+                    <div class="w-full pt-4 border-t-theme text-center"><button onclick="openModal('policy-modal')" class="text-[10px] uppercase tracking-widest text-blue-400 hover:text-blue-300 underline">View User Data & Privacy Policy</button></div>
                 </div>
-                <div class="w-full mt-2">
-                    <div class="w-full h-px bg-theme-border mb-4 mt-2"></div>
-                    <div class="flex justify-between items-center bg-theme-input p-3 rounded-xl border-theme"><span class="text-xs font-bold uppercase tracking-widest opacity-70">App Theme</span><button onclick="toggleTheme()" id="theme-btn" class="text-[10px] bg-white/10 px-3 py-1 rounded-full uppercase tracking-widest border-theme">Dark</button></div>
-                </div>
-                <div class="w-full space-y-3 pt-2">
-                    <button onclick="openModal('logout-confirm-modal')" class="w-full py-3 bg-white/5 hover:bg-white/10 border-theme rounded-xl text-xs font-bold uppercase tracking-widest transition-colors">Log Out</button>
-                    <div class="flex gap-3"><button onclick="openModal('change-pass-modal')" class="flex-1 py-3 bg-white/5 hover:bg-white/10 border-theme rounded-xl text-[10px] font-bold uppercase tracking-widest">Change Pass</button><button onclick="openModal('change-secret-modal')" class="flex-1 py-3 bg-white/5 hover:bg-white/10 border-theme rounded-xl text-[10px] font-bold uppercase tracking-widest">Change SQA</button></div>
-                    <button onclick="openModal('delete-confirm-modal')" class="w-full py-3 bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-400 rounded-xl text-xs font-bold uppercase tracking-widest transition-colors">Delete Data</button>
-                </div>
-                <div class="w-full pt-4 border-t-theme text-center"><button onclick="openModal('policy-modal')" class="text-[10px] uppercase tracking-widest text-blue-400 hover:text-blue-300 underline">View User Data & Privacy Policy</button></div>
             </div>
+            
+            <div class="floating-close-btn" onclick="closeModal('profile-modal')">✕</div>
         </div>
     </div>
 
@@ -205,7 +213,15 @@
 
     <div id="change-secret-modal" class="fixed inset-0 bg-black/90 z-[60] hidden items-center justify-center p-5 backdrop-blur-sm"><div class="bg-theme-card border-theme p-6 rounded-2xl w-full max-w-xs relative"><div class="absolute top-2 right-2 cursor-pointer p-2" onclick="closeModal('change-secret-modal')">✕</div><h3 class="text-lg font-bold mb-4">Update SQA</h3><select id="new-secret-q" class="w-full bg-theme-input border-theme rounded-lg p-3 text-sm mb-2 outline-none focus:border-[var(--mood)] text-white"><option value="" disabled selected>Select a Question</option><option value="mother_maiden">What is your mother's maiden name?</option><option value="first_pet">What was the name of your first pet?</option><option value="birth_city">In what city were you born?</option><option value="favorite_book">What is your favorite book?</option><option value="first_school">What was the name of your first school?</option></select><input type="text" id="new-secret-a" class="w-full bg-theme-input border-theme rounded-lg p-3 text-sm mb-4 outline-none focus:border-[var(--mood)]" placeholder="Secret Answer"><button id="btn-update-secret" onclick="updateSecurity('secret')" class="w-full py-3 bg-[var(--mood)] text-black font-bold rounded-lg text-xs uppercase tracking-widest flex items-center justify-center">Update</button></div></div>
     
-    <div id="policy-modal" class="fixed inset-0 bg-black/90 z-[70] hidden items-center justify-center p-5 backdrop-blur-sm"><div class="bg-white text-black p-0 rounded-3xl w-full max-w-md h-[80vh] flex flex-col overflow-hidden relative"><div class="floating-close-btn" onclick="closeModal('policy-modal')">✕</div><div class="p-4 border-b border-gray-200 bg-gray-50 rounded-t-3xl"><h2 class="text-md font-bold text-center uppercase tracking-wide">User Data & Privacy Policy</h2></div><div class="flex-1 overflow-y-auto"><iframe src="/privacy_policy" class="w-full h-full border-none"></iframe></div></div></div>
+    <div id="policy-modal" class="fixed inset-0 bg-black/90 z-[70] hidden items-center justify-center p-5 backdrop-blur-sm">
+        <div class="relative w-full max-w-md flex flex-col items-center">
+            <div class="bg-white text-black p-0 rounded-3xl w-full h-[80vh] flex flex-col overflow-hidden relative">
+                <div class="p-4 border-b border-gray-200 bg-gray-50 rounded-t-3xl"><h2 class="text-md font-bold text-center uppercase tracking-wide">User Data & Privacy Policy</h2></div>
+                <div class="flex-1 overflow-y-auto"><iframe src="/privacy_policy" class="w-full h-full border-none"></iframe></div>
+            </div>
+            <div class="floating-close-btn" onclick="closeModal('policy-modal')">✕</div>
+        </div>
+    </div>
 
     <script src="/static/script.js"></script>
 </body>
