@@ -63,10 +63,8 @@ if api_key:
 # ==================================================
 
 def get_embedding(text):
-    """Generates a vector embedding for the text using Gemini."""
     try:
         if not text or len(text) < 5: return None
-        # Use a lightweight embedding model
         result = genai.embed_content(
             model="models/text-embedding-004",
             content=text,
@@ -79,9 +77,7 @@ def get_embedding(text):
         return None
 
 def find_similar_memories(user_id, query_text):
-    """Searches MongoDB Vector Index for relevant past entries."""
     if not query_text or history_col is None: return []
-    
     query_vector = get_embedding(query_text)
     if not query_vector: return []
 
@@ -92,7 +88,7 @@ def find_similar_memories(user_id, query_text):
                 "path": "embedding",
                 "queryVector": query_vector,
                 "numCandidates": 50,
-                "limit": 3, # Retrieve top 3 memories
+                "limit": 3,
                 "filter": {"user_id": user_id}
             }
         },
@@ -106,12 +102,9 @@ def find_similar_memories(user_id, query_text):
             }
         }
     ]
-    
     try:
         results = list(history_col.aggregate(pipeline))
-        # Only keep results with high relevance
-        relevant = [r for r in results if r['score'] > 0.65] 
-        return relevant
+        return [r for r in results if r['score'] > 0.65] 
     except Exception as e:
         print(f"Vector Search Error: {e}")
         return []
@@ -141,7 +134,6 @@ def generate_constellation_name(entries_text):
 def generate_with_media(msg, media_bytes=None, media_mime=None, is_void=False, context_memories=[]):
     candidates = ["gemini-2.0-flash", "gemini-2.0-flash-lite"]
     
-    # Construct System Prompt with Memory
     memory_block = ""
     if context_memories:
         memory_block = "\n\nRELEVANT PAST MEMORIES (Use these to connect patterns, but don't repeat them explicitly):\n"
@@ -190,6 +182,10 @@ def login_page():
 @app.route('/logout')
 def logout(): session.clear(); return redirect(url_for('login_page'))
 
+@app.route('/privacy_policy')
+def privacy_policy():
+    return render_template('privacy_policy.html')
+
 @app.route('/api/media/<file_id>')
 def get_media(file_id):
     try:
@@ -197,6 +193,40 @@ def get_media(file_id):
         grid_out = fs.get(ObjectId(file_id))
         return Response(grid_out.read(), mimetype=grid_out.content_type)
     except: return "File not found", 404
+
+# --- PROFILE UPDATES ---
+@app.route('/api/update_pfp', methods=['POST'])
+def update_pfp():
+    if 'user_id' not in session: return jsonify({"status": "error", "message": "Auth required"}), 401
+    try:
+        file = request.files['pfp']
+        if file:
+            # Upload to GridFS
+            file_id = fs.put(file.read(), filename=f"pfp_{session['user_id']}", content_type=file.mimetype)
+            # Update User DB with Link
+            pfp_url = f"/api/media/{file_id}"
+            users_col.update_one({"user_id": session['user_id']}, {"$set": {"profile_pic": pfp_url}})
+            return jsonify({"status": "success", "url": pfp_url})
+        return jsonify({"status": "error", "message": "No file"})
+    except Exception as e: return jsonify({"status": "error", "message": str(e)})
+
+@app.route('/api/update_security', methods=['POST'])
+def update_security():
+    if 'user_id' not in session: return jsonify({"status": "error", "message": "Auth required"}), 401
+    try:
+        data = request.json
+        updates = {}
+        if 'new_password' in data:
+            updates['password_hash'] = generate_password_hash(data['new_password'])
+        if 'new_secret_a' in data and 'new_secret_q' in data:
+            updates['secret_question'] = data['new_secret_q']
+            updates['secret_answer_hash'] = generate_password_hash(data['new_secret_a'].lower().strip())
+        
+        if updates:
+            users_col.update_one({"user_id": session['user_id']}, {"$set": updates})
+            return jsonify({"status": "success"})
+        return jsonify({"status": "error", "message": "No data"})
+    except Exception as e: return jsonify({"status": "error", "message": str(e)})
 
 @app.route('/api/register', methods=['POST'])
 def register():
@@ -207,6 +237,7 @@ def register():
         new_user = {
             "user_id": str(uuid.uuid4()), "username": data['reg_username'], "password_hash": generate_password_hash(data['reg_password']),
             "first_name": data['fname'], "last_name": data['lname'], "dob": data['dob'], "aura_color": data.get('fav_color', '#00f2fe'),
+            "secret_question": data['secret_question'], "secret_answer_hash": generate_password_hash(data['secret_answer'].lower().strip()),
             "rank": "Observer III", "rank_index": 0, "stardust": 0, "profile_pic": data.get('profile_pic', ''), "joined_at": datetime.now()
         }
         users_col.insert_one(new_user)
@@ -229,13 +260,24 @@ def get_data():
     loaded_history = {entry['timestamp']: entry for entry in history_cursor}
 
     return jsonify({
-        "status": "user", "username": user.get("username"), "first_name": user.get("first_name"),
-        "rank": user.get("rank", "Observer III"), "rank_index": user.get("rank_index", 0),
+        "status": "user", 
+        "username": user.get("username"), 
+        "first_name": user.get("first_name"),
+        "last_name": user.get("last_name", ""),
+        "user_id": user.get("user_id", ""),
+        "aura_color": user.get("aura_color", "#00f2fe"),
+        "secret_question": user.get("secret_question", "???"),
+        "rank": user.get("rank", "Observer III"), 
+        "rank_index": user.get("rank_index", 0),
         "rank_progress": (current_dust/max_dust)*100 if max_dust>0 else 0,
-        "rank_psyche": rank_info.get("psyche", "Unknown"), "rank_desc": rank_info.get("desc", ""),
-        "current_svg": rank_info.get("svg"), "current_color": rank_info.get("color"),
-        "stardust_current": current_dust, "stardust_max": max_dust,
-        "history": loaded_history, "profile_pic": user.get("profile_pic", ""),
+        "rank_psyche": rank_info.get("psyche", "Unknown"), 
+        "rank_desc": rank_info.get("desc", ""),
+        "current_svg": rank_info.get("svg"), 
+        "current_color": rank_info.get("color"),
+        "stardust_current": current_dust, 
+        "stardust_max": max_dust,
+        "history": loaded_history, 
+        "profile_pic": user.get("profile_pic", ""),
         "progression_tree": progression_tree
     })
 
@@ -282,20 +324,17 @@ def process():
         audio_file = request.files.get('audio')
         timestamp = str(datetime.now().timestamp())
         
-        # 1. PROCESS FILES
         media_id = fs.put(image_file.read(), filename=f"img_{timestamp}", content_type=image_file.mimetype) if image_file else None
         audio_id = fs.put(audio_file, filename=f"aud_{timestamp}", content_type=audio_file.mimetype) if audio_file else None
         image_bytes = fs.get(media_id).read() if media_id else None
         image_mime = image_file.mimetype if image_file else None
 
-        # 2. ECHO PROTOCOL: FIND MEMORIES
         past_memories = []
         embedding = None
         if msg and len(msg) > 10:
             past_memories = find_similar_memories(session['user_id'], msg)
-            embedding = get_embedding(msg) # Generate embedding for THIS entry
+            embedding = get_embedding(msg)
 
-        # 3. GENERATE REPLY
         reply = "..."
         reward_result = process_daily_rewards(users_col, session['user_id'], msg)
         
@@ -312,7 +351,6 @@ def process():
                 reply = generate_with_media(msg, image_bytes, image_mime, False, context_memories=past_memories)
                 if "open The Void" in reply: session['awaiting_void_confirm'] = True
 
-        # 4. SAVE TO DB (WITH EMBEDDING)
         constellation_name = None
         if reward_result.get('event') == 'constellation_complete':
             last_entries = history_col.find({"user_id": session['user_id']}, {'full_message': 1}).sort("timestamp", -1).limit(6)
@@ -332,7 +370,7 @@ def process():
             "has_audio": bool(audio_id), "audio_file_id": audio_id,
             "constellation_name": constellation_name,
             "is_valid_star": reward_result['awarded'],
-            "embedding": embedding # SAVE VECTOR HERE
+            "embedding": embedding
         })
         
         command = None
@@ -357,9 +395,5 @@ def service_worker(): return send_from_directory('static', 'sw.js', mimetype='ap
 
 @app.route('/manifest.json')
 def manifest(): return send_from_directory('static', 'manifest.json', mimetype='application/json')
-
-@app.route('/privacy_policy')
-def privacy_policy():
-    return render_template('privacy_policy.html')
 
 if __name__ == '__main__': app.run(debug=True, port=5000)
