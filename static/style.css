@@ -72,7 +72,6 @@ body.galaxy-mode #bottom-dock { transform: translateX(-50%) translateY(150px) !i
 .logo { font-size: 22px; font-weight: 900; letter-spacing: -1px; } 
 .version-tag { font-size: 10px; opacity: 0.5; font-family: monospace; }
 
-/* PFP Styles */
 .header-pfp { 
     width: 36px; height: 36px; 
     border-radius: 50%; 
@@ -190,36 +189,77 @@ html[data-theme="light"] #profile-pfp-large { background-color: #e5e7eb; }
 .chat-fab { width: 60px; height: 60px; border-radius: 50%; background: linear-gradient(135deg, #f9a8d4, #c084fc); display: flex; align-items: center; justify-content: center; animation: pastelPulse 3s infinite; }
 .void-container { position: fixed; bottom: 100px; left: 20px; z-index: 40; } .fab-container { position: fixed; bottom: 100px; right: 20px; z-index: 40; }
 
-/* --- RANK PROGRESSION TREE (V9.3 FIXED) --- */
+/* --- RANK ACCORDION TREE (V9.4) --- */
 .tree-container { 
-    position: relative; padding: 20px 20px 80px 20px; 
-    display: flex; flex-direction: column; gap: 0; 
-    /* SCROLL FIX: ensure content isn't clipped */
+    position: relative; padding: 20px; 
+    display: flex; flex-direction: column; gap: 15px; 
+    /* Scroll Fix: Ensure extra space at bottom */
+    padding-bottom: 100px; 
     min-height: min-content; 
 }
-.tree-line { position: absolute; left: 44px; top: 40px; bottom: 40px; width: 2px; background: var(--input-bg); z-index: 0; }
-.tree-line-active { position: absolute; left: 44px; top: 40px; width: 2px; background: var(--mood); box-shadow: 0 0 10px var(--mood); z-index: 1; }
-.tree-row { display: flex; align-items: center; position: relative; margin-bottom: 30px; opacity: 0.5; filter: grayscale(1); transition: all 0.3s ease; }
-.tree-row.unlocked { opacity: 1; filter: grayscale(0); }
-.tree-row.current { opacity: 1; filter: grayscale(0); transform: scale(1.02); }
-.tree-icon { width: 50px; height: 50px; border-radius: 50%; background: var(--card-bg); border: 2px solid var(--border); display: flex; align-items: center; justify-content: center; z-index: 2; color: var(--text-muted); transition: all 0.3s; box-shadow: 0 0 10px rgba(0,0,0,0.5); }
-.tree-row.unlocked .tree-icon { border-color: var(--mood); color: var(--mood); box-shadow: 0 0 15px var(--mood-dim); }
-.tree-row.current .tree-icon { background: var(--mood); color: #000; border-color: var(--mood); box-shadow: 0 0 20px var(--mood); animation: nodePulse 2s infinite; }
-.tree-icon svg { width: 24px; height: 24px; }
-.tree-card { flex: 1; margin-left: 20px; background: var(--input-bg); border: 1px solid var(--border); border-radius: 15px; padding: 12px 16px; position: relative; }
-.tree-row.current .tree-card { border-color: var(--mood); background: linear-gradient(90deg, var(--mood-dim), transparent); }
-.tree-title { font-weight: 800; font-size: 14px; letter-spacing: -0.5px; }
-.tree-desc { font-size: 10px; color: var(--text-muted); margin-top: 2px; font-family: monospace; }
-/* Added styling for synthesis text inside the tree card */
+
+/* Accordion Group Header (Main Rank) */
+.rank-group {
+    background: var(--input-bg);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    overflow: hidden;
+    transition: all 0.3s ease;
+}
+.rank-group.active {
+    border-color: var(--mood);
+    box-shadow: 0 0 15px var(--mood-dim);
+}
+
+/* Header Clickable Area */
+.group-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 15px 20px;
+    cursor: pointer;
+}
+.group-title { font-weight: 800; font-size: 16px; letter-spacing: -0.5px; }
+.group-icon { width: 30px; height: 30px; color: var(--text-muted); transition: color 0.3s; }
+.rank-group.active .group-icon, .rank-group.completed .group-icon { color: var(--mood); }
+
+/* Sub-level List (Hidden by default) */
+.rank-sublist {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    background: rgba(0,0,0,0.1);
+}
+.rank-group.open .rank-sublist {
+    max-height: 500px; /* Arbitrary large height for animation */
+}
+
+/* Individual Sub-Node */
+.sub-node {
+    display: flex; align-items: center;
+    padding: 12px 20px 12px 30px;
+    border-top: 1px solid var(--border);
+    opacity: 0.5; filter: grayscale(1);
+    transition: all 0.2s;
+}
+.sub-node.unlocked { opacity: 1; filter: grayscale(0); }
+.sub-node.current { 
+    background: linear-gradient(90deg, var(--mood-dim), transparent);
+    border-left: 3px solid var(--mood);
+    padding-left: 27px; /* Adjust for border */
+}
+
+.sub-title { font-size: 13px; font-weight: 600; }
+.sub-desc { font-size: 10px; color: var(--text-muted); font-family: monospace; }
+
+/* Synthesis Text inside Current Node */
 .tree-synth { 
-    font-size: 10px; 
+    font-size: 11px; 
     color: var(--mood); 
     margin-top: 4px; 
     text-transform: uppercase; 
-    font-weight: bold; 
-    border-top: 1px solid var(--border);
-    padding-top: 4px;
+    font-weight: 900; 
+    letter-spacing: 0.5px;
     display: block;
+    animation: pulse 2s infinite;
 }
 
 @keyframes nodePulse { 0% { box-shadow: 0 0 0 0 var(--mood); } 70% { box-shadow: 0 0 0 10px rgba(0,0,0,0); } 100% { box-shadow: 0 0 0 0 rgba(0,0,0,0); } }
