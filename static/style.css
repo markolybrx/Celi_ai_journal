@@ -14,6 +14,7 @@
     
     --accent-ui: #222; 
     --accent-ui-text: #fff;
+    --mood-dim: rgba(0, 242, 254, 0.2);
 }
 
 html[data-theme="light"] {
@@ -58,17 +59,14 @@ body.galaxy-mode #main-view { transform: translateY(-120vh); opacity: 0; }
 body.galaxy-mode #bottom-dock { transform: translateX(-50%) translateY(150px) !important; }
 
 /* --- HEADER --- */
-/* Static Header (High Z-Index) */
 .app-header { 
     position: fixed; top: 0; left: 0; width: 100%; height: 60px; 
     background: var(--glass); backdrop-filter: blur(20px); 
     border-bottom: 1px solid var(--border); 
     display: flex; justify-content: space-between; align-items: center; 
-    padding: 0 20px; z-index: 900; /* Increased Z-index to stay on top */
+    padding: 0 20px; z-index: 900; 
     transition: transform 0.5s; 
 }
-/* REMOVED the galaxy-mode transform so header stays visible */
-/* body.galaxy-mode .app-header { transform: translateY(-100%); }  <-- DELETED */
 
 .logo-group { display: flex; align-items: baseline; gap: 8px; }
 .logo { font-size: 22px; font-weight: 900; letter-spacing: -1px; } 
@@ -84,17 +82,14 @@ body.galaxy-mode #bottom-dock { transform: translateX(-50%) translateY(150px) !i
     position: relative; z-index: 100; 
     transition: transform 0.2s, background-color 0.3s; 
 } 
-html[data-theme="light"] .header-pfp { 
-    background-color: #e5e7eb; 
-    border-color: rgba(0,0,0,0.2); 
-}
+html[data-theme="light"] .header-pfp { background-color: #e5e7eb; border-color: rgba(0,0,0,0.2); }
 .header-pfp img { width: 100%; height: 100%; object-fit: cover; }
 .header-pfp.pulse-anim { animation: pfpPulse 0.5s ease-in-out; border-color: var(--mood); box-shadow: 0 0 15px var(--mood); }
 
 #profile-pfp-large { background-color: #333; }
 html[data-theme="light"] #profile-pfp-large { background-color: #e5e7eb; }
 
-/* --- RANK DASHBOARD (UPDATED LAYOUT) --- */
+/* --- RANK DASHBOARD CARD --- */
 .rank-card, .calendar-card { 
     background: var(--glass); border: 1px solid var(--border); 
     border-radius: 20px; padding: 15px; margin-bottom: 15px; 
@@ -102,7 +97,7 @@ html[data-theme="light"] #profile-pfp-large { background-color: #e5e7eb; }
 }
 .rank-card { 
     display: flex; align-items: center; gap: 15px; 
-    position: relative; overflow: visible; /* Allowed overflow for Stardust text */
+    position: relative; overflow: visible; /* Important for Stardust Floater */
     cursor: pointer; 
 }
 .rank-icon-container { width: 55px; height: 55px; display: flex; align-items: center; justify-content: center; color: var(--text); transition: all 0.5s; z-index: 10; }
@@ -134,13 +129,9 @@ html[data-theme="light"] #profile-pfp-large { background-color: #e5e7eb; }
 
 /* Stardust Text (Floating Top Right of Bar) */
 .stardust-floater {
-    position: absolute;
-    right: 0;
-    top: -14px; /* Sits on top of the bar */
-    font-size: 10px;
-    font-weight: bold;
-    color: var(--text-muted);
-    font-family: monospace;
+    position: absolute; right: 0; top: -14px;
+    font-size: 10px; font-weight: bold;
+    color: var(--text-muted); font-family: monospace;
 }
 
 /* --- BOTTOM DOCK --- */
@@ -185,16 +176,11 @@ html[data-theme="light"] #profile-pfp-large { background-color: #e5e7eb; }
 .msg-user { align-self: flex-end; background: var(--accent-ui); color: var(--accent-ui-text); font-weight: 600; }
 .msg-ai { align-self: flex-start; background: var(--border); color: var(--text); }
 
-/* Play Button for Voice */
-.voice-play-btn {
-    display: inline-flex; align-items: center; justify-content: center;
-    width: 20px; height: 20px; margin-left: 8px;
-    background: rgba(255,255,255,0.2); border-radius: 50%;
-    cursor: pointer; opacity: 0.7;
-}
+/* Play Button */
+.voice-play-btn { display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 20px; margin-left: 8px; background: rgba(255,255,255,0.2); border-radius: 50%; cursor: pointer; opacity: 0.7; vertical-align: middle; }
 .voice-play-btn:hover { opacity: 1; background: var(--mood); color: #000; }
 
-/* Typing Indicator (Dots) */
+/* Typing Dots */
 .typing-dots { display: inline-flex; gap: 4px; padding: 10px 15px; background: var(--border); border-radius: 20px; align-self: flex-start; }
 .dot { width: 6px; height: 6px; background: var(--text-muted); border-radius: 50%; animation: bounce 1.4s infinite ease-in-out both; }
 .dot:nth-child(1) { animation-delay: -0.32s; }
@@ -203,6 +189,8 @@ html[data-theme="light"] #profile-pfp-large { background-color: #e5e7eb; }
 
 .input-area { padding: 15px; background: var(--card-bg); border-top: 1px solid var(--border); display: flex; align-items: center; gap: 8px; }
 .chat-input { flex: 1; background: var(--input-bg); border: 1px solid var(--border); border-radius: 25px; padding: 12px 20px; color: var(--text); outline: none; }
+.chat-input:focus { border-color: var(--text-muted) !important; }
+
 .media-btn { width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; border-radius: 50%; background: var(--border); color: var(--text); cursor: pointer; }
 .media-btn.recording { background: #ef4444; animation: pulse 1s infinite; }
 
@@ -210,10 +198,22 @@ html[data-theme="light"] #profile-pfp-large { background-color: #e5e7eb; }
 .chat-fab { width: 60px; height: 60px; border-radius: 50%; background: linear-gradient(135deg, #f9a8d4, #c084fc); display: flex; align-items: center; justify-content: center; animation: pastelPulse 3s infinite; }
 .void-container { position: fixed; bottom: 100px; left: 20px; z-index: 40; } .fab-container { position: fixed; bottom: 100px; right: 20px; z-index: 40; }
 
-.rank-row { display: flex; align-items: center; padding: 12px; border-bottom: 1px solid var(--border); transition: background 0.2s; }
-.rank-row.locked { opacity: 0.4; filter: grayscale(1); }
-.rank-row.active { background: var(--border); border-left: 2px solid var(--mood); }
-.rank-row-icon { width: 30px; height: 30px; margin-right: 12px; }
+/* --- RANK PROGRESSION TREE (V9.1) --- */
+.tree-container { position: relative; padding: 20px 20px 40px 20px; display: flex; flex-direction: column; gap: 0; }
+.tree-line { position: absolute; left: 44px; top: 40px; bottom: 40px; width: 2px; background: var(--input-bg); z-index: 0; }
+.tree-line-active { position: absolute; left: 44px; top: 40px; width: 2px; background: var(--mood); box-shadow: 0 0 10px var(--mood); z-index: 1; }
+.tree-row { display: flex; align-items: center; position: relative; margin-bottom: 30px; opacity: 0.5; filter: grayscale(1); transition: all 0.3s ease; }
+.tree-row.unlocked { opacity: 1; filter: grayscale(0); }
+.tree-row.current { opacity: 1; filter: grayscale(0); transform: scale(1.02); }
+.tree-icon { width: 50px; height: 50px; border-radius: 50%; background: var(--card-bg); border: 2px solid var(--border); display: flex; align-items: center; justify-content: center; z-index: 2; color: var(--text-muted); transition: all 0.3s; box-shadow: 0 0 10px rgba(0,0,0,0.5); }
+.tree-row.unlocked .tree-icon { border-color: var(--mood); color: var(--mood); box-shadow: 0 0 15px var(--mood-dim); }
+.tree-row.current .tree-icon { background: var(--mood); color: #000; border-color: var(--mood); box-shadow: 0 0 20px var(--mood); animation: nodePulse 2s infinite; }
+.tree-icon svg { width: 24px; height: 24px; }
+.tree-card { flex: 1; margin-left: 20px; background: var(--input-bg); border: 1px solid var(--border); border-radius: 15px; padding: 12px 16px; position: relative; }
+.tree-row.current .tree-card { border-color: var(--mood); background: linear-gradient(90deg, var(--mood-dim), transparent); }
+.tree-title { font-weight: 800; font-size: 14px; letter-spacing: -0.5px; }
+.tree-desc { font-size: 10px; color: var(--text-muted); margin-top: 2px; font-family: monospace; }
+@keyframes nodePulse { 0% { box-shadow: 0 0 0 0 var(--mood); } 70% { box-shadow: 0 0 0 10px rgba(0,0,0,0); } 100% { box-shadow: 0 0 0 0 rgba(0,0,0,0); } }
 .star-rating { display: flex; gap: 2px; justify-content: center; margin-top: 5px; }
 .star-point { width: 10px; height: 10px; fill: var(--mood); filter: drop-shadow(0 0 2px var(--mood)); }
 
@@ -241,3 +241,4 @@ html[data-theme="light"] #profile-pfp-large { background-color: #e5e7eb; }
 .border-theme { border: 1px solid var(--border); }
 .border-t-theme { border-top: 1px solid var(--border); }
 .bg-theme-border { background-color: var(--border); }
+.bg-theme-input:focus, input:focus { border-color: var(--text-muted); }
