@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Celi Privacy Protocol</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { background: #000; color: #fff; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 20px; line-height: 1.6; }
+        h1 { color: #00f2fe; font-size: 24px; margin-bottom: 20px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px; }
+        h2 { color: #facc15; font-size: 18px; margin-top: 30px; margin-bottom: 10px; }
+        h3 { color: #a855f7; font-size: 14px; margin-top: 20px; text-transform: uppercase; letter-spacing: 1px; }
+        p, li { font-size: 13px; color: rgba(255,255,255,0.7); margin-bottom: 8px; }
+        ul { list-style-type: disc; padding-left: 20px; }
+    </style>
+</head>
+<body>
+    <h1>PRIVACY POLICY</h1>
+    <p><strong>Effective Date:</strong> January 26, 2026</p>
+
+    <h2>1. Introduction</h2>
+    <p>Welcome to <strong>Celi</strong> ("we," "our," or "the System"). We are committed to protecting your personal information and your digital legacy. This Privacy Policy explains how we collect, use, store, and delete your data when you use the Celi AI Journaling application.</p>
+
+    <h2>2. Information We Collect</h2>
+    <h3>2.1. User Account Data</h3>
+    <ul>
+        <li><strong>Credentials:</strong> Username and encrypted password hash.</li>
+        <li><strong>Profile Data:</strong> First name, last name, date of birth, and "Aura Color" preferences.</li>
+        <li><strong>Security:</strong> Secret questions and hashed answers for account recovery.</li>
+    </ul>
+
+    <h3>2.2. User-Generated Content</h3>
+    <ul>
+        <li><strong>Text Entries:</strong> Daily journal logs, reflections, and descriptions.</li>
+        <li><strong>"The Void" Entries:</strong> Content explicitly marked as "Rants". Stored securely despite visual distinction.</li>
+        <li><strong>Media Files:</strong> Photos and audio voice notes uploaded during chat sessions.</li>
+    </ul>
+
+    <h2>3. Data Storage & Architecture</h2>
+    <p>All text-based data is stored securely in <strong>MongoDB Atlas</strong> (Cloud Database). High-bandwidth media (Images and Audio) are stored using <strong>MongoDB GridFS</strong>.</p>
+
+    <h2>4. AI Processing</h2>
+    <p>Celi uses <strong>Google Gemini</strong> for transient processing to generate responses and psychological analysis. We do not grant rights for your data to train public models.</p>
+
+    <h2>5. User Rights & Deletion</h2>
+    <p>Triggering the "Wipe Memory" protocol is <strong>irreversible</strong>. It permanently deletes text history, vector embeddings, and media links.</p>
+</body>
+</html>
