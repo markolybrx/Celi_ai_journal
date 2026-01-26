@@ -358,4 +358,8 @@ def service_worker(): return send_from_directory('static', 'sw.js', mimetype='ap
 @app.route('/manifest.json')
 def manifest(): return send_from_directory('static', 'manifest.json', mimetype='application/json')
 
+@app.route('/privacy_policy')
+def privacy_policy():
+    return render_template('privacy_policy.html')
+
 if __name__ == '__main__': app.run(debug=True, port=5000)
