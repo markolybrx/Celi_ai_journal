@@ -1,6 +1,8 @@
 const SQ_MAP = { "mother_maiden": "What is your mother's maiden name?", "first_pet": "What was the name of your first pet?", "birth_city": "In what city were you born?", "favorite_book": "What is your favorite book?", "first_school": "What was the name of your first school?" };
 let isProcessing = false; let currentCalendarDate = new Date(); let fullChatHistory = {}; let userHistoryDates = []; let currentMode = 'journal'; let activeMediaFile = null; let activeAudioFile = null; let globalRankTree = null; let currentLockIcon = '';
 const STAR_SVG = `<svg class="star-point" viewBox="0 0 24 24"><path d="M12 2l2.4 7.2h7.6l-6 4.8 2.4 7.2-6-4.8-6 4.8 2.4-7.2-6-4.8h7.6z"/></svg>`;
+
+// --- SVG ICONS ---
 const ICON_SUCCESS = `<svg class="w-10 h-10 text-green-500 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>`;
 const ICON_ERROR = `<svg class="w-10 h-10 text-red-500 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>`;
 
@@ -16,7 +18,8 @@ function toggleTheme() {
         btn.innerText = "Light";
         localStorage.setItem('theme', 'light');
     }
-    if(typeof galaxyData !== 'undefined') {
+    // Re-render galaxy to update colors if needed
+    if(typeof galaxyData !== 'undefined' && isGalaxyActive) {
         galaxyData.forEach(d => { if(d.color !== '#ef4444') d.color = (html.getAttribute('data-theme') === 'light' ? '#000' : '#fff'); });
     }
 }
@@ -38,14 +41,12 @@ async function toggleGalaxy() {
     const btn = document.getElementById('galaxy-btn'); 
     isGalaxyActive = !isGalaxyActive; 
     
-    // UI Update for Galaxy Button
     if (isGalaxyActive) { 
         btn.classList.add('galaxy-open'); 
         btn.innerHTML = '✕'; 
         document.body.classList.add('galaxy-mode'); 
         SonicAtmosphere.playMode('galaxy'); 
         
-        // Load Galaxy Data
         const res = await fetch('/api/galaxy_map'); 
         const data = await res.json(); 
         galaxyData = data.map(d => ({ 
@@ -53,7 +54,7 @@ async function toggleGalaxy() {
             x: Math.random() * (canvas.width - 40) + 20, 
             y: Math.random() * (canvas.height - 40) + 20, 
             r: d.type === 'void' ? 2 : 4, 
-            // Apply Aura Tint to normal stars if not in light mode, otherwise black
+            // REVERTED: Stars are simply Black or White based on theme, Red for Void. No Aura.
             color: d.type === 'void' ? '#ef4444' : (document.documentElement.getAttribute('data-theme') === 'light' ? '#000' : '#fff'), 
             vx: (Math.random() - 0.5) * 0.2, 
             vy: (Math.random() - 0.5) * 0.2 
@@ -83,11 +84,8 @@ async function loadData() {
         document.getElementById('stardust-cnt').innerText = `${data.stardust_current}/${data.stardust_max} SD`; 
         document.getElementById('pfp-img').src = data.profile_pic || ''; 
         
-        // --- AURA SYSTEM ---
+        // --- REVERTED AURA (Only impacts Mood/Accents) ---
         document.documentElement.style.setProperty('--mood', data.aura_color); 
-        // Create transparent aura for backgrounds
-        const moodDim = data.aura_color + '25'; // 15% opacity hex
-        document.documentElement.style.setProperty('--mood-dim', moodDim);
 
         document.getElementById('main-rank-icon').innerHTML = data.current_svg; 
         document.getElementById('profile-pfp-large').src = data.profile_pic || ''; 
@@ -110,9 +108,32 @@ async function loadData() {
 }
 
 async function handlePfpUpload() { const input = document.getElementById('pfp-upload-input'); if(input.files && input.files[0]) { const formData = new FormData(); formData.append('pfp', input.files[0]); const res = await fetch('/api/update_pfp', { method: 'POST', body: formData }); const data = await res.json(); if(data.status === 'success') { document.getElementById('pfp-img').src = data.url; document.getElementById('profile-pfp-large').src = data.url; } } }
-function showStatus(success, msg) { document.getElementById('status-icon').innerHTML = success ? ICON_SUCCESS : ICON_ERROR; document.getElementById('status-title').innerText = success ? "Success" : "Error"; document.getElementById('status-msg').innerText = msg; openModal('status-modal'); }
+
+// UPDATED STATUS FUNCTION (SVG)
+function showStatus(success, msg) {
+    document.getElementById('status-icon').innerHTML = success ? ICON_SUCCESS : ICON_ERROR; 
+    document.getElementById('status-title').innerText = success ? "Success" : "Error";
+    document.getElementById('status-msg').innerText = msg;
+    openModal('status-modal');
+}
+
 function askUpdateInfo() { openModal('info-confirm-modal'); }
-async function confirmUpdateInfo() { const btn = document.getElementById('btn-confirm-info'); const originalText = "Confirm"; btn.innerHTML = '<span class="spinner"></span>'; btn.disabled = true; const body = { first_name: document.getElementById('edit-fname').value, last_name: document.getElementById('edit-lname').value, aura_color: document.getElementById('edit-color').value }; try { const res = await fetch('/api/update_profile', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) }); const data = await res.json(); if(data.status === 'success') { closeModal('info-confirm-modal'); closeModal('edit-info-modal'); showStatus(true, "Profile Updated"); loadData(); } else { showStatus(false, data.message); } } catch(e) { showStatus(false, "Connection Failed"); } btn.innerHTML = originalText; btn.disabled = false; }
+
+async function confirmUpdateInfo() {
+    const btn = document.getElementById('btn-confirm-info'); const originalText = "Confirm"; btn.innerHTML = '<span class="spinner"></span>'; btn.disabled = true;
+    const body = { first_name: document.getElementById('edit-fname').value, last_name: document.getElementById('edit-lname').value, aura_color: document.getElementById('edit-color').value };
+    try {
+        const res = await fetch('/api/update_profile', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) });
+        const data = await res.json();
+        if(data.status === 'success') { 
+            closeModal('info-confirm-modal'); closeModal('edit-info-modal'); 
+            showStatus(true, "Profile Updated"); 
+            loadData(); 
+        } else { showStatus(false, data.message); }
+    } catch(e) { showStatus(false, "Connection Failed"); }
+    btn.innerHTML = originalText; btn.disabled = false;
+}
+
 async function updateSecurity(type) { let body = {}; const btn = type === 'pass' ? document.getElementById('btn-update-pass') : document.getElementById('btn-update-secret'); const originalText = "Update"; btn.innerHTML = '<span class="spinner"></span> Loading...'; btn.disabled = true; if(type === 'pass') { const p1 = document.getElementById('new-pass-input').value; const p2 = document.getElementById('confirm-pass-input').value; if(p1 !== p2) { document.getElementById('new-pass-input').classList.add('input-error'); document.getElementById('confirm-pass-input').classList.add('input-error'); setTimeout(()=>{ document.getElementById('new-pass-input').classList.remove('input-error'); document.getElementById('confirm-pass-input').classList.remove('input-error'); }, 500); btn.innerHTML=originalText; btn.disabled=false; return; } body = { new_password: p1 }; } else { const q = document.getElementById('new-secret-q').value; if(!q) { showStatus(false, "Select a Question"); btn.innerHTML=originalText; btn.disabled=false; return; } body = { new_secret_q: q, new_secret_a: document.getElementById('new-secret-a').value }; } try { const res = await fetch('/api/update_security', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) }); const data = await res.json(); if(data.status === 'success') { closeModal('change-pass-modal'); closeModal('change-secret-modal'); showStatus(true, "Security details updated."); loadData(); } else { showStatus(false, data.message); } } catch(e) { showStatus(false, "Connection Failed"); } btn.innerHTML = originalText; btn.disabled = false; }
 async function performWipe() { const btn = document.querySelector('#delete-confirm-modal button.bg-red-500'); const originalText = btn.innerText; btn.innerText = "Deleting..."; btn.disabled = true; try { const res = await fetch('/api/clear_history', { method: 'POST' }); const data = await res.json(); if (data.status === 'success') { window.location.href = '/login'; } else { alert("Error: " + data.message); btn.innerText = originalText; btn.disabled = false; } } catch (e) { alert("Connection failed."); btn.innerText = originalText; btn.disabled = false; } }
 function openRanksModal() { if (!globalRankTree) return; const list = document.getElementById('ranks-list-container'); list.innerHTML = ''; const modal = document.getElementById('ranks-modal'); modal.classList.add('active'); document.getElementById('modal-rank-icon').innerHTML = document.getElementById('main-rank-icon').innerHTML; document.getElementById('modal-rank-name').innerText = document.getElementById('rank-display').innerText; document.getElementById('modal-stars').innerHTML = getStarsHTML(document.getElementById('rank-display').innerText); document.getElementById('modal-progress-bar').style.width = document.getElementById('rank-progress-bar').style.width; document.getElementById('modal-sd-text').innerText = document.getElementById('stardust-cnt').innerText; const currentUserRankIndex = globalRankTree.ranks.findIndex(r => r.title === document.getElementById('rank-display').innerText); globalRankTree.ranks.forEach((rank, index) => { const isUnlocked = index <= currentUserRankIndex; const isNext = index === currentUserRankIndex + 1; const row = document.createElement('div'); row.className = `rank-row ${!isUnlocked && !isNext ? 'locked' : ''} ${index === currentUserRankIndex ? 'active' : ''}`; let iconHtml = isUnlocked ? rank.svg : currentLockIcon; let statusText = rank.desc; if(isNext) statusText = `Unlock: ${rank.req} SD`; if(index > currentUserRankIndex + 1) statusText = "Locked"; row.innerHTML = `<div class="rank-row-icon" style="color: ${isUnlocked ? rank.color : '#555'}">${iconHtml}</div><div class="flex-1"><div class="flex justify-between items-center"><span class="font-bold text-sm" style="color: ${isUnlocked ? '#fff' : '#777'}">${rank.title}</span>${index === currentUserRankIndex ? `<span class="text-[10px] bg-white/10 px-2 rounded text-[${rank.color}]">CURRENT</span>` : ''}</div><div class="text-[10px] opacity-60 font-mono tracking-wide">${statusText}</div></div>`; list.appendChild(row); }); setTimeout(() => { const active = list.querySelector('.active'); if(active) active.scrollIntoView({behavior: 'smooth', block: 'center'}); }, 100); }
