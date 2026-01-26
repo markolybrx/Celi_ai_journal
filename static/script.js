@@ -5,6 +5,7 @@ const STAR_SVG = `<svg class="star-point" viewBox="0 0 24 24"><path d="M12 2l2.4
 // --- SVG ICONS ---
 const ICON_SUCCESS = `<svg class="w-10 h-10 text-green-500 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>`;
 const ICON_ERROR = `<svg class="w-10 h-10 text-red-500 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>`;
+const ICON_SPEAK = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>`;
 
 function toggleTheme() {
     const html = document.documentElement;
@@ -18,7 +19,6 @@ function toggleTheme() {
         btn.innerText = "Light";
         localStorage.setItem('theme', 'light');
     }
-    // Re-render galaxy to update colors if needed
     if(typeof galaxyData !== 'undefined' && isGalaxyActive) {
         galaxyData.forEach(d => { if(d.color !== '#ef4444') d.color = (html.getAttribute('data-theme') === 'light' ? '#000' : '#fff'); });
     }
@@ -76,14 +76,19 @@ async function loadData() {
         if(data.status === 'guest') { window.location.href='/login'; return; } 
         
         globalRankTree = data.progression_tree; currentLockIcon = data.progression_tree.lock_icon; 
-        document.getElementById('greeting-text').innerText = `Good Day, ${data.first_name}`; 
+        
+        // V9.0: Added "!" to greeting
+        document.getElementById('greeting-text').innerText = `Good Day, ${data.first_name}!`; 
+        
+        // Rank Data
         document.getElementById('rank-display').innerText = data.rank; 
         document.getElementById('rank-psyche').innerText = data.rank_psyche; 
         document.getElementById('rank-progress-bar').style.width = `${data.rank_progress}%`; 
-        document.getElementById('stardust-cnt').innerText = `${data.stardust_current}/${data.stardust_max} SD`; 
-        document.getElementById('pfp-img').src = data.profile_pic || ''; 
         
-        // --- RESTORED RANK COLORS ---
+        // V9.0: Stardust Positioned Top Right of Bar (e.g. 150/500 SD)
+        document.getElementById('stardust-cnt').innerText = `${data.stardust_current}/${data.stardust_max} SD`; 
+        
+        document.getElementById('pfp-img').src = data.profile_pic || ''; 
         document.documentElement.style.setProperty('--mood', data.current_color); 
 
         document.getElementById('main-rank-icon').innerHTML = data.current_svg; 
@@ -92,7 +97,6 @@ async function loadData() {
         document.getElementById('profile-id').innerText = data.username; 
         document.getElementById('profile-color-text').innerText = data.aura_color; 
         
-        // --- AURA DOT FALLBACK ---
         const dot = document.getElementById('profile-color-dot');
         dot.style.backgroundColor = data.aura_color;
         if (!data.aura_color || dot.style.backgroundColor === '') {
@@ -114,32 +118,9 @@ async function loadData() {
 }
 
 async function handlePfpUpload() { const input = document.getElementById('pfp-upload-input'); if(input.files && input.files[0]) { const formData = new FormData(); formData.append('pfp', input.files[0]); const res = await fetch('/api/update_pfp', { method: 'POST', body: formData }); const data = await res.json(); if(data.status === 'success') { document.getElementById('pfp-img').src = data.url; document.getElementById('profile-pfp-large').src = data.url; } } }
-
-// UPDATED STATUS FUNCTION (SVG)
-function showStatus(success, msg) {
-    document.getElementById('status-icon').innerHTML = success ? ICON_SUCCESS : ICON_ERROR; 
-    document.getElementById('status-title').innerText = success ? "Success" : "Error";
-    document.getElementById('status-msg').innerText = msg;
-    openModal('status-modal');
-}
-
+function showStatus(success, msg) { document.getElementById('status-icon').innerHTML = success ? ICON_SUCCESS : ICON_ERROR; document.getElementById('status-title').innerText = success ? "Success" : "Error"; document.getElementById('status-msg').innerText = msg; openModal('status-modal'); }
 function askUpdateInfo() { openModal('info-confirm-modal'); }
-
-async function confirmUpdateInfo() {
-    const btn = document.getElementById('btn-confirm-info'); const originalText = "Confirm"; btn.innerHTML = '<span class="spinner"></span>'; btn.disabled = true;
-    const body = { first_name: document.getElementById('edit-fname').value, last_name: document.getElementById('edit-lname').value, aura_color: document.getElementById('edit-color').value };
-    try {
-        const res = await fetch('/api/update_profile', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) });
-        const data = await res.json();
-        if(data.status === 'success') { 
-            closeModal('info-confirm-modal'); closeModal('edit-info-modal'); 
-            showStatus(true, "Profile Updated"); 
-            loadData(); 
-        } else { showStatus(false, data.message); }
-    } catch(e) { showStatus(false, "Connection Failed"); }
-    btn.innerHTML = originalText; btn.disabled = false;
-}
-
+async function confirmUpdateInfo() { const btn = document.getElementById('btn-confirm-info'); const originalText = "Confirm"; btn.innerHTML = '<span class="spinner"></span>'; btn.disabled = true; const body = { first_name: document.getElementById('edit-fname').value, last_name: document.getElementById('edit-lname').value, aura_color: document.getElementById('edit-color').value }; try { const res = await fetch('/api/update_profile', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) }); const data = await res.json(); if(data.status === 'success') { closeModal('info-confirm-modal'); closeModal('edit-info-modal'); showStatus(true, "Profile Updated"); loadData(); } else { showStatus(false, data.message); } } catch(e) { showStatus(false, "Connection Failed"); } btn.innerHTML = originalText; btn.disabled = false; }
 async function updateSecurity(type) { let body = {}; const btn = type === 'pass' ? document.getElementById('btn-update-pass') : document.getElementById('btn-update-secret'); const originalText = "Update"; btn.innerHTML = '<span class="spinner"></span> Loading...'; btn.disabled = true; if(type === 'pass') { const p1 = document.getElementById('new-pass-input').value; const p2 = document.getElementById('confirm-pass-input').value; if(p1 !== p2) { document.getElementById('new-pass-input').classList.add('input-error'); document.getElementById('confirm-pass-input').classList.add('input-error'); setTimeout(()=>{ document.getElementById('new-pass-input').classList.remove('input-error'); document.getElementById('confirm-pass-input').classList.remove('input-error'); }, 500); btn.innerHTML=originalText; btn.disabled=false; return; } body = { new_password: p1 }; } else { const q = document.getElementById('new-secret-q').value; if(!q) { showStatus(false, "Select a Question"); btn.innerHTML=originalText; btn.disabled=false; return; } body = { new_secret_q: q, new_secret_a: document.getElementById('new-secret-a').value }; } try { const res = await fetch('/api/update_security', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) }); const data = await res.json(); if(data.status === 'success') { closeModal('change-pass-modal'); closeModal('change-secret-modal'); showStatus(true, "Security details updated."); loadData(); } else { showStatus(false, data.message); } } catch(e) { showStatus(false, "Connection Failed"); } btn.innerHTML = originalText; btn.disabled = false; }
 async function performWipe() { const btn = document.querySelector('#delete-confirm-modal button.bg-red-500'); const originalText = btn.innerText; btn.innerText = "Deleting..."; btn.disabled = true; try { const res = await fetch('/api/clear_history', { method: 'POST' }); const data = await res.json(); if (data.status === 'success') { window.location.href = '/login'; } else { alert("Error: " + data.message); btn.innerText = originalText; btn.disabled = false; } } catch (e) { alert("Connection failed."); btn.innerText = originalText; btn.disabled = false; } }
 function openRanksModal() { if (!globalRankTree) return; const list = document.getElementById('ranks-list-container'); list.innerHTML = ''; const modal = document.getElementById('ranks-modal'); modal.classList.add('active'); document.getElementById('modal-rank-icon').innerHTML = document.getElementById('main-rank-icon').innerHTML; document.getElementById('modal-rank-name').innerText = document.getElementById('rank-display').innerText; document.getElementById('modal-stars').innerHTML = getStarsHTML(document.getElementById('rank-display').innerText); document.getElementById('modal-progress-bar').style.width = document.getElementById('rank-progress-bar').style.width; document.getElementById('modal-sd-text').innerText = document.getElementById('stardust-cnt').innerText; const currentUserRankIndex = globalRankTree.ranks.findIndex(r => r.title === document.getElementById('rank-display').innerText); globalRankTree.ranks.forEach((rank, index) => { const isUnlocked = index <= currentUserRankIndex; const isNext = index === currentUserRankIndex + 1; const row = document.createElement('div'); row.className = `rank-row ${!isUnlocked && !isNext ? 'locked' : ''} ${index === currentUserRankIndex ? 'active' : ''}`; let iconHtml = isUnlocked ? rank.svg : currentLockIcon; let statusText = rank.desc; if(isNext) statusText = `Unlock: ${rank.req} SD`; if(index > currentUserRankIndex + 1) statusText = "Locked"; row.innerHTML = `<div class="rank-row-icon" style="color: ${isUnlocked ? rank.color : '#555'}">${iconHtml}</div><div class="flex-1"><div class="flex justify-between items-center"><span class="font-bold text-sm" style="color: ${isUnlocked ? '#fff' : '#777'}">${rank.title}</span>${index === currentUserRankIndex ? `<span class="text-[10px] bg-white/10 px-2 rounded text-[${rank.color}]">CURRENT</span>` : ''}</div><div class="text-[10px] opacity-60 font-mono tracking-wide">${statusText}</div></div>`; list.appendChild(row); }); setTimeout(() => { const active = list.querySelector('.active'); if(active) active.scrollIntoView({behavior: 'smooth', block: 'center'}); }, 100); }
@@ -147,9 +128,100 @@ function getStarsHTML(rankTitle) { let count = 0; if (rankTitle.includes("VI")) 
 function handleFileSelect() { const input = document.getElementById('img-upload'); if(input.files && input.files[0]) { activeMediaFile = input.files[0]; document.getElementById('chat-input').placeholder = "Image attached. Add context..."; } }
 function handleAudioSelect() { const input = document.getElementById('audio-upload'); if(input.files && input.files[0]) { activeAudioFile = input.files[0]; document.getElementById('chat-input').placeholder = "Audio attached. Transmitting..."; sendMessage(); } }
 function toggleMic() { document.getElementById('audio-upload').click(); }
-async function sendMessage() { if(isProcessing) return; const input = document.getElementById('chat-input'); const msg = input.value.trim(); if(!msg && !activeMediaFile && !activeAudioFile) return; appendMsg(msg || "[Media Transmitting...]", 'user'); input.value=''; isProcessing=true; const formData = new FormData(); formData.append('message', msg); formData.append('mode', currentMode); if(activeMediaFile) formData.append('media', activeMediaFile); if(activeAudioFile) formData.append('audio', activeAudioFile); try { const res = await fetch('/api/process', { method:'POST', body: formData }); const data = await res.json(); appendMsg(data.reply, 'ai'); if(data.command === 'daily_reward' || data.command === 'level_up') spawnStardust(); if(data.command === 'switch_to_void') setTimeout(()=>openChat('rant'), 1000); activeMediaFile = null; activeAudioFile = null; document.getElementById('chat-input').placeholder = "Signal..."; await loadData(); } catch(e) { appendMsg("Transmission failed.", 'ai'); } isProcessing=false; }
+
+// --- CHAT & INTERACTION LOGIC (V9.0) ---
+
+// Markdown Parser
+function parseMarkdown(text) {
+    if (!text) return "";
+    let html = text
+        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') // Bold
+        .replace(/\*(.*?)\*/g, '<em>$1</em>') // Italics
+        .replace(/\n/g, '<br>'); // Line Breaks
+    return html;
+}
+
+// Typing Indicator
+function showTyping() { document.getElementById('typing-indicator').classList.remove('hidden'); document.getElementById('chat-history').scrollTop = 9999; }
+function hideTyping() { document.getElementById('typing-indicator').classList.add('hidden'); }
+
+// Voice Synthesis (Web API)
+function speakText(text) {
+    if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel(); // Stop previous
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.rate = 1; utterance.pitch = 1;
+        window.speechSynthesis.speak(utterance);
+    } else {
+        alert("Voice synthesis not supported on this browser.");
+    }
+}
+
+async function sendMessage() { 
+    if(isProcessing) return; 
+    const input = document.getElementById('chat-input'); 
+    const msg = input.value.trim(); 
+    if(!msg && !activeMediaFile && !activeAudioFile) return; 
+    
+    appendMsg(msg || "[Media Transmitting...]", 'user'); 
+    input.value=''; 
+    isProcessing=true; 
+    
+    // Show Typing Dots
+    showTyping();
+
+    const formData = new FormData(); 
+    formData.append('message', msg); 
+    formData.append('mode', currentMode); 
+    if(activeMediaFile) formData.append('media', activeMediaFile); 
+    if(activeAudioFile) formData.append('audio', activeAudioFile); 
+    
+    try { 
+        const res = await fetch('/api/process', { method:'POST', body: formData }); 
+        const data = await res.json(); 
+        
+        hideTyping(); // Hide dots
+        appendMsg(data.reply, 'ai'); // Add message with Markdown & Speak btn
+        
+        if(data.command === 'daily_reward' || data.command === 'level_up') spawnStardust(); 
+        if(data.command === 'switch_to_void') setTimeout(()=>openChat('rant'), 1000); 
+        
+        activeMediaFile = null; activeAudioFile = null; 
+        document.getElementById('chat-input').placeholder = "Signal..."; 
+        await loadData(); 
+    } catch(e) { 
+        hideTyping(); 
+        appendMsg("Transmission failed.", 'ai'); 
+    } 
+    isProcessing=false; 
+}
+
+function appendMsg(txt, sender) { 
+    const div = document.createElement('div'); 
+    div.className = `msg msg-${sender}`; 
+    
+    // Apply Markdown parsing
+    div.innerHTML = parseMarkdown(txt); 
+    
+    // Add Voice Button for AI messages
+    if (sender === 'ai') {
+        const btn = document.createElement('span');
+        btn.className = 'voice-play-btn';
+        btn.innerHTML = ICON_SPEAK; // Use SVG
+        // Strip markdown before speaking
+        const cleanText = txt.replace(/\*\*/g, '').replace(/\*/g, '');
+        btn.onclick = () => speakText(cleanText);
+        div.appendChild(btn);
+    }
+
+    // Insert before the typing indicator
+    const history = document.getElementById('chat-history');
+    const indicator = document.getElementById('typing-indicator');
+    history.insertBefore(div, indicator);
+    history.scrollTop = 9999; 
+}
+
 function openArchive(id) { const modal = document.getElementById('archive-modal'); modal.classList.add('active'); fetch('/api/star_detail', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({id})}).then(r=>r.json()).then(d=>{ document.getElementById('archive-date').innerText = d.date; document.getElementById('archive-analysis').innerText = d.analysis || "Analysis corrupted."; const imgContainer = document.getElementById('archive-image-container'); if(d.image_url) { imgContainer.classList.remove('hidden'); document.getElementById('archive-image').src = d.image_url; } else { imgContainer.classList.add('hidden'); } const audioContainer = document.getElementById('archive-audio-container'); const audioEl = document.getElementById('archive-audio'); if(d.audio_url) { audioContainer.classList.remove('hidden'); audioEl.src = d.audio_url; } else { audioContainer.classList.add('hidden'); } }); }
-function appendMsg(txt, sender) { const div = document.createElement('div'); div.className = `msg msg-${sender}`; div.innerText = txt; document.getElementById('chat-history').appendChild(div); document.getElementById('chat-history').scrollTop = 9999; }
 function openChat(mode) { currentMode = mode; SonicAtmosphere.playMode(mode); document.getElementById('chat-overlay').classList.add('active'); const w = document.getElementById('chat-modal-window'); w.className = `chat-window origin-${mode === 'rant' ? 'void' : 'ai'}`; document.getElementById('chat-header-title').innerText = mode === 'rant' ? "THE VOID" : "CELI AI"; renderChatHistory(fullChatHistory); }
 function closeChat() { document.getElementById('chat-overlay').classList.remove('active'); SonicAtmosphere.playMode('journal'); }
 function openModal(id) { document.getElementById(id).style.display='flex'; }
@@ -158,6 +230,20 @@ function closeArchive() { document.getElementById('archive-modal').classList.rem
 function spawnStardust() { const s=document.getElementById('nav-pfp').getBoundingClientRect(); const t=document.getElementById('rank-progress-bar').getBoundingClientRect(); const pfp=document.getElementById('nav-pfp'); pfp.classList.remove('pulse-anim'); void pfp.offsetWidth; pfp.classList.add('pulse-anim'); for(let i=0;i<8;i++){ setTimeout(()=>{ const p=document.createElement('div'); p.className='stardust-particle'; p.style.left=(s.left+s.width/2)+'px'; p.style.top=(s.top+s.height/2)+'px'; document.body.appendChild(p); const tx=t.left+Math.random()*t.width; const ty=t.top+t.height/2; p.animate([{transform:'translate(0,0) scale(1)',opacity:1},{transform:`translate(${tx-parseFloat(p.style.left)}px, ${ty-parseFloat(p.style.top)}px) scale(0.5)`,opacity:0}],{duration:800+Math.random()*400,easing:'cubic-bezier(0.25,1,0.5,1)'}).onfinish=()=>p.remove(); },i*100); } }
 function renderCalendar() { const g=document.getElementById('cal-grid'); g.innerHTML=''; const m=currentCalendarDate.getMonth(); const y=currentCalendarDate.getFullYear(); document.getElementById('cal-month-year').innerText=new Date(y,m).toLocaleString('default',{month:'long',year:'numeric'}); ["S","M","T","W","T","F","S"].forEach(d=>g.innerHTML+=`<div>${d}</div>`); const days=new Date(y,m+1,0).getDate(); const f=new Date(y,m,1).getDay(); for(let i=0;i<f;i++)g.innerHTML+=`<div></div>`; for(let i=1;i<=days;i++){ const d=document.createElement('div'); d.className='cal-day'; d.innerText=i; if(userHistoryDates.includes(`${y}-${String(m+1).padStart(2,'0')}-${String(i).padStart(2,'0')}`)) d.classList.add('has-entry'); g.appendChild(d); } }
 function changeMonth(d) { currentCalendarDate.setMonth(currentCalendarDate.getMonth()+d); renderCalendar(); }
-function renderChatHistory(h) { const c = document.getElementById('chat-history'); c.innerHTML=''; Object.keys(h).sort().slice(-50).forEach(k => { appendMsg(h[k].summary||"Entry", 'user'); appendMsg(h[k].reply, 'ai'); }); }
+function renderChatHistory(h) { 
+    const c = document.getElementById('chat-history'); 
+    // KEEP TYPING INDICATOR AT BOTTOM
+    const indicator = document.getElementById('typing-indicator');
+    
+    // Clear everything BUT indicator
+    Array.from(c.children).forEach(child => {
+        if(child.id !== 'typing-indicator') c.removeChild(child);
+    });
+
+    Object.keys(h).sort().slice(-50).forEach(k => { 
+        appendMsg(h[k].summary||"Entry", 'user'); 
+        appendMsg(h[k].reply, 'ai'); 
+    }); 
+}
 async function clearMemory() { openModal('delete-confirm-modal'); }
 window.onload = loadData;
