@@ -77,18 +77,15 @@ async function loadData() {
         
         globalRankTree = data.progression_tree; currentLockIcon = data.progression_tree.lock_icon; 
         
-        // V9.0: Added "!" to greeting
         document.getElementById('greeting-text').innerText = `Good Day, ${data.first_name}!`; 
-        
-        // Rank Data
         document.getElementById('rank-display').innerText = data.rank; 
         document.getElementById('rank-psyche').innerText = data.rank_psyche; 
         document.getElementById('rank-progress-bar').style.width = `${data.rank_progress}%`; 
-        
-        // V9.0: Stardust Positioned Top Right of Bar (e.g. 150/500 SD)
         document.getElementById('stardust-cnt').innerText = `${data.stardust_current}/${data.stardust_max} SD`; 
         
         document.getElementById('pfp-img').src = data.profile_pic || ''; 
+        
+        // --- RESTORED RANK COLORS ---
         document.documentElement.style.setProperty('--mood', data.current_color); 
 
         document.getElementById('main-rank-icon').innerHTML = data.current_svg; 
@@ -97,8 +94,10 @@ async function loadData() {
         document.getElementById('profile-id').innerText = data.username; 
         document.getElementById('profile-color-text').innerText = data.aura_color; 
         
+        // --- AURA DOT FALLBACK ---
         const dot = document.getElementById('profile-color-dot');
         dot.style.backgroundColor = data.aura_color;
+        // If the color isn't valid, it shows as empty. Fallback to rank color.
         if (!data.aura_color || dot.style.backgroundColor === '') {
              dot.style.backgroundColor = data.current_color;
         }
@@ -118,42 +117,119 @@ async function loadData() {
 }
 
 async function handlePfpUpload() { const input = document.getElementById('pfp-upload-input'); if(input.files && input.files[0]) { const formData = new FormData(); formData.append('pfp', input.files[0]); const res = await fetch('/api/update_pfp', { method: 'POST', body: formData }); const data = await res.json(); if(data.status === 'success') { document.getElementById('pfp-img').src = data.url; document.getElementById('profile-pfp-large').src = data.url; } } }
-function showStatus(success, msg) { document.getElementById('status-icon').innerHTML = success ? ICON_SUCCESS : ICON_ERROR; document.getElementById('status-title').innerText = success ? "Success" : "Error"; document.getElementById('status-msg').innerText = msg; openModal('status-modal'); }
+
+// UPDATED STATUS FUNCTION (SVG)
+function showStatus(success, msg) {
+    document.getElementById('status-icon').innerHTML = success ? ICON_SUCCESS : ICON_ERROR; 
+    document.getElementById('status-title').innerText = success ? "Success" : "Error";
+    document.getElementById('status-msg').innerText = msg;
+    openModal('status-modal');
+}
+
 function askUpdateInfo() { openModal('info-confirm-modal'); }
-async function confirmUpdateInfo() { const btn = document.getElementById('btn-confirm-info'); const originalText = "Confirm"; btn.innerHTML = '<span class="spinner"></span>'; btn.disabled = true; const body = { first_name: document.getElementById('edit-fname').value, last_name: document.getElementById('edit-lname').value, aura_color: document.getElementById('edit-color').value }; try { const res = await fetch('/api/update_profile', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) }); const data = await res.json(); if(data.status === 'success') { closeModal('info-confirm-modal'); closeModal('edit-info-modal'); showStatus(true, "Profile Updated"); loadData(); } else { showStatus(false, data.message); } } catch(e) { showStatus(false, "Connection Failed"); } btn.innerHTML = originalText; btn.disabled = false; }
+
+async function confirmUpdateInfo() {
+    const btn = document.getElementById('btn-confirm-info'); const originalText = "Confirm"; btn.innerHTML = '<span class="spinner"></span>'; btn.disabled = true;
+    const body = { first_name: document.getElementById('edit-fname').value, last_name: document.getElementById('edit-lname').value, aura_color: document.getElementById('edit-color').value };
+    try {
+        const res = await fetch('/api/update_profile', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) });
+        const data = await res.json();
+        if(data.status === 'success') { 
+            closeModal('info-confirm-modal'); closeModal('edit-info-modal'); 
+            showStatus(true, "Profile Updated"); 
+            loadData(); 
+        } else { showStatus(false, data.message); }
+    } catch(e) { showStatus(false, "Connection Failed"); }
+    btn.innerHTML = originalText; btn.disabled = false;
+}
+
 async function updateSecurity(type) { let body = {}; const btn = type === 'pass' ? document.getElementById('btn-update-pass') : document.getElementById('btn-update-secret'); const originalText = "Update"; btn.innerHTML = '<span class="spinner"></span> Loading...'; btn.disabled = true; if(type === 'pass') { const p1 = document.getElementById('new-pass-input').value; const p2 = document.getElementById('confirm-pass-input').value; if(p1 !== p2) { document.getElementById('new-pass-input').classList.add('input-error'); document.getElementById('confirm-pass-input').classList.add('input-error'); setTimeout(()=>{ document.getElementById('new-pass-input').classList.remove('input-error'); document.getElementById('confirm-pass-input').classList.remove('input-error'); }, 500); btn.innerHTML=originalText; btn.disabled=false; return; } body = { new_password: p1 }; } else { const q = document.getElementById('new-secret-q').value; if(!q) { showStatus(false, "Select a Question"); btn.innerHTML=originalText; btn.disabled=false; return; } body = { new_secret_q: q, new_secret_a: document.getElementById('new-secret-a').value }; } try { const res = await fetch('/api/update_security', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) }); const data = await res.json(); if(data.status === 'success') { closeModal('change-pass-modal'); closeModal('change-secret-modal'); showStatus(true, "Security details updated."); loadData(); } else { showStatus(false, data.message); } } catch(e) { showStatus(false, "Connection Failed"); } btn.innerHTML = originalText; btn.disabled = false; }
 async function performWipe() { const btn = document.querySelector('#delete-confirm-modal button.bg-red-500'); const originalText = btn.innerText; btn.innerText = "Deleting..."; btn.disabled = true; try { const res = await fetch('/api/clear_history', { method: 'POST' }); const data = await res.json(); if (data.status === 'success') { window.location.href = '/login'; } else { alert("Error: " + data.message); btn.innerText = originalText; btn.disabled = false; } } catch (e) { alert("Connection failed."); btn.innerText = originalText; btn.disabled = false; } }
-function openRanksModal() { if (!globalRankTree) return; const list = document.getElementById('ranks-list-container'); list.innerHTML = ''; const modal = document.getElementById('ranks-modal'); modal.classList.add('active'); document.getElementById('modal-rank-icon').innerHTML = document.getElementById('main-rank-icon').innerHTML; document.getElementById('modal-rank-name').innerText = document.getElementById('rank-display').innerText; document.getElementById('modal-stars').innerHTML = getStarsHTML(document.getElementById('rank-display').innerText); document.getElementById('modal-progress-bar').style.width = document.getElementById('rank-progress-bar').style.width; document.getElementById('modal-sd-text').innerText = document.getElementById('stardust-cnt').innerText; const currentUserRankIndex = globalRankTree.ranks.findIndex(r => r.title === document.getElementById('rank-display').innerText); globalRankTree.ranks.forEach((rank, index) => { const isUnlocked = index <= currentUserRankIndex; const isNext = index === currentUserRankIndex + 1; const row = document.createElement('div'); row.className = `rank-row ${!isUnlocked && !isNext ? 'locked' : ''} ${index === currentUserRankIndex ? 'active' : ''}`; let iconHtml = isUnlocked ? rank.svg : currentLockIcon; let statusText = rank.desc; if(isNext) statusText = `Unlock: ${rank.req} SD`; if(index > currentUserRankIndex + 1) statusText = "Locked"; row.innerHTML = `<div class="rank-row-icon" style="color: ${isUnlocked ? rank.color : '#555'}">${iconHtml}</div><div class="flex-1"><div class="flex justify-between items-center"><span class="font-bold text-sm" style="color: ${isUnlocked ? '#fff' : '#777'}">${rank.title}</span>${index === currentUserRankIndex ? `<span class="text-[10px] bg-white/10 px-2 rounded text-[${rank.color}]">CURRENT</span>` : ''}</div><div class="text-[10px] opacity-60 font-mono tracking-wide">${statusText}</div></div>`; list.appendChild(row); }); setTimeout(() => { const active = list.querySelector('.active'); if(active) active.scrollIntoView({behavior: 'smooth', block: 'center'}); }, 100); }
+
+// --- RANK TREE LOGIC (V9.1) ---
+function openRanksModal() { 
+    if (!globalRankTree) return; 
+    
+    const container = document.getElementById('ranks-list-container'); 
+    container.innerHTML = ''; 
+    container.className = 'tree-container'; 
+    
+    const modal = document.getElementById('ranks-modal'); 
+    modal.classList.add('active'); 
+    
+    document.getElementById('modal-rank-icon').innerHTML = document.getElementById('main-rank-icon').innerHTML; 
+    document.getElementById('modal-rank-name').innerText = document.getElementById('rank-display').innerText; 
+    document.getElementById('modal-stars').innerHTML = getStarsHTML(document.getElementById('rank-display').innerText); 
+    document.getElementById('modal-progress-bar').style.width = document.getElementById('rank-progress-bar').style.width; 
+    document.getElementById('modal-sd-text').innerText = document.getElementById('stardust-cnt').innerText; 
+    
+    const currentIndex = globalRankTree.ranks.findIndex(r => r.title === document.getElementById('rank-display').innerText); 
+    
+    const line = document.createElement('div');
+    line.className = 'tree-line';
+    container.appendChild(line);
+
+    const activeLine = document.createElement('div');
+    activeLine.className = 'tree-line-active';
+    activeLine.style.height = `${currentIndex * 82}px`; 
+    container.appendChild(activeLine);
+
+    globalRankTree.ranks.forEach((rank, index) => { 
+        const isUnlocked = index <= currentIndex; 
+        const isCurrent = index === currentIndex; 
+        const isNext = index === currentIndex + 1; 
+        
+        const row = document.createElement('div'); 
+        row.className = `tree-row ${isCurrent ? 'current' : ''} ${isUnlocked ? 'unlocked' : ''}`;
+        
+        let iconHtml = isUnlocked ? rank.svg : currentLockIcon; 
+        let statusText = rank.desc; 
+        if(isNext) statusText = `Next Goal: ${rank.req} SD`; 
+        if(index > currentIndex + 1) statusText = "Locked"; 
+        if(isCurrent) statusText = "Current Status";
+
+        row.innerHTML = `
+            <div class="tree-icon">${iconHtml}</div>
+            <div class="tree-card">
+                <div class="tree-title">${rank.title}</div>
+                <div class="tree-desc">${statusText}</div>
+            </div>
+        `; 
+        container.appendChild(row); 
+    }); 
+    
+    setTimeout(() => { 
+        const active = container.querySelector('.current'); 
+        if(active) active.scrollIntoView({behavior: 'smooth', block: 'center'}); 
+    }, 100); 
+}
+
 function getStarsHTML(rankTitle) { let count = 0; if (rankTitle.includes("VI")) count = 6; else if (rankTitle.includes("IV")) count = 4; else if (rankTitle.includes("V")) count = 5; else if (rankTitle.includes("III")) count = 3; else if (rankTitle.includes("II")) count = 2; else if (rankTitle.includes("I")) count = 1; if(rankTitle.includes("Ethereal") && count > 5) count = 5; return Array(count).fill(STAR_SVG).join(''); }
 function handleFileSelect() { const input = document.getElementById('img-upload'); if(input.files && input.files[0]) { activeMediaFile = input.files[0]; document.getElementById('chat-input').placeholder = "Image attached. Add context..."; } }
 function handleAudioSelect() { const input = document.getElementById('audio-upload'); if(input.files && input.files[0]) { activeAudioFile = input.files[0]; document.getElementById('chat-input').placeholder = "Audio attached. Transmitting..."; sendMessage(); } }
 function toggleMic() { document.getElementById('audio-upload').click(); }
 
-// --- CHAT & INTERACTION LOGIC (V9.0) ---
-
-// Markdown Parser
+// --- CHAT LOGIC ---
 function parseMarkdown(text) {
     if (!text) return "";
     let html = text
-        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') // Bold
-        .replace(/\*(.*?)\*/g, '<em>$1</em>') // Italics
-        .replace(/\n/g, '<br>'); // Line Breaks
+        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+        .replace(/\*(.*?)\*/g, '<em>$1</em>')
+        .replace(/\n/g, '<br>');
     return html;
 }
 
-// Typing Indicator
 function showTyping() { document.getElementById('typing-indicator').classList.remove('hidden'); document.getElementById('chat-history').scrollTop = 9999; }
 function hideTyping() { document.getElementById('typing-indicator').classList.add('hidden'); }
 
-// Voice Synthesis (Web API)
 function speakText(text) {
     if ('speechSynthesis' in window) {
-        window.speechSynthesis.cancel(); // Stop previous
+        window.speechSynthesis.cancel();
         const utterance = new SpeechSynthesisUtterance(text);
         utterance.rate = 1; utterance.pitch = 1;
         window.speechSynthesis.speak(utterance);
     } else {
-        alert("Voice synthesis not supported on this browser.");
+        alert("Voice synthesis not supported.");
     }
 }
 
@@ -166,8 +242,6 @@ async function sendMessage() {
     appendMsg(msg || "[Media Transmitting...]", 'user'); 
     input.value=''; 
     isProcessing=true; 
-    
-    // Show Typing Dots
     showTyping();
 
     const formData = new FormData(); 
@@ -179,13 +253,10 @@ async function sendMessage() {
     try { 
         const res = await fetch('/api/process', { method:'POST', body: formData }); 
         const data = await res.json(); 
-        
-        hideTyping(); // Hide dots
-        appendMsg(data.reply, 'ai'); // Add message with Markdown & Speak btn
-        
+        hideTyping(); 
+        appendMsg(data.reply, 'ai'); 
         if(data.command === 'daily_reward' || data.command === 'level_up') spawnStardust(); 
         if(data.command === 'switch_to_void') setTimeout(()=>openChat('rant'), 1000); 
-        
         activeMediaFile = null; activeAudioFile = null; 
         document.getElementById('chat-input').placeholder = "Signal..."; 
         await loadData(); 
@@ -199,22 +270,15 @@ async function sendMessage() {
 function appendMsg(txt, sender) { 
     const div = document.createElement('div'); 
     div.className = `msg msg-${sender}`; 
-    
-    // Apply Markdown parsing
     div.innerHTML = parseMarkdown(txt); 
-    
-    // Add Voice Button for AI messages
     if (sender === 'ai') {
         const btn = document.createElement('span');
         btn.className = 'voice-play-btn';
-        btn.innerHTML = ICON_SPEAK; // Use SVG
-        // Strip markdown before speaking
+        btn.innerHTML = ICON_SPEAK;
         const cleanText = txt.replace(/\*\*/g, '').replace(/\*/g, '');
         btn.onclick = () => speakText(cleanText);
         div.appendChild(btn);
     }
-
-    // Insert before the typing indicator
     const history = document.getElementById('chat-history');
     const indicator = document.getElementById('typing-indicator');
     history.insertBefore(div, indicator);
@@ -232,18 +296,9 @@ function renderCalendar() { const g=document.getElementById('cal-grid'); g.inner
 function changeMonth(d) { currentCalendarDate.setMonth(currentCalendarDate.getMonth()+d); renderCalendar(); }
 function renderChatHistory(h) { 
     const c = document.getElementById('chat-history'); 
-    // KEEP TYPING INDICATOR AT BOTTOM
     const indicator = document.getElementById('typing-indicator');
-    
-    // Clear everything BUT indicator
-    Array.from(c.children).forEach(child => {
-        if(child.id !== 'typing-indicator') c.removeChild(child);
-    });
-
-    Object.keys(h).sort().slice(-50).forEach(k => { 
-        appendMsg(h[k].summary||"Entry", 'user'); 
-        appendMsg(h[k].reply, 'ai'); 
-    }); 
+    Array.from(c.children).forEach(child => { if(child.id !== 'typing-indicator') c.removeChild(child); });
+    Object.keys(h).sort().slice(-50).forEach(k => { appendMsg(h[k].summary||"Entry", 'user'); appendMsg(h[k].reply, 'ai'); }); 
 }
 async function clearMemory() { openModal('delete-confirm-modal'); }
 window.onload = loadData;
