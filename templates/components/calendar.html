@@ -12,13 +12,12 @@
 
     <div id="cal-picker" class="cal-picker">
         <div class="picker-header-row">
-            <span class="text-xs font-bold uppercase tracking-widest opacity-50">Select Date</span>
-            <button class="picker-close-btn" onclick="toggleDatePicker()">✕</button>
-        </div>
+            <div class="picker-year-header-btn" onclick="toggleYearMode()">
+                <span id="picker-year-text" class="text-xl font-black tracking-wide">2026</span>
+                <svg class="w-4 h-4 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+            </div>
 
-        <div class="picker-year-display" onclick="toggleYearMode()">
-            <span id="picker-year-text">2026</span>
-            <svg class="w-4 h-4 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+            <button class="picker-close-btn" onclick="toggleDatePicker()">✕</button>
         </div>
 
         <div id="picker-months-container" class="picker-grid active">
