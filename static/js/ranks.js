@@ -13,12 +13,11 @@ const PHASE_MAP = {
     "Ethereal": "Phase IV: Transcendence"
 };
 
-// V11.4: Define Colors for the side-lines
 const PHASE_COLORS = {
-    "Phase I: Awakening": "#00f2fe",      // Cyan (Base Mood)
-    "Phase II: Ascension": "#8b5cf6",     // Violet
-    "Phase III: Expansion": "#ec4899",    // Pink/Magenta
-    "Phase IV: Transcendence": "#f59e0b"  // Gold/Amber
+    "Phase I: Awakening": "#00f2fe",      
+    "Phase II: Ascension": "#8b5cf6",     
+    "Phase III: Expansion": "#ec4899",    
+    "Phase IV: Transcendence": "#f59e0b"  
 };
 
 const DEFAULT_PHASE = "Unknown Phase";
@@ -34,7 +33,6 @@ function openRanksModal() {
     modal.style.display = 'flex'; 
     setTimeout(() => modal.classList.add('active'), 10); 
     
-    // Header Population
     document.getElementById('modal-rank-icon').innerHTML = document.getElementById('main-rank-icon').innerHTML; 
     document.getElementById('modal-rank-name').innerText = document.getElementById('rank-display').innerText; 
     document.getElementById('modal-psyche-display').innerText = document.getElementById('rank-psyche').innerText;
@@ -53,7 +51,6 @@ function openRanksModal() {
         document.getElementById('modal-synth-text').innerText = flatList[0].desc;
     }
 
-    // Grouping Logic
     const groupedRanks = {}; 
     const orderedKeys = [];
 
@@ -82,29 +79,21 @@ function openRanksModal() {
         });
     });
 
-    // Render Loop
     let lastRenderedPhase = "";
 
     orderedKeys.forEach(key => {
         const group = groupedRanks[key];
         
-        // 1. Insert Phase Header with Dynamic Color
         if (group.phase !== lastRenderedPhase) {
             const phaseEl = document.createElement('div');
             phaseEl.className = 'phase-header';
             phaseEl.innerText = group.phase;
-            
-            // V11.4: Apply Color to Border
             const phaseColor = PHASE_COLORS[group.phase] || "var(--mood)";
             phaseEl.style.borderLeftColor = phaseColor;
-            // Optional: Also tint the text slightly to match?
-            // phaseEl.style.color = phaseColor; 
-            
             container.appendChild(phaseEl);
             lastRenderedPhase = group.phase;
         }
 
-        // 2. Render Accordion Group
         const groupEl = document.createElement('div');
         groupEl.className = `rank-group ${group.isActiveGroup ? 'open active' : ''}`;
         
@@ -140,9 +129,18 @@ function openRanksModal() {
             if (sub.isCurrent) status = "Current Status";
             else if (!sub.isUnlocked) status = "Locked";
 
+            // V11.6: Only show Psyche if unlocked
+            // Note: We check if 'psyche' exists in the data, defaulting to empty string
+            const psycheHtml = sub.isUnlocked && sub.psyche 
+                ? `<span class="sub-psyche">- ${sub.psyche}</span>` 
+                : '';
+
             node.innerHTML = `
                 <div class="flex-1">
-                    <div class="sub-title">${sub.title}</div>
+                    <div class="sub-title">
+                        ${sub.title}
+                        ${psycheHtml}
+                    </div>
                     <div class="sub-desc">${status}</div>
                 </div>
                 ${sub.isUnlocked ? '<div class="text-[var(--mood)]">✔</div>' : '<div class="opacity-30">🔒</div>'}
