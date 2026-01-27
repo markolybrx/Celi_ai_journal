@@ -139,7 +139,7 @@ async function confirmUpdateInfo() { const btn = document.getElementById('btn-co
 async function updateSecurity(type) { let body = {}; const btn = type === 'pass' ? document.getElementById('btn-update-pass') : document.getElementById('btn-update-secret'); const originalText = "Update"; btn.innerHTML = '<span class="spinner"></span> Loading...'; btn.disabled = true; if(type === 'pass') { const p1 = document.getElementById('new-pass-input').value; const p2 = document.getElementById('confirm-pass-input').value; if(p1 !== p2) { document.getElementById('new-pass-input').classList.add('input-error'); document.getElementById('confirm-pass-input').classList.add('input-error'); setTimeout(()=>{ document.getElementById('new-pass-input').classList.remove('input-error'); document.getElementById('confirm-pass-input').classList.remove('input-error'); }, 500); btn.innerHTML=originalText; btn.disabled=false; return; } body = { new_password: p1 }; } else { const q = document.getElementById('new-secret-q').value; if(!q) { showStatus(false, "Select a Question"); btn.innerHTML=originalText; btn.disabled=false; return; } body = { new_secret_q: q, new_secret_a: document.getElementById('new-secret-a').value }; } try { const res = await fetch('/api/update_security', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) }); const data = await res.json(); if(data.status === 'success') { closeModal('change-pass-modal'); closeModal('change-secret-modal'); showStatus(true, "Security details updated."); loadData(); } else { showStatus(false, data.message); } } catch(e) { showStatus(false, "Connection Failed"); } btn.innerHTML = originalText; btn.disabled = false; }
 async function performWipe() { const btn = document.querySelector('#delete-confirm-modal button.bg-red-500'); const originalText = btn.innerText; btn.innerText = "Deleting..."; btn.disabled = true; try { const res = await fetch('/api/clear_history', { method: 'POST' }); const data = await res.json(); if (data.status === 'success') { window.location.href = '/login'; } else { alert("Error: " + data.message); btn.innerText = originalText; btn.disabled = false; } } catch (e) { alert("Connection failed."); btn.innerText = originalText; btn.disabled = false; } }
 
-// --- RANK MODAL LOGIC (V9.7 FIXED: Normalization & Scroll) ---
+// --- RANK MODAL LOGIC (V9.8 FIXED) ---
 function openRanksModal() { 
     if (!globalRankTree) return; 
     
@@ -157,7 +157,7 @@ function openRanksModal() {
     document.getElementById('modal-progress-bar').style.width = document.getElementById('rank-progress-bar').style.width; 
     document.getElementById('modal-sd-text').innerText = document.getElementById('stardust-cnt').innerText; 
     
-    // Normalization helper to avoid "Observer II" !== "OBSERVER II" bugs
+    // Normalization helper
     const normalize = (s) => s.toLowerCase().replace(/[^a-z0-9]/g, '');
     
     const currentTitleRaw = document.getElementById('rank-display').innerText;
@@ -167,11 +167,10 @@ function openRanksModal() {
     // Find index using normalized titles
     const currentFlatIndex = flatList.findIndex(r => normalize(r.title) === currentTitleNorm);
 
-    // Synthesis Injection: Use the description of the *current* rank
+    // Synthesis Injection
     if(currentFlatIndex !== -1) {
         document.getElementById('modal-synth-text').innerText = flatList[currentFlatIndex].desc;
     } else {
-        // Fallback: If not found, use the last unlocked one or first
         document.getElementById('modal-synth-text').innerText = flatList[0].desc;
     }
 
@@ -183,7 +182,6 @@ function openRanksModal() {
             groupedRanks[mainName] = { name: mainName, subRanks: [], isActiveGroup: false };
         }
         
-        // Accurate current check
         const isCurrentNode = (index === currentFlatIndex);
         if (isCurrentNode) groupedRanks[mainName].isActiveGroup = true;
 
@@ -191,7 +189,6 @@ function openRanksModal() {
             ...rank,
             globalIndex: index,
             isCurrent: isCurrentNode,
-            // Logic Fix: Comparison based on INDEX not string matching
             isUnlocked: index <= currentFlatIndex
         });
     });
@@ -206,7 +203,6 @@ function openRanksModal() {
         header.onclick = () => {
             document.querySelectorAll('.rank-group').forEach(el => { if (el !== groupEl) el.classList.remove('open'); });
             groupEl.classList.toggle('open');
-            // Auto scroll to opened item
             setTimeout(() => groupEl.scrollIntoView({behavior: 'smooth', block: 'center'}), 300);
         };
         groupEl.appendChild(header);
