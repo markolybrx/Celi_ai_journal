@@ -1,0 +1,13 @@
+<div id="archive-modal" class="modal-overlay">
+    <div class="chat-window origin-center" style="height: 60vh; background: var(--card-bg); border: 1px solid var(--border);">
+        <div class="chat-header"><span id="archive-date" class="font-mono text-xs opacity-50 tracking-widest">ARCHIVE</span><div onclick="closeArchive()" class="cursor-pointer">✕</div></div>
+        <div class="p-6 overflow-y-auto flex flex-col gap-4 items-center">
+            <div id="archive-image-container" class="w-full rounded-xl overflow-hidden hidden"><img id="archive-image" class="w-full object-cover"></div>
+            <div id="archive-audio-container" class="w-full hidden"><audio id="archive-audio" controls class="w-full"></audio></div>
+            <h3 class="text-xs font-bold uppercase tracking-widest text-[var(--mood)] w-full text-center">Soul Synthesis</h3>
+            <p id="archive-analysis" class="text-sm italic text-theme-muted leading-relaxed text-center"></p>
+            <div class="w-full h-px bg-white/10 my-2"></div>
+            <div class="w-full text-[9px] text-center opacity-30 uppercase">Recorded Memory</div>
+        </div>
+    </div>
+</div>
