@@ -1,7 +1,6 @@
 // --- DATA & CALENDAR LOGIC ---
 
-// Picker State
-let pickerDate = new Date(); // Internal date for the picker before confirming
+let pickerDate = new Date();
 let selectedMonthIdx = 0;
 
 async function loadData() { 
@@ -37,29 +36,52 @@ async function loadData() {
         document.getElementById('theme-btn').innerText = document.documentElement.getAttribute('data-theme') === 'light' ? 'Light' : 'Dark';
         
         if(data.history) fullChatHistory = data.history; 
-        userHistoryDates = Object.values(data.history).map(e=>e.date); 
+        userHistoryDates = Object.values(data.history).map(e=>e.date);
+        
+        // --- HUMANIZED ECHO LOGIC ---
+        const historyKeys = Object.keys(fullChatHistory).sort();
+        if (historyKeys.length > 0) {
+            const lastKey = historyKeys[historyKeys.length - 1];
+            const lastEntry = fullChatHistory[lastKey];
+            
+            // Prefer summary, fallback to user message
+            let conversationText = "";
+            
+            if (lastEntry.summary) {
+                // If backend provides a summary: "You mentioned [summary]..."
+                conversationText = `You mentioned ${lastEntry.summary.toLowerCase()}... How is that going?`;
+            } else {
+                // Fallback to raw text: "We talked about..."
+                const raw = lastEntry.user_msg || "something on your mind";
+                const snippet = raw.length > 50 ? raw.substring(0, 50) + "..." : raw;
+                conversationText = `We talked about "${snippet}". Want to continue?`;
+            }
+            
+            // Clean markdown if any
+            conversationText = conversationText.replace(/\*\*/g, '').replace(/\*/g, '');
+            
+            document.getElementById('echo-text').innerText = conversationText;
+            document.getElementById('echo-date').innerText = lastEntry.date;
+        }
+
         renderCalendar(); 
     } catch(e) { console.error(e); } 
 }
 
-// ... (PFP Upload, Update Info, Security functions remain unchanged from previous v11.2) ...
 async function handlePfpUpload() { const input = document.getElementById('pfp-upload-input'); if(input.files && input.files[0]) { const formData = new FormData(); formData.append('pfp', input.files[0]); const res = await fetch('/api/update_pfp', { method: 'POST', body: formData }); const data = await res.json(); if(data.status === 'success') { document.getElementById('pfp-img').src = data.url; document.getElementById('profile-pfp-large').src = data.url; } } }
 function askUpdateInfo() { openModal('info-confirm-modal'); }
 async function confirmUpdateInfo() { const btn = document.getElementById('btn-confirm-info'); const originalText = "Confirm"; btn.innerHTML = '<span class="spinner"></span>'; btn.disabled = true; const body = { first_name: document.getElementById('edit-fname').value, last_name: document.getElementById('edit-lname').value, aura_color: document.getElementById('edit-color').value }; try { const res = await fetch('/api/update_profile', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) }); const data = await res.json(); if(data.status === 'success') { closeModal('info-confirm-modal'); closeModal('edit-info-modal'); showStatus(true, "Profile Updated"); loadData(); } else { showStatus(false, data.message); } } catch(e) { showStatus(false, "Connection Failed"); } btn.innerHTML = originalText; btn.disabled = false; }
 async function updateSecurity(type) { let body = {}; const btn = type === 'pass' ? document.getElementById('btn-update-pass') : document.getElementById('btn-update-secret'); const originalText = "Update"; btn.innerHTML = '<span class="spinner"></span> Loading...'; btn.disabled = true; if(type === 'pass') { const p1 = document.getElementById('new-pass-input').value; const p2 = document.getElementById('confirm-pass-input').value; if(p1 !== p2) { document.getElementById('new-pass-input').classList.add('input-error'); document.getElementById('confirm-pass-input').classList.add('input-error'); setTimeout(()=>{ document.getElementById('new-pass-input').classList.remove('input-error'); document.getElementById('confirm-pass-input').classList.remove('input-error'); }, 500); btn.innerHTML=originalText; btn.disabled=false; return; } body = { new_password: p1 }; } else { const q = document.getElementById('new-secret-q').value; if(!q) { showStatus(false, "Select a Question"); btn.innerHTML=originalText; btn.disabled=false; return; } body = { new_secret_q: q, new_secret_a: document.getElementById('new-secret-a').value }; } try { const res = await fetch('/api/update_security', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) }); const data = await res.json(); if(data.status === 'success') { closeModal('change-pass-modal'); closeModal('change-secret-modal'); showStatus(true, "Security details updated."); loadData(); } else { showStatus(false, data.message); } } catch(e) { showStatus(false, "Connection Failed"); } btn.innerHTML = originalText; btn.disabled = false; }
 async function performWipe() { const btn = document.querySelector('#delete-confirm-modal button.bg-red-500'); const originalText = btn.innerText; btn.innerText = "Deleting..."; btn.disabled = true; try { const res = await fetch('/api/clear_history', { method: 'POST' }); const data = await res.json(); if (data.status === 'success') { window.location.href = '/login'; } else { alert("Error: " + data.message); btn.innerText = originalText; btn.disabled = false; } } catch (e) { alert("Connection failed."); btn.innerText = originalText; btn.disabled = false; } }
 
-// --- CALENDAR RENDERER ---
 function renderCalendar() { 
     const g = document.getElementById('cal-grid'); 
     g.innerHTML = ''; 
     const m = currentCalendarDate.getMonth(); 
     const y = currentCalendarDate.getFullYear(); 
     
-    // Update Header
     document.getElementById('cal-month-year').innerText = new Date(y,m).toLocaleString('default',{month:'long', year:'numeric'}); 
     
-    // Show "Return to Today" button if we are not in current month/year
     const now = new Date();
     const isCurrent = (now.getMonth() === m && now.getFullYear() === y);
     const todayBtn = document.getElementById('cal-today-btn');
@@ -68,25 +90,20 @@ function renderCalendar() {
         else todayBtn.classList.add('hidden');
     }
 
-    // Days Header
     ["S","M","T","W","T","F","S"].forEach(d => g.innerHTML += `<div>${d}</div>`); 
     
     const days = new Date(y, m+1, 0).getDate(); 
     const f = new Date(y, m, 1).getDay(); 
     
-    // Blank spots
     for(let i=0; i<f; i++) g.innerHTML += `<div></div>`; 
     
-    // Days
     for(let i=1; i<=days; i++) { 
         const d = document.createElement('div'); 
         d.className = 'cal-day'; 
         d.innerText = i; 
         
-        // Highlight Today
         if (isCurrent && i === now.getDate()) d.classList.add('today');
         
-        // Highlight Entry Exists
         if (userHistoryDates.includes(`${y}-${String(m+1).padStart(2,'0')}-${String(i).padStart(2,'0')}`)) {
             d.classList.add('has-entry');
         }
@@ -94,23 +111,14 @@ function renderCalendar() {
     } 
 }
 
-function changeMonth(d) { 
-    currentCalendarDate.setMonth(currentCalendarDate.getMonth() + d); 
-    renderCalendar(); 
-}
+function changeMonth(d) { currentCalendarDate.setMonth(currentCalendarDate.getMonth() + d); renderCalendar(); }
+function goToToday() { currentCalendarDate = new Date(); renderCalendar(); }
 
-function goToToday() {
-    currentCalendarDate = new Date();
-    renderCalendar();
-}
-
-// --- DATE PICKER LOGIC ---
 function toggleDatePicker() {
     const picker = document.getElementById('cal-picker');
     const isActive = picker.classList.contains('active');
     
     if (!isActive) {
-        // Open logic: Sync picker with current calendar view
         pickerDate = new Date(currentCalendarDate.getTime());
         selectedMonthIdx = pickerDate.getMonth();
         renderPickerUI();
@@ -143,13 +151,12 @@ function adjustPickerYear(delta) {
 function selectPickerMonth(idx) {
     selectedMonthIdx = idx;
     pickerDate.setMonth(idx);
-    renderPickerUI(); // Re-render to update selection style
+    renderPickerUI(); 
 }
 
 function confirmDateSelection() {
-    // Update the main calendar state
     currentCalendarDate.setFullYear(pickerDate.getFullYear());
     currentCalendarDate.setMonth(selectedMonthIdx);
     renderCalendar();
-    toggleDatePicker(); // Close
+    toggleDatePicker(); 
 }
