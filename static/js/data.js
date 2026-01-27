@@ -9,6 +9,7 @@ async function loadData() {
         const data = await res.json(); 
         if(data.status === 'guest') { window.location.href='/login'; return; } 
         
+        // --- 1. LOAD DASHBOARD DATA ---
         globalRankTree = data.progression_tree; currentLockIcon = data.progression_tree.lock_icon; 
         const hour = new Date().getHours(); let timeGreet = hour >= 18 ? "Good Evening" : (hour >= 12 ? "Good Afternoon" : "Good Morning");
         document.getElementById('greeting-text').innerText = `${timeGreet}, ${data.first_name}!`; 
@@ -17,6 +18,7 @@ async function loadData() {
         document.getElementById('rank-progress-bar').style.width = `${data.rank_progress}%`; 
         document.getElementById('stardust-cnt').innerText = `${data.stardust_current}/${data.stardust_max} Stardust`; 
         
+        // --- 2. LOAD PROFILE DATA ---
         document.getElementById('pfp-img').src = data.profile_pic || ''; 
         document.documentElement.style.setProperty('--mood', data.current_color); 
         document.getElementById('main-rank-icon').innerHTML = data.current_svg; 
@@ -35,47 +37,54 @@ async function loadData() {
         document.getElementById('edit-uid-display').innerText = data.username;
         document.getElementById('theme-btn').innerText = document.documentElement.getAttribute('data-theme') === 'light' ? 'Light' : 'Dark';
         
+        // --- 3. PREPARE HISTORY ---
         if(data.history) fullChatHistory = data.history; 
         userHistoryDates = Object.values(data.history).map(e=>e.date);
         
-        // --- HUMANIZED ECHO LOGIC ---
-        const historyKeys = Object.keys(fullChatHistory).sort();
-        if (historyKeys.length > 0) {
-            const lastKey = historyKeys[historyKeys.length - 1];
-            const lastEntry = fullChatHistory[lastKey];
-            
-            // Prefer summary, fallback to user message
-            let conversationText = "";
-            
-            if (lastEntry.summary) {
-                // If backend provides a summary: "You mentioned [summary]..."
-                conversationText = `You mentioned ${lastEntry.summary.toLowerCase()}... How is that going?`;
-            } else {
-                // Fallback to raw text: "We talked about..."
-                const raw = lastEntry.user_msg || "something on your mind";
-                const snippet = raw.length > 50 ? raw.substring(0, 50) + "..." : raw;
-                conversationText = `We talked about "${snippet}". Want to continue?`;
+        // --- 4. HUMANIZED ECHO LOGIC (SAFE MODE) ---
+        // We check if 'echo-text' exists before running this. 
+        // This prevents the calendar from crashing if the HTML is missing.
+        const echoEl = document.getElementById('echo-text');
+        if (echoEl) {
+            const historyKeys = Object.keys(fullChatHistory).sort();
+            if (historyKeys.length > 0) {
+                const lastKey = historyKeys[historyKeys.length - 1];
+                const lastEntry = fullChatHistory[lastKey];
+                
+                let conversationText = "";
+                if (lastEntry.summary) {
+                    conversationText = `You mentioned ${lastEntry.summary.toLowerCase()}... How is that going?`;
+                } else {
+                    const raw = lastEntry.user_msg || "something on your mind";
+                    const snippet = raw.length > 50 ? raw.substring(0, 50) + "..." : raw;
+                    conversationText = `We talked about "${snippet}". Want to continue?`;
+                }
+                
+                conversationText = conversationText.replace(/\*\*/g, '').replace(/\*/g, '');
+                
+                document.getElementById('echo-text').innerText = conversationText;
+                document.getElementById('echo-date').innerText = lastEntry.date;
             }
-            
-            // Clean markdown if any
-            conversationText = conversationText.replace(/\*\*/g, '').replace(/\*/g, '');
-            
-            document.getElementById('echo-text').innerText = conversationText;
-            document.getElementById('echo-date').innerText = lastEntry.date;
         }
 
+        // --- 5. RENDER CALENDAR ---
+        // This runs last. If step 4 crashes, this never runs. 
+        // With the fix above, this should now always run.
         renderCalendar(); 
-    } catch(e) { console.error(e); } 
+    } catch(e) { console.error("Data Load Error:", e); } 
 }
 
+// --- UTILITY FUNCTIONS ---
 async function handlePfpUpload() { const input = document.getElementById('pfp-upload-input'); if(input.files && input.files[0]) { const formData = new FormData(); formData.append('pfp', input.files[0]); const res = await fetch('/api/update_pfp', { method: 'POST', body: formData }); const data = await res.json(); if(data.status === 'success') { document.getElementById('pfp-img').src = data.url; document.getElementById('profile-pfp-large').src = data.url; } } }
 function askUpdateInfo() { openModal('info-confirm-modal'); }
 async function confirmUpdateInfo() { const btn = document.getElementById('btn-confirm-info'); const originalText = "Confirm"; btn.innerHTML = '<span class="spinner"></span>'; btn.disabled = true; const body = { first_name: document.getElementById('edit-fname').value, last_name: document.getElementById('edit-lname').value, aura_color: document.getElementById('edit-color').value }; try { const res = await fetch('/api/update_profile', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) }); const data = await res.json(); if(data.status === 'success') { closeModal('info-confirm-modal'); closeModal('edit-info-modal'); showStatus(true, "Profile Updated"); loadData(); } else { showStatus(false, data.message); } } catch(e) { showStatus(false, "Connection Failed"); } btn.innerHTML = originalText; btn.disabled = false; }
 async function updateSecurity(type) { let body = {}; const btn = type === 'pass' ? document.getElementById('btn-update-pass') : document.getElementById('btn-update-secret'); const originalText = "Update"; btn.innerHTML = '<span class="spinner"></span> Loading...'; btn.disabled = true; if(type === 'pass') { const p1 = document.getElementById('new-pass-input').value; const p2 = document.getElementById('confirm-pass-input').value; if(p1 !== p2) { document.getElementById('new-pass-input').classList.add('input-error'); document.getElementById('confirm-pass-input').classList.add('input-error'); setTimeout(()=>{ document.getElementById('new-pass-input').classList.remove('input-error'); document.getElementById('confirm-pass-input').classList.remove('input-error'); }, 500); btn.innerHTML=originalText; btn.disabled=false; return; } body = { new_password: p1 }; } else { const q = document.getElementById('new-secret-q').value; if(!q) { showStatus(false, "Select a Question"); btn.innerHTML=originalText; btn.disabled=false; return; } body = { new_secret_q: q, new_secret_a: document.getElementById('new-secret-a').value }; } try { const res = await fetch('/api/update_security', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) }); const data = await res.json(); if(data.status === 'success') { closeModal('change-pass-modal'); closeModal('change-secret-modal'); showStatus(true, "Security details updated."); loadData(); } else { showStatus(false, data.message); } } catch(e) { showStatus(false, "Connection Failed"); } btn.innerHTML = originalText; btn.disabled = false; }
 async function performWipe() { const btn = document.querySelector('#delete-confirm-modal button.bg-red-500'); const originalText = btn.innerText; btn.innerText = "Deleting..."; btn.disabled = true; try { const res = await fetch('/api/clear_history', { method: 'POST' }); const data = await res.json(); if (data.status === 'success') { window.location.href = '/login'; } else { alert("Error: " + data.message); btn.innerText = originalText; btn.disabled = false; } } catch (e) { alert("Connection failed."); btn.innerText = originalText; btn.disabled = false; } }
 
+// --- CALENDAR RENDERER ---
 function renderCalendar() { 
     const g = document.getElementById('cal-grid'); 
+    if (!g) return; // Extra safety
     g.innerHTML = ''; 
     const m = currentCalendarDate.getMonth(); 
     const y = currentCalendarDate.getFullYear(); 
@@ -114,8 +123,10 @@ function renderCalendar() {
 function changeMonth(d) { currentCalendarDate.setMonth(currentCalendarDate.getMonth() + d); renderCalendar(); }
 function goToToday() { currentCalendarDate = new Date(); renderCalendar(); }
 
+// --- DATE PICKER LOGIC ---
 function toggleDatePicker() {
     const picker = document.getElementById('cal-picker');
+    if (!picker) return;
     const isActive = picker.classList.contains('active');
     
     if (!isActive) {
