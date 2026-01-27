@@ -42,8 +42,6 @@ async function loadData() {
         userHistoryDates = Object.values(data.history).map(e=>e.date);
         
         // --- 4. HUMANIZED ECHO LOGIC (SAFE MODE) ---
-        // We check if 'echo-text' exists before running this. 
-        // This prevents the calendar from crashing if the HTML is missing.
         const echoEl = document.getElementById('echo-text');
         if (echoEl) {
             const historyKeys = Object.keys(fullChatHistory).sort();
@@ -68,8 +66,6 @@ async function loadData() {
         }
 
         // --- 5. RENDER CALENDAR ---
-        // This runs last. If step 4 crashes, this never runs. 
-        // With the fix above, this should now always run.
         renderCalendar(); 
     } catch(e) { console.error("Data Load Error:", e); } 
 }
@@ -84,7 +80,7 @@ async function performWipe() { const btn = document.querySelector('#delete-confi
 // --- CALENDAR RENDERER ---
 function renderCalendar() { 
     const g = document.getElementById('cal-grid'); 
-    if (!g) return; // Extra safety
+    if (!g) return; 
     g.innerHTML = ''; 
     const m = currentCalendarDate.getMonth(); 
     const y = currentCalendarDate.getFullYear(); 
@@ -99,6 +95,7 @@ function renderCalendar() {
         else todayBtn.classList.add('hidden');
     }
 
+    // Grid Headers
     ["S","M","T","W","T","F","S"].forEach(d => g.innerHTML += `<div>${d}</div>`); 
     
     const days = new Date(y, m+1, 0).getDate(); 
@@ -123,46 +120,85 @@ function renderCalendar() {
 function changeMonth(d) { currentCalendarDate.setMonth(currentCalendarDate.getMonth() + d); renderCalendar(); }
 function goToToday() { currentCalendarDate = new Date(); renderCalendar(); }
 
-// --- DATE PICKER LOGIC ---
+// --- ADVANCED DATE PICKER LOGIC ---
+let isYearMode = false;
+
 function toggleDatePicker() {
     const picker = document.getElementById('cal-picker');
     if (!picker) return;
     const isActive = picker.classList.contains('active');
     
     if (!isActive) {
+        // OPEN: Sync with current calendar
         pickerDate = new Date(currentCalendarDate.getTime());
         selectedMonthIdx = pickerDate.getMonth();
+        isYearMode = false; // Reset to Month view
         renderPickerUI();
         picker.classList.add('active');
     } else {
+        // CLOSE
         picker.classList.remove('active');
     }
 }
 
+function toggleYearMode() {
+    isYearMode = !isYearMode;
+    renderPickerUI();
+}
+
 function renderPickerUI() {
-    document.getElementById('picker-year-display').innerText = pickerDate.getFullYear();
-    const container = document.getElementById('picker-months-container');
-    container.innerHTML = '';
+    const yearText = document.getElementById('picker-year-text');
+    const monthsContainer = document.getElementById('picker-months-container');
+    const yearsContainer = document.getElementById('picker-years-container');
     
-    const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-    months.forEach((m, idx) => {
-        const btn = document.createElement('div');
-        btn.className = `picker-month-btn ${idx === selectedMonthIdx ? 'selected' : ''}`;
-        btn.innerText = m;
-        btn.onclick = () => selectPickerMonth(idx);
-        container.appendChild(btn);
-    });
-}
+    yearText.innerText = pickerDate.getFullYear();
 
-function adjustPickerYear(delta) {
-    pickerDate.setFullYear(pickerDate.getFullYear() + delta);
-    document.getElementById('picker-year-display').innerText = pickerDate.getFullYear();
-}
+    if (isYearMode) {
+        // SHOW YEAR GRID
+        monthsContainer.classList.add('hidden');
+        yearsContainer.classList.remove('hidden');
+        yearsContainer.innerHTML = '';
+        
+        // Generate years range (e.g., current +/- 15 years)
+        const currentYear = new Date().getFullYear();
+        const startYear = currentYear - 15;
+        const endYear = currentYear + 15;
+        
+        for (let y = startYear; y <= endYear; y++) {
+            const btn = document.createElement('div');
+            btn.className = `picker-year-btn ${y === pickerDate.getFullYear() ? 'selected' : ''}`;
+            btn.innerText = y;
+            btn.onclick = () => {
+                pickerDate.setFullYear(y);
+                toggleYearMode(); // Go back to months
+            };
+            yearsContainer.appendChild(btn);
+        }
+        // Auto scroll to selected year
+        setTimeout(() => {
+            const selected = yearsContainer.querySelector('.selected');
+            if(selected) selected.scrollIntoView({block: 'center'});
+        }, 10);
 
-function selectPickerMonth(idx) {
-    selectedMonthIdx = idx;
-    pickerDate.setMonth(idx);
-    renderPickerUI(); 
+    } else {
+        // SHOW MONTH GRID
+        yearsContainer.classList.add('hidden');
+        monthsContainer.classList.remove('hidden');
+        monthsContainer.innerHTML = '';
+        
+        const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+        months.forEach((m, idx) => {
+            const btn = document.createElement('div');
+            btn.className = `picker-month-btn ${idx === selectedMonthIdx ? 'selected' : ''}`;
+            btn.innerText = m;
+            btn.onclick = () => {
+                selectedMonthIdx = idx;
+                pickerDate.setMonth(idx);
+                renderPickerUI();
+            };
+            monthsContainer.appendChild(btn);
+        });
+    }
 }
 
 function confirmDateSelection() {
