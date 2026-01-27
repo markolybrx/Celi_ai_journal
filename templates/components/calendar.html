@@ -2,24 +2,33 @@
     <div class="cal-header">
         <button class="cal-btn" onclick="changeMonth(-1)">‹</button>
         
-        <div id="cal-month-year" class="cal-title cursor-pointer hover:opacity-80 transition-opacity" onclick="toggleDatePicker()">Loading...</div>
-        
-        <button id="cal-today-btn" class="cal-btn ml-2 hidden" onclick="goToToday()" title="Return to Today">⟲</button>
+        <div class="cal-title-group">
+            <div id="cal-month-year" class="cal-title cursor-pointer hover:opacity-80 transition-opacity" onclick="toggleDatePicker()">Loading...</div>
+            <button id="cal-today-btn" class="cal-today-btn hidden" onclick="goToToday()" title="Return to Today">⟲</button>
+        </div>
         
         <button class="cal-btn" onclick="changeMonth(1)">›</button>
     </div>
 
     <div id="cal-picker" class="cal-picker">
-        <div class="picker-year-row">
-            <button class="cal-btn" onclick="adjustPickerYear(-1)">‹</button>
-            <span id="picker-year-display" class="text-lg font-bold">2026</span>
-            <button class="cal-btn" onclick="adjustPickerYear(1)">›</button>
+        <div class="picker-header-row">
+            <span class="text-xs font-bold uppercase tracking-widest opacity-50">Select Date</span>
+            <button class="picker-close-btn" onclick="toggleDatePicker()">✕</button>
         </div>
-        <div class="picker-months-grid" id="picker-months-container">
+
+        <div class="picker-year-display" onclick="toggleYearMode()">
+            <span id="picker-year-text">2026</span>
+            <svg class="w-4 h-4 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+        </div>
+
+        <div id="picker-months-container" class="picker-grid active">
             </div>
+
+        <div id="picker-years-container" class="picker-grid hidden">
+            </div>
+
         <div class="picker-actions">
-            <button class="picker-action-btn today" onclick="goToToday(); toggleDatePicker()">Today</button>
-            <button class="picker-action-btn confirm" onclick="confirmDateSelection()">Go</button>
+            <button class="picker-action-btn confirm" onclick="confirmDateSelection()">Confirm Update</button>
         </div>
     </div>
 
