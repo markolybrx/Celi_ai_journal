@@ -6,7 +6,7 @@ const STAR_SVG = `<svg class="star-point" viewBox="0 0 24 24"><path d="M12 2l2.4
 const ICON_SUCCESS = `<svg class="w-10 h-10 text-green-500 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>`;
 const ICON_ERROR = `<svg class="w-10 h-10 text-red-500 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>`;
 const ICON_SPEAK = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>`;
-const ICON_CHEVRON = `<svg class="group-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>`;
+const ICON_CHEVRON = `<svg class="group-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>`;
 
 function toggleTheme() {
     const html = document.documentElement;
@@ -139,7 +139,7 @@ async function confirmUpdateInfo() { const btn = document.getElementById('btn-co
 async function updateSecurity(type) { let body = {}; const btn = type === 'pass' ? document.getElementById('btn-update-pass') : document.getElementById('btn-update-secret'); const originalText = "Update"; btn.innerHTML = '<span class="spinner"></span> Loading...'; btn.disabled = true; if(type === 'pass') { const p1 = document.getElementById('new-pass-input').value; const p2 = document.getElementById('confirm-pass-input').value; if(p1 !== p2) { document.getElementById('new-pass-input').classList.add('input-error'); document.getElementById('confirm-pass-input').classList.add('input-error'); setTimeout(()=>{ document.getElementById('new-pass-input').classList.remove('input-error'); document.getElementById('confirm-pass-input').classList.remove('input-error'); }, 500); btn.innerHTML=originalText; btn.disabled=false; return; } body = { new_password: p1 }; } else { const q = document.getElementById('new-secret-q').value; if(!q) { showStatus(false, "Select a Question"); btn.innerHTML=originalText; btn.disabled=false; return; } body = { new_secret_q: q, new_secret_a: document.getElementById('new-secret-a').value }; } try { const res = await fetch('/api/update_security', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) }); const data = await res.json(); if(data.status === 'success') { closeModal('change-pass-modal'); closeModal('change-secret-modal'); showStatus(true, "Security details updated."); loadData(); } else { showStatus(false, data.message); } } catch(e) { showStatus(false, "Connection Failed"); } btn.innerHTML = originalText; btn.disabled = false; }
 async function performWipe() { const btn = document.querySelector('#delete-confirm-modal button.bg-red-500'); const originalText = btn.innerText; btn.innerText = "Deleting..."; btn.disabled = true; try { const res = await fetch('/api/clear_history', { method: 'POST' }); const data = await res.json(); if (data.status === 'success') { window.location.href = '/login'; } else { alert("Error: " + data.message); btn.innerText = originalText; btn.disabled = false; } } catch (e) { alert("Connection failed."); btn.innerText = originalText; btn.disabled = false; } }
 
-// --- RANK MODAL LOGIC (V9.8 FIXED) ---
+// --- RANK MODAL LOGIC (V10.0: Icon Inject + Height Fix) ---
 function openRanksModal() { 
     if (!globalRankTree) return; 
     
@@ -157,29 +157,29 @@ function openRanksModal() {
     document.getElementById('modal-progress-bar').style.width = document.getElementById('rank-progress-bar').style.width; 
     document.getElementById('modal-sd-text').innerText = document.getElementById('stardust-cnt').innerText; 
     
-    // Normalization helper
     const normalize = (s) => s.toLowerCase().replace(/[^a-z0-9]/g, '');
-    
     const currentTitleRaw = document.getElementById('rank-display').innerText;
     const currentTitleNorm = normalize(currentTitleRaw);
     const flatList = globalRankTree.ranks;
-    
-    // Find index using normalized titles
     const currentFlatIndex = flatList.findIndex(r => normalize(r.title) === currentTitleNorm);
 
-    // Synthesis Injection
     if(currentFlatIndex !== -1) {
         document.getElementById('modal-synth-text').innerText = flatList[currentFlatIndex].desc;
     } else {
         document.getElementById('modal-synth-text').innerText = flatList[0].desc;
     }
 
-    // Grouping
     const groupedRanks = {};
     flatList.forEach((rank, index) => {
         const mainName = rank.title.split(' ')[0]; 
         if (!groupedRanks[mainName]) {
-            groupedRanks[mainName] = { name: mainName, subRanks: [], isActiveGroup: false };
+            // V10.0: Capture the FIRST icon of the group
+            groupedRanks[mainName] = { 
+                name: mainName, 
+                subRanks: [], 
+                isActiveGroup: false,
+                icon: rank.svg // Auto-captures the SVG of the first item (e.g. Observer I)
+            };
         }
         
         const isCurrentNode = (index === currentFlatIndex);
@@ -197,9 +197,23 @@ function openRanksModal() {
         const groupEl = document.createElement('div');
         groupEl.className = `rank-group ${group.isActiveGroup ? 'open active' : ''}`;
         
+        // V10.0: Determine Lock State for Group Header
+        // If the first rank is unlocked, group is unlocked.
+        const isGroupUnlocked = group.subRanks[0].isUnlocked;
+        const lockClass = isGroupUnlocked ? '' : 'locked';
+
         const header = document.createElement('div');
-        header.className = 'group-header';
-        header.innerHTML = `<span class="group-title">${group.name}</span><div class="group-icon">${ICON_CHEVRON}</div>`;
+        header.className = `group-header ${lockClass}`;
+        
+        // V10.0: Inject Icon on Left
+        header.innerHTML = `
+            <div class="group-label">
+                <div class="group-left-icon">${group.icon}</div>
+                <span class="group-title">${group.name}</span>
+            </div>
+            <div class="group-icon">${ICON_CHEVRON}</div>
+        `;
+        
         header.onclick = () => {
             document.querySelectorAll('.rank-group').forEach(el => { if (el !== groupEl) el.classList.remove('open'); });
             groupEl.classList.toggle('open');
