@@ -2,12 +2,12 @@
     <div class="cal-header">
         <button class="cal-btn" onclick="changeMonth(-1)">‹</button>
         
-        <div class="cal-title-group">
-            <div id="cal-month-year" class="cal-title cursor-pointer hover:opacity-80 transition-opacity" onclick="toggleDatePicker()">Loading...</div>
-            <button id="cal-today-btn" class="cal-today-btn hidden" onclick="goToToday()" title="Return to Today">⟲</button>
-        </div>
+        <div id="cal-month-year" class="cal-title cursor-pointer hover:opacity-80 transition-opacity" onclick="toggleDatePicker()">Loading...</div>
         
-        <button class="cal-btn" onclick="changeMonth(1)">›</button>
+        <div class="cal-right-controls">
+            <button id="cal-today-btn" class="cal-today-btn hidden" onclick="goToToday()" title="Return to Today">⟲</button>
+            <button class="cal-btn" onclick="changeMonth(1)">›</button>
+        </div>
     </div>
 
     <div id="cal-picker" class="cal-picker">
