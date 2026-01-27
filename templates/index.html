@@ -6,9 +6,7 @@
     <link rel="manifest" href="/manifest.json">
     <title>Celi: AI Journal</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    
-    <link rel="stylesheet" href="/static/style.css"> 
-    
+    <link rel="stylesheet" href="/static/style.css">
     <script>if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('/sw.js'))}</script>
 </head>
 <body>
@@ -33,7 +31,8 @@
     {% include 'components/modals/archive.html' %}
     {% include 'components/modals/profile.html' %}
     {% include 'components/modals/edit_info.html' %}
-    {% include 'components/modals/auth_actions.html' %} {% include 'components/modals/status.html' %}
+    {% include 'components/modals/auth_actions.html' %}
+    {% include 'components/modals/status.html' %}
     {% include 'components/modals/policy.html' %}
 
     <script src="/static/script.js"></script>
