@@ -1,5 +1,4 @@
 :root { 
-    /* --- THEME VARIABLES (DEFAULT DARK) --- */
     --mood: #00f2fe; 
     --bg: #000000; 
     --text: #ffffff;
@@ -71,64 +70,29 @@ html[data-theme="light"] .header-pfp { background-color: #e5e7eb; border-color: 
 #profile-pfp-large { background-color: #333; }
 html[data-theme="light"] #profile-pfp-large { background-color: #e5e7eb; }
 
-/* --- RANK DASHBOARD CARD (V9.5 RESTRUCTURED) --- */
+/* --- RANK DASHBOARD CARD --- */
 .rank-card, .calendar-card { 
     background: var(--glass); border: 1px solid var(--border); 
     border-radius: 20px; padding: 20px; margin-bottom: 15px; 
     backdrop-filter: blur(20px); 
 }
-.rank-card { 
-    display: flex; align-items: flex-start; gap: 15px; 
-    position: relative; overflow: visible; cursor: pointer; 
-}
-.rank-icon-container { 
-    width: 50px; height: 50px; 
-    display: flex; align-items: center; justify-content: center; 
-    color: var(--text); transition: all 0.5s; z-index: 10; margin-top: 5px;
-}
+.rank-card { display: flex; align-items: flex-start; gap: 15px; position: relative; overflow: visible; cursor: pointer; }
+.rank-icon-container { width: 50px; height: 50px; display: flex; align-items: center; justify-content: center; color: var(--text); transition: all 0.5s; z-index: 10; margin-top: 5px; }
 .rank-icon-container svg { width: 100%; height: 100%; filter: drop-shadow(0 0 8px var(--mood)); }
 
 .rank-details { flex: 1; display: flex; flex-direction: column; gap: 2px; }
-
-/* GREETING BIG */
-.greeting-big {
-    font-size: 20px; font-weight: 800; color: var(--text);
-    margin-bottom: 4px; line-height: 1.2;
-}
-
-/* RANK SUB-TEXT */
+.greeting-big { font-size: 20px; font-weight: 800; color: var(--text); margin-bottom: 4px; line-height: 1.2; }
 .rank-header-row { display: flex; align-items: baseline; gap: 8px; }
-.rank-title { 
-    font-size: 12px; font-weight: 600; 
-    text-transform: uppercase; letter-spacing: 1px; 
-    color: var(--mood); opacity: 0.9;
-}
-.rank-psyche { 
-    font-size: 10px; font-weight: 400;
-    color: var(--text-muted); text-transform: uppercase;
-}
+.rank-title { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; color: var(--mood); opacity: 0.9; }
+.rank-psyche { font-size: 10px; font-weight: 400; color: var(--text-muted); text-transform: uppercase; }
 
-/* PROGRESS */
 .progress-wrapper { position: relative; margin-top: 12px; width: 100%; }
 .progress-bg { width: 100%; height: 6px; background: var(--input-bg); border-radius: 10px; overflow: hidden; }
-.progress-bar { 
-    height: 100%; background: var(--mood); width: 0%; 
-    border-radius: 10px; box-shadow: 0 0 10px var(--mood); 
-    transition: width 0.8s cubic-bezier(0.22, 1, 0.36, 1); 
-}
-.stardust-floater {
-    position: absolute; right: 0; top: -16px;
-    font-size: 9px; font-weight: bold; color: var(--text-muted); font-family: monospace;
-}
+.progress-bar { height: 100%; background: var(--mood); width: 0%; border-radius: 10px; box-shadow: 0 0 10px var(--mood); transition: width 0.8s cubic-bezier(0.22, 1, 0.36, 1); }
+.stardust-floater { position: absolute; right: 0; top: -16px; font-size: 9px; font-weight: bold; color: var(--text-muted); font-family: monospace; }
 
 /* --- BOTTOM DOCK --- */
-.bottom-dock { 
-    position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); 
-    width: 90%; max-width: 450px; height: 65px; 
-    background: var(--glass); backdrop-filter: blur(25px); 
-    border: 1px solid var(--border); border-radius: 35px; z-index: 30; 
-    display: flex; align-items: center; justify-content: space-between; padding: 0 30px; 
-}
+.bottom-dock { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); width: 90%; max-width: 450px; height: 65px; background: var(--glass); backdrop-filter: blur(25px); border: 1px solid var(--border); border-radius: 35px; z-index: 30; display: flex; align-items: center; justify-content: space-between; padding: 0 30px; }
 .nav-group { display: flex; gap: 25px; width: 40%; justify-content: center; }
 .nav-btn { display: flex; flex-direction: column; align-items: center; color: var(--text-muted); background: none; border: none; gap: 4px; }
 .nav-btn svg { width: 22px; height: 22px; }
@@ -140,13 +104,12 @@ html[data-theme="light"] #profile-pfp-large { background-color: #e5e7eb; }
 .galaxy-btn.galaxy-open { background-color: #ef4444; border-color: rgba(20,20,20,0.8); transform: rotate(90deg) scale(1.1); box-shadow: 0 0 30px rgba(239, 68, 68, 0.6); }
 .galaxy-btn.galaxy-open svg { stroke: #fff; width: 32px; height: 32px; }
 
-/* --- CALENDAR --- */
+/* --- CALENDAR & MODALS --- */
 .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; text-align: center; font-size: 10px; }
 .cal-day { aspect-ratio: 1; display: flex; align-items: center; justify-content: center; border-radius: 6px; color: var(--text-muted); }
 .cal-day.today { background: var(--border); color: var(--text); font-weight: 900; }
 .cal-day.has-entry { color: var(--text); font-weight: 900; border: 1px solid var(--border); }
 
-/* --- MODALS & CHAT --- */
 .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 2000; display: none; align-items: center; justify-content: center; backdrop-filter: blur(10px); opacity: 0; transition: opacity 0.3s; }
 .modal-overlay.active { display: flex; opacity: 1; }
 .chat-window { width: 90%; max-width: 500px; height: 80vh; background: var(--card-bg); border: 1px solid var(--border); border-radius: 25px; display: flex; flex-direction: column; overflow: hidden; transform: scale(0); opacity: 0; transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s; }
@@ -176,24 +139,26 @@ html[data-theme="light"] #profile-pfp-large { background-color: #e5e7eb; }
 .chat-fab { width: 60px; height: 60px; border-radius: 50%; background: linear-gradient(135deg, #f9a8d4, #c084fc); display: flex; align-items: center; justify-content: center; animation: pastelPulse 3s infinite; }
 .void-container { position: fixed; bottom: 100px; left: 20px; z-index: 40; } .fab-container { position: fixed; bottom: 100px; right: 20px; z-index: 40; }
 
-/* --- RANK ACCORDION TREE (V9.5 FIXED) --- */
+/* --- RANK ACCORDION TREE (V9.6 FIXED) --- */
 .tree-container { 
     position: relative; padding: 20px; 
     display: flex; flex-direction: column; gap: 15px; 
-    padding-bottom: 100px; min-height: min-content; 
+    padding-bottom: 120px; /* Increased bottom padding for scroll space */
+    /* Removed min-height to fix scroll issue */
 }
-/* New Synthesis Box in Header */
+
+/* Synthesis Box (Clean) */
 .modal-synth-box {
     width: 100%;
     margin-top: 15px;
-    padding: 12px;
+    padding: 15px;
     background: var(--input-bg);
     border: 1px solid var(--mood);
     border-radius: 12px;
     text-align: center;
+    box-shadow: 0 0 10px var(--mood-dim);
 }
-.modal-synth-title { font-size: 9px; uppercase; letter-spacing: 2px; color: var(--text-muted); display: block; margin-bottom: 4px; }
-.modal-synth-text { font-size: 11px; font-weight: 600; color: var(--text); line-height: 1.4; font-style: italic; }
+.modal-synth-text { font-size: 12px; font-weight: 500; color: var(--text); line-height: 1.5; font-style: italic; }
 
 .rank-group { background: var(--input-bg); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; transition: all 0.3s ease; }
 .rank-group.active { border-color: var(--mood); box-shadow: 0 0 15px var(--mood-dim); }
