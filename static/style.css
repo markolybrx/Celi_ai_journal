@@ -128,19 +128,14 @@ html[data-theme="light"] #profile-pfp-large { background-color: #e5e7eb; }
 .chat-fab { width: 60px; height: 60px; border-radius: 50%; background: linear-gradient(135deg, #f9a8d4, #c084fc); display: flex; align-items: center; justify-content: center; animation: pastelPulse 3s infinite; }
 .void-container { position: fixed; bottom: 100px; left: 20px; z-index: 40; } .fab-container { position: fixed; bottom: 100px; right: 20px; z-index: 40; }
 
-/* --- RANK ACCORDION TREE (V9.9 LAYOUT LOCKDOWN) --- */
+/* --- RANK ACCORDION TREE (V9.10 FIXED) --- */
 .tree-container { 
-    /* This container MUST allow scrolling */
-    position: relative; 
-    padding: 20px; 
+    position: relative; padding: 20px; 
     display: flex; flex-direction: column; gap: 15px; 
-    overflow-y: auto; /* Traps scroll here */
-    overscroll-behavior: contain; /* Prevents body scroll */
-    flex: 1; /* Grow to fill space */
-    min-height: 0; /* Crucial for nested flex scrolling */
+    padding-bottom: 200px !important; 
+    overflow-y: visible;
 }
 
-/* Fixed Header Styles */
 .modal-header-fixed {
     flex: none; /* Never shrink or grow */
     display: flex; flex-direction: column;
@@ -154,15 +149,42 @@ html[data-theme="light"] #profile-pfp-large { background-color: #e5e7eb; }
 .modal-synth-box { width: 100%; margin-top: 15px; padding: 15px; background: var(--input-bg); border: 1px solid var(--mood); border-radius: 12px; text-align: center; box-shadow: 0 0 10px var(--mood-dim); }
 .modal-synth-text { font-size: 12px; font-weight: 500; color: var(--text); line-height: 1.5; font-style: italic; }
 
-.rank-group { background: var(--input-bg); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; transition: all 0.3s ease; }
+/* V9.10: ANTI-SQUEEZE FIXES */
+.rank-group { 
+    background: var(--input-bg); 
+    border: 1px solid var(--border); 
+    border-radius: 16px; 
+    overflow: hidden; 
+    transition: all 0.3s ease; 
+    flex-shrink: 0; /* CRITICAL: Never shrink this element */
+}
 .rank-group.active { border-color: var(--mood); box-shadow: 0 0 15px var(--mood-dim); }
-.group-header { display: flex; align-items: center; justify-content: space-between; padding: 15px 20px; cursor: pointer; }
+
+.group-header { 
+    display: flex; align-items: center; justify-content: space-between; 
+    padding: 15px 20px; 
+    cursor: pointer;
+    min-height: 60px; /* Fixed height for header */
+}
 .group-title { font-weight: 800; font-size: 16px; letter-spacing: -0.5px; }
 .group-icon { width: 30px; height: 30px; color: var(--text-muted); transition: color 0.3s; }
 .rank-group.active .group-icon { color: var(--mood); }
-.rank-sublist { max-height: 0; overflow: hidden; transition: max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1); background: rgba(0,0,0,0.1); }
+
+.rank-sublist { 
+    max-height: 0; overflow: hidden; 
+    transition: max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1); 
+    background: rgba(0,0,0,0.1); 
+}
 .rank-group.open .rank-sublist { max-height: 500px; }
-.sub-node { display: flex; align-items: center; padding: 12px 20px 12px 30px; border-top: 1px solid var(--border); opacity: 0.5; filter: grayscale(1); transition: all 0.2s; }
+
+.sub-node { 
+    display: flex; align-items: center; 
+    padding: 12px 20px 12px 30px; 
+    border-top: 1px solid var(--border); 
+    opacity: 0.5; filter: grayscale(1); 
+    transition: all 0.2s;
+    flex-shrink: 0; /* Never shrink sub-items */
+}
 .sub-node.unlocked { opacity: 1; filter: grayscale(0); }
 .sub-node.current { background: linear-gradient(90deg, var(--mood-dim), transparent); border-left: 3px solid var(--mood); padding-left: 27px; }
 .sub-title { font-size: 13px; font-weight: 600; }
