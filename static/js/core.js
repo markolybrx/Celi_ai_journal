@@ -17,6 +17,36 @@ const ICON_ERROR = `<svg class="w-10 h-10 text-red-500 mx-auto mb-3" fill="none"
 const ICON_SPEAK = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>`;
 const ICON_CHEVRON = `<svg class="group-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>`;
 
+// --- AI SIGNAL SYSTEM (HUMANIZED) ---
+const AI_PROMPTS = [
+    "How are you feeling right now?",
+    "Tell me about your day.",
+    "I'm here if you need to vent.",
+    "Did you get that thing done?",
+    "What's on your mind?",
+    "Want to talk about it?",
+    "I'm listening."
+];
+
+function triggerAiSignal() {
+    const bubble = document.getElementById('ai-signal-bubble');
+    const text = document.getElementById('ai-signal-text');
+    
+    // Pick random prompt
+    const prompt = AI_PROMPTS[Math.floor(Math.random() * AI_PROMPTS.length)];
+    text.innerText = prompt;
+    
+    // Show Bubble (2s delay)
+    setTimeout(() => {
+        bubble.classList.add('visible');
+    }, 2000); 
+
+    // Auto-hide (10s delay)
+    setTimeout(() => {
+        bubble.classList.remove('visible');
+    }, 10000);
+}
+
 // --- UTILS ---
 function openModal(id) { document.getElementById(id).style.display='flex'; }
 function closeModal(id) { document.getElementById(id).classList.remove('active'); document.getElementById(id).style.display='none'; }
@@ -34,7 +64,6 @@ function toggleTheme() {
         btn.innerText = "Light";
         localStorage.setItem('theme', 'light');
     }
-    // Update galaxy stars if active
     if(typeof galaxyData !== 'undefined' && isGalaxyActive) {
         galaxyData.forEach(d => { if(d.color !== '#ef4444') d.color = (html.getAttribute('data-theme') === 'light' ? '#000' : '#fff'); });
     }
