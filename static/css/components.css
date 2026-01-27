@@ -20,29 +20,32 @@ html[data-theme="light"] .header-pfp { background-color: #e5e7eb; border-color: 
 .chat-fab { width: 60px; height: 60px; border-radius: 50%; background: linear-gradient(135deg, #f9a8d4, #c084fc); display: flex; align-items: center; justify-content: center; animation: pastelPulse 3s infinite; }
 .void-container { position: fixed; bottom: 100px; left: 20px; z-index: 40; } .fab-container { position: fixed; bottom: 100px; right: 20px; z-index: 40; }
 
-/* --- CALENDAR (V11.8 FIXED) --- */
+/* --- CALENDAR (COMPACT & ALIGNED) --- */
 .cal-header {
     display: flex;
-    justify-content: space-between;
     align-items: center;
-    margin-bottom: 15px;
+    margin-bottom: 10px;
     width: 100%;
-    padding: 0 5px;
+    padding: 0 2px;
 }
 
 .cal-title {
+    flex: 1; /* Pushes buttons to edges */
+    text-align: center;
     font-weight: 800;
     font-size: 14px;
     text-transform: uppercase;
     letter-spacing: 1px;
     color: var(--text);
+    user-select: none;
 }
 
 .cal-btn {
+    flex-shrink: 0;
     background: none;
     border: 1px solid var(--border);
     border-radius: 50%;
-    width: 24px; height: 24px;
+    width: 28px; height: 28px;
     display: flex; align-items: center; justify-content: center;
     color: var(--text-muted);
     font-size: 16px;
@@ -55,13 +58,91 @@ html[data-theme="light"] .header-pfp { background-color: #e5e7eb; border-color: 
 .cal-grid { 
     display: grid; 
     grid-template-columns: repeat(7, 1fr); 
-    gap: 2px; /* V11.8: Reduced gap */
+    gap: 2px; /* Small horizontal gap */
     text-align: center; 
-    font-size: 10px; 
+    font-size: 11px;
 }
-.cal-day { aspect-ratio: 1; display: flex; align-items: center; justify-content: center; border-radius: 6px; color: var(--text-muted); }
+
+/* Day Headers (S M T W...) */
+.cal-grid > div:nth-child(-n+7) {
+    font-weight: 800;
+    color: var(--text-muted);
+    font-size: 10px;
+    height: 20px; /* Short height for headers */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 4px;
+    opacity: 0.7;
+}
+
+/* Date Cells */
+.cal-day { 
+    height: 32px; /* Fixed compact height */
+    display: flex; align-items: center; justify-content: center; 
+    border-radius: 6px; 
+    color: var(--text-muted); 
+    font-weight: 500;
+}
+
 .cal-day.today { background: var(--border); color: var(--text); font-weight: 900; }
 .cal-day.has-entry { color: var(--text); font-weight: 900; border: 1px solid var(--border); }
+
+/* --- DATE PICKER OVERLAY --- */
+.cal-picker {
+    position: absolute;
+    top: 50px; /* Below header */
+    left: 0; right: 0; bottom: 0;
+    background: var(--card-bg);
+    backdrop-filter: blur(10px);
+    z-index: 20;
+    display: flex; flex-direction: column;
+    padding: 10px 20px;
+    
+    /* Slide Animation Logic */
+    transform: translateY(-120%);
+    opacity: 0;
+    pointer-events: none;
+    transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.cal-picker.active {
+    transform: translateY(0);
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.picker-year-row {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 15px; padding: 0 20px;
+}
+
+.picker-months-grid {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;
+    flex: 1; overflow-y: auto;
+}
+
+.picker-month-btn {
+    padding: 8px; border-radius: 8px;
+    background: var(--input-bg);
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    font-size: 11px; font-weight: 700; text-transform: uppercase;
+    cursor: pointer; transition: all 0.2s;
+}
+.picker-month-btn:hover { border-color: var(--mood); color: var(--text); }
+.picker-month-btn.selected { background: var(--mood); color: black; border-color: var(--mood); }
+
+.picker-actions {
+    display: flex; gap: 10px; margin-top: 15px;
+}
+.picker-action-btn {
+    flex: 1; padding: 10px; border-radius: 12px;
+    font-size: 11px; font-weight: 800; text-transform: uppercase;
+    cursor: pointer;
+}
+.picker-action-btn.today { background: var(--input-bg); color: var(--text-muted); }
+.picker-action-btn.confirm { background: var(--text); color: var(--bg); }
 
 /* Theme Utils */
 .bg-theme-card { background-color: var(--card-bg); border-color: var(--border); color: var(--text); }
