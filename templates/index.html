@@ -5,8 +5,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, interactive-widget=resizes-content">
     <link rel="manifest" href="/manifest.json">
     <title>Celi: AI Journal</title>
+    
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="/static/style.css">
+    
+    <link rel="stylesheet" href="/static/css/base.css">
+    <link rel="stylesheet" href="/static/css/layout.css">
+    <link rel="stylesheet" href="/static/css/components.css">
+    <link rel="stylesheet" href="/static/css/ranks.css">
+    <link rel="stylesheet" href="/static/css/chat.css">
+    <link rel="stylesheet" href="/static/css/animations.css">
+    
     <script>if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('/sw.js'))}</script>
 </head>
 <body>
@@ -35,6 +43,12 @@
     {% include 'components/modals/status.html' %}
     {% include 'components/modals/policy.html' %}
 
-    <script src="/static/script.js"></script>
+    <script src="/static/js/core.js"></script>
+    <script src="/static/js/galaxy.js"></script>
+    <script src="/static/js/data.js"></script>
+    <script src="/static/js/ranks.js"></script>
+    <script src="/static/js/chat.js"></script>
+    
+    <script>window.onload = loadData;</script>
 </body>
 </html>
