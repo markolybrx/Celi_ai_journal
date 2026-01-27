@@ -1,3 +1,22 @@
+// --- RANK CONFIGURATION ---
+// Define your Phases here. Keys must match the first word of your Rank (e.g. "Observer")
+const PHASE_MAP = {
+    "Observer": "Phase I: Awakening",
+    "Moonwalker": "Phase I: Awakening",
+    
+    "Celestial": "Phase II: Ascension",
+    "Stellar": "Phase II: Ascension",
+    
+    "Interstellar": "Phase III: Expansion",
+    "Galactic": "Phase III: Expansion",
+    
+    "Intergalactic": "Phase IV: Transcendence",
+    "Ethereal": "Phase IV: Transcendence"
+};
+
+// Default fallback if a rank name isn't in the map
+const DEFAULT_PHASE = "Unknown Phase";
+
 function openRanksModal() { 
     if (!globalRankTree) return; 
     
@@ -9,34 +28,43 @@ function openRanksModal() {
     modal.style.display = 'flex'; 
     setTimeout(() => modal.classList.add('active'), 10); 
     
+    // --- HEADER POPULATION ---
     document.getElementById('modal-rank-icon').innerHTML = document.getElementById('main-rank-icon').innerHTML; 
     document.getElementById('modal-rank-name').innerText = document.getElementById('rank-display').innerText; 
     document.getElementById('modal-psyche-display').innerText = document.getElementById('rank-psyche').innerText;
     document.getElementById('modal-progress-bar').style.width = document.getElementById('rank-progress-bar').style.width; 
     document.getElementById('modal-sd-text').innerText = document.getElementById('stardust-cnt').innerText; 
     
+    // --- LOGIC: FIND CURRENT RANK ---
     const normalize = (s) => s.toLowerCase().replace(/[^a-z0-9]/g, '');
     const currentTitleRaw = document.getElementById('rank-display').innerText;
     const currentTitleNorm = normalize(currentTitleRaw);
     const flatList = globalRankTree.ranks;
     const currentFlatIndex = flatList.findIndex(r => normalize(r.title) === currentTitleNorm);
 
+    // Set Synthesis Text
     if(currentFlatIndex !== -1) {
         document.getElementById('modal-synth-text').innerText = flatList[currentFlatIndex].desc;
     } else {
         document.getElementById('modal-synth-text').innerText = flatList[0].desc;
     }
 
-    const groupedRanks = {};
+    // --- LOGIC: GROUPING ---
+    const groupedRanks = {}; // Object to hold unique groups (Observer, Moonwalker...)
+    const orderedKeys = [];  // Array to keep them in order
+
     flatList.forEach((rank, index) => {
         const mainName = rank.title.split(' ')[0]; 
+        
         if (!groupedRanks[mainName]) {
             groupedRanks[mainName] = { 
                 name: mainName, 
                 subRanks: [], 
                 isActiveGroup: false,
-                icon: rank.svg 
+                icon: rank.svg,
+                phase: PHASE_MAP[mainName] || DEFAULT_PHASE // Assign Phase
             };
+            orderedKeys.push(mainName);
         }
         
         const isCurrentNode = (index === currentFlatIndex);
@@ -50,7 +78,22 @@ function openRanksModal() {
         });
     });
 
-    Object.values(groupedRanks).forEach(group => {
+    // --- RENDER LOOP WITH PHASE HEADERS ---
+    let lastRenderedPhase = "";
+
+    orderedKeys.forEach(key => {
+        const group = groupedRanks[key];
+        
+        // 1. Check if we need to insert a Phase Header
+        if (group.phase !== lastRenderedPhase) {
+            const phaseEl = document.createElement('div');
+            phaseEl.className = 'phase-header';
+            phaseEl.innerText = group.phase;
+            container.appendChild(phaseEl);
+            lastRenderedPhase = group.phase;
+        }
+
+        // 2. Render the Accordion Group
         const groupEl = document.createElement('div');
         groupEl.className = `rank-group ${group.isActiveGroup ? 'open active' : ''}`;
         
@@ -69,6 +112,7 @@ function openRanksModal() {
         `;
         
         header.onclick = () => {
+            // Close others logic
             document.querySelectorAll('.rank-group').forEach(el => { if (el !== groupEl) el.classList.remove('open'); });
             groupEl.classList.toggle('open');
             setTimeout(() => groupEl.scrollIntoView({behavior: 'smooth', block: 'center'}), 300);
@@ -100,6 +144,7 @@ function openRanksModal() {
         container.appendChild(groupEl);
     });
     
+    // Auto-scroll to active
     setTimeout(() => { 
         const active = container.querySelector('.rank-group.active'); 
         if(active) active.scrollIntoView({behavior: 'smooth', block: 'center'}); 
