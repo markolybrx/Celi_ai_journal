@@ -1,8 +1,27 @@
-<div class="calendar-card">
+<div class="calendar-card relative overflow-hidden">
     <div class="cal-header">
         <button class="cal-btn" onclick="changeMonth(-1)">‹</button>
-        <div id="cal-month-year" class="cal-title">Loading...</div>
+        
+        <div id="cal-month-year" class="cal-title cursor-pointer hover:opacity-80 transition-opacity" onclick="toggleDatePicker()">Loading...</div>
+        
+        <button id="cal-today-btn" class="cal-btn ml-2 hidden" onclick="goToToday()" title="Return to Today">⟲</button>
+        
         <button class="cal-btn" onclick="changeMonth(1)">›</button>
     </div>
+
+    <div id="cal-picker" class="cal-picker">
+        <div class="picker-year-row">
+            <button class="cal-btn" onclick="adjustPickerYear(-1)">‹</button>
+            <span id="picker-year-display" class="text-lg font-bold">2026</span>
+            <button class="cal-btn" onclick="adjustPickerYear(1)">›</button>
+        </div>
+        <div class="picker-months-grid" id="picker-months-container">
+            </div>
+        <div class="picker-actions">
+            <button class="picker-action-btn today" onclick="goToToday(); toggleDatePicker()">Today</button>
+            <button class="picker-action-btn confirm" onclick="confirmDateSelection()">Go</button>
+        </div>
+    </div>
+
     <div class="cal-grid" id="cal-grid"></div>
 </div>
