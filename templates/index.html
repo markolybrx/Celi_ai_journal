@@ -28,6 +28,8 @@
     <div id="main-view">
         {% include 'components/dashboard_card.html' %}
         {% include 'components/calendar.html' %}
+        
+        {% include 'components/echo.html' %}
     </div>
 
     {% include 'components/galaxy_btn.html' %}
@@ -49,6 +51,11 @@
     <script src="/static/js/ranks.js"></script>
     <script src="/static/js/chat.js"></script>
     
-    <script>window.onload = loadData;</script>
+    <script>
+        window.onload = async () => {
+            await loadData();
+            if (typeof triggerAiSignal === "function") triggerAiSignal();
+        };
+    </script>
 </body>
 </html>
