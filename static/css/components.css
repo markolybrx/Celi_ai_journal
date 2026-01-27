@@ -65,7 +65,7 @@ html[data-theme="light"] #profile-pfp-large { background-color: #e5e7eb; }
 .echo-text { font-size: 13px; color: var(--text); opacity: 0.8; font-style: italic; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .echo-fade-mask { position: absolute; bottom: 0; left: 0; right: 0; height: 20px; background: linear-gradient(to bottom, transparent, var(--glass)); pointer-events: none; }
 
-/* 5. CALENDAR (V12.8 REFINED) */
+/* 5. CALENDAR */
 .calendar-card {
     min-height: 380px; 
     display: flex; flex-direction: column;
@@ -77,14 +77,12 @@ html[data-theme="light"] #profile-pfp-large { background-color: #e5e7eb; }
     width: 100%; padding: 5px;
 }
 
-/* New Right Controls Container */
 .cal-right-controls {
     display: flex; align-items: center;
 }
 
 .cal-title {
-    flex: 1; /* Centered */
-    text-align: center; font-weight: 800; font-size: 16px;
+    flex: 1; text-align: center; font-weight: 800; font-size: 16px;
     text-transform: uppercase; letter-spacing: 1px; color: var(--text);
     user-select: none;
 }
@@ -98,40 +96,31 @@ html[data-theme="light"] #profile-pfp-large { background-color: #e5e7eb; }
 }
 .cal-btn:active { transform: scale(0.9); background: var(--mood); color: black; }
 
-/* REFRESH/TODAY BUTTON UPDATED */
 .cal-today-btn {
-    width: 32px; height: 32px; /* Increased by 4px */
-    border-radius: 50%;
-    background: var(--text); /* White in dark mode, Dark in light mode */
-    color: var(--bg); /* Inverted text/icon color */
+    width: 32px; height: 32px; border-radius: 50%;
+    background: var(--text); color: var(--bg);
     border: none;
     display: flex; align-items: center; justify-content: center;
     font-size: 16px; font-weight: bold;
     cursor: pointer; box-shadow: 0 0 10px rgba(0,0,0,0.3);
-    margin-right: 15px; /* Distance from right arrow */
+    margin-right: 15px; 
     animation: pop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
-/* GRID */
 .cal-grid { 
     display: grid; grid-template-columns: repeat(7, 1fr); 
-    gap: 6px; 
-    text-align: center; flex: 1;
+    gap: 6px; text-align: center; flex: 1;
 }
 
-/* Day Headers */
 .cal-grid > div:nth-child(-n+7) {
     font-weight: 800; color: var(--text-muted); font-size: 12px;
     height: 30px; display: flex; align-items: center; justify-content: center;
     margin-bottom: 5px; opacity: 0.7;
 }
 
-/* Date Cells */
 .cal-day { 
-    height: 42px; 
-    display: flex; align-items: center; justify-content: center; 
-    border-radius: 10px; 
-    color: var(--text-muted); font-size: 14px;
+    height: 42px; display: flex; align-items: center; justify-content: center; 
+    border-radius: 10px; color: var(--text-muted); font-size: 14px;
     font-weight: 500;
 }
 .cal-day.today { background: var(--border); color: var(--text); font-weight: 900; border: 1px solid var(--text-muted); }
@@ -149,19 +138,16 @@ html[data-theme="light"] #profile-pfp-large { background-color: #e5e7eb; }
 .cal-picker.active { transform: translateY(0); opacity: 1; pointer-events: auto; }
 
 .picker-header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-.picker-close-btn { background: none; border: none; color: var(--text-muted); font-size: 20px; padding: 5px; cursor: pointer; }
 
-/* Year Selector COMPACTED */
-.picker-year-display {
-    display: flex; align-items: center; justify-content: center; gap: 8px;
-    font-size: 24px; font-weight: 900; color: var(--mood);
-    margin-bottom: 10px; /* Reduced by 10px */
-    padding: 5px; /* Reduced padding */
-    cursor: pointer; 
-    border-radius: 15px; border: 1px solid transparent;
-    transition: all 0.2s;
+/* Year Selector in Header */
+.picker-year-header-btn {
+    display: flex; align-items: center; gap: 6px;
+    color: var(--mood); cursor: pointer; padding: 5px;
+    transition: opacity 0.2s;
 }
-.picker-year-display:active { background: var(--input-bg); border-color: var(--border); }
+.picker-year-header-btn:active { opacity: 0.7; }
+
+.picker-close-btn { background: none; border: none; color: var(--text-muted); font-size: 20px; padding: 5px; cursor: pointer; }
 
 /* Grids */
 .picker-grid {
