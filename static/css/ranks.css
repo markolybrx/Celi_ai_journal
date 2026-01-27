@@ -22,25 +22,38 @@ html[data-theme="light"] .rank-circle { border: 2px solid black; color: black; b
 /* --- MODAL TREE STYLES --- */
 .modal-card-fixed { display: flex; flex-direction: column; height: 100%; width: 100%; overflow: hidden; position: relative; border-radius: 24px; background-color: var(--card-bg); border: 1px solid var(--border); }
 .modal-header-fixed { flex: 0 0 auto; display: flex; flex-direction: column; padding: 24px 24px 16px 24px; border-bottom: 1px solid var(--border); background: var(--card-bg); z-index: 20; box-shadow: 0 4px 20px rgba(0,0,0,0.5); }
-.tree-container { flex: 1 1 auto; min-height: 0; padding: 20px; display: flex; flex-direction: column; gap: 15px; overflow-y: auto; overscroll-behavior: contain; padding-bottom: 200px !important; }
+
+/* V11.5 FIX: Symmetrical Padding */
+.tree-container { 
+    flex: 1 1 auto; 
+    min-height: 0; 
+    padding: 20px; /* Uniform 20px padding on all sides */
+    display: flex; 
+    flex-direction: column; 
+    gap: 15px; 
+    overflow-y: auto; 
+    overscroll-behavior: contain; 
+    /* Removed padding-bottom: 200px override */
+}
+
 .modal-synth-box { width: 100%; margin-top: 15px; padding: 15px; background: var(--input-bg); border: 1px solid var(--mood); border-radius: 12px; text-align: center; box-shadow: 0 0 10px var(--mood-dim); }
 .modal-synth-text { font-size: 12px; font-weight: 500; color: var(--text); line-height: 1.5; font-style: italic; }
 
-/* V11.3: PHASE HEADER STYLE */
+/* Phase Header */
 .phase-header {
     font-size: 10px;
     font-weight: 900;
     text-transform: uppercase;
     letter-spacing: 2px;
-    color: var(--text-muted);
-    margin-top: 15px;
+    color: var(--text);
+    margin-top: 25px;
     margin-bottom: 5px;
     padding-left: 10px;
-    border-left: 2px solid var(--mood); /* Nice little accent mark */
-    opacity: 0.8;
+    border-left: 3px solid var(--mood);
+    opacity: 0.9;
+    line-height: 1;
 }
-/* Remove margin for the very first phase header */
-.tree-container .phase-header:first-child { margin-top: 0; }
+.tree-container .phase-header:first-child { margin-top: 5px; }
 
 /* Accordion Styles */
 .rank-group { background: var(--input-bg); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; transition: all 0.3s ease; flex-shrink: 0; }
