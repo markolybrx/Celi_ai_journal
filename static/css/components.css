@@ -101,14 +101,15 @@ html[data-theme="light"] #profile-pfp-large { background-color: #e5e7eb; }
 }
 .cal-btn:active { transform: scale(0.9); background: var(--mood); color: black; }
 
-/* REFRESH/TODAY BUTTON - BIGGER ICON */
+/* REFRESH/TODAY BUTTON (FIXED PADDING) */
 .cal-today-btn {
     width: 32px; height: 32px; border-radius: 50%;
     background: var(--text); color: var(--bg);
     border: none;
     display: flex; align-items: center; justify-content: center;
-    font-size: 20px; /* V12.12: Increased from 16px */
+    font-size: 20px; 
     font-weight: bold;
+    padding-bottom: 2px; /* V12.13: Push icon up slightly */
     cursor: pointer; box-shadow: 0 0 10px rgba(0,0,0,0.3);
     margin-right: 15px; 
     animation: pop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
@@ -134,41 +135,40 @@ html[data-theme="light"] #profile-pfp-large { background-color: #e5e7eb; }
 }
 .cal-day.today { background: var(--border); color: var(--text); font-weight: 900; border: 1px solid var(--text-muted); }
 
-/* V12.12: INDICATOR DOTS */
+/* INDICATOR DOTS */
 .cal-day.has-entry, .cal-day.has-void {
     color: var(--text);
     font-weight: 700;
     cursor: pointer; 
 }
 
-/* JOURNAL DOT (Standard Mood Color) */
+/* JOURNAL DOT */
 .cal-day.has-entry::after {
     content: ''; position: absolute; bottom: 6px;
     width: 4px; height: 4px; border-radius: 50%;
     background: var(--mood); box-shadow: 0 0 6px var(--mood);
 }
 
-/* VOID DOT (Purple/Special Color) */
+/* VOID DOT */
 .cal-day.has-void::after {
     content: ''; position: absolute; bottom: 6px;
     width: 4px; height: 4px; border-radius: 50%;
-    background: #a855f7; /* Purple */
-    box-shadow: 0 0 6px #a855f7;
+    background: #a855f7; box-shadow: 0 0 6px #a855f7;
 }
 
 /* --- FULL OVERLAY PICKER --- */
 .cal-picker {
     position: absolute; top: 0; left: 0; right: 0; bottom: 0;
-    background: rgba(10, 10, 12, 0.98); /* Default Dark Mode */
+    background: rgba(10, 10, 12, 0.98); 
     backdrop-filter: blur(20px); z-index: 50;
     display: flex; flex-direction: column; padding: 20px;
     transform: translateY(100%); opacity: 0; pointer-events: none;
     transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-/* V12.12: LIGHT MODE PICKER OVERRIDE */
+/* LIGHT MODE OVERRIDE */
 html[data-theme="light"] .cal-picker {
-    background: rgba(245, 245, 245, 0.98); /* Light Mode Background */
+    background: rgba(245, 245, 245, 0.98); 
     color: #000;
 }
 
@@ -209,7 +209,13 @@ html[data-theme="light"] .cal-picker {
     font-size: 12px; font-weight: 900; text-transform: uppercase; letter-spacing: 1px;
 }
 
-/* 6. UTILS */
+/* 6. ARCHIVE MODAL MEDIA STYLES */
+.archive-media-container { width: 100%; border-radius: 12px; overflow: hidden; margin-top: 10px; border: 1px solid var(--border); }
+.archive-img { width: 100%; height: auto; display: block; }
+.archive-audio-box { width: 100%; padding: 10px; background: var(--input-bg); border-radius: 12px; margin-top: 10px; display: flex; align-items: center; }
+.archive-audio-player { width: 100%; height: 32px; }
+
+/* 7. UTILS */
 .bg-theme-card { background-color: var(--card-bg); border-color: var(--border); color: var(--text); }
 .bg-theme-input { background-color: var(--input-bg); border-color: var(--border); color: var(--text); }
 .bg-theme-input:focus, input:focus { border-color: var(--text-muted); }
