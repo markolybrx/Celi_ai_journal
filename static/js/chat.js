@@ -106,11 +106,18 @@ function appendMsg(txt, sender) {
     history.scrollTop = 9999; 
 }
 
-// --- SOUL SYNTHESIS / ARCHIVE LOGIC ---
+// --- SOUL SYNTHESIS / ARCHIVE LOGIC (V12.13 UPDATED) ---
 function openArchive(id) { 
     const modal = document.getElementById('archive-modal'); 
     modal.classList.add('active'); 
-    
+    modal.style.display = 'flex'; // Ensure flex display for centering
+
+    // Reset fields
+    document.getElementById('archive-date').innerText = "Loading...";
+    document.getElementById('archive-analysis').innerText = "Loading synthesis...";
+    document.getElementById('archive-image-container').classList.add('hidden');
+    document.getElementById('archive-audio-container').classList.add('hidden');
+
     // Fetch details for this specific entry ID
     fetch('/api/star_detail', { 
         method:'POST', 
@@ -120,25 +127,28 @@ function openArchive(id) {
     .then(r => r.json())
     .then(d => { 
         document.getElementById('archive-date').innerText = d.date; 
-        document.getElementById('archive-analysis').innerText = d.analysis || "Analysis corrupted."; 
+        // Use summary or analysis, whichever exists
+        document.getElementById('archive-analysis').innerText = d.analysis || d.summary || "No synthesis available for this entry."; 
         
+        // Handle Image
         const imgContainer = document.getElementById('archive-image-container'); 
         if(d.image_url) { 
             imgContainer.classList.remove('hidden'); 
             document.getElementById('archive-image').src = d.image_url; 
-        } else { 
-            imgContainer.classList.add('hidden'); 
         } 
         
+        // Handle Audio
         const audioContainer = document.getElementById('archive-audio-container'); 
         const audioEl = document.getElementById('archive-audio'); 
         if(d.audio_url) { 
             audioContainer.classList.remove('hidden'); 
             audioEl.src = d.audio_url; 
-        } else { 
-            audioContainer.classList.add('hidden'); 
         } 
-    }); 
+    })
+    .catch(e => {
+        document.getElementById('archive-analysis').innerText = "Error retrieving archive data.";
+        console.error(e);
+    });
 }
 
 function openChat(mode) { 
@@ -158,7 +168,10 @@ function closeChat() {
 }
 
 function closeArchive() { 
-    document.getElementById('archive-modal').classList.remove('active'); 
+    const modal = document.getElementById('archive-modal');
+    modal.classList.remove('active'); 
+    modal.style.display = 'none'; // Hide completely
+    
     const audio = document.getElementById('archive-audio');
     if(audio) audio.pause(); 
 }
