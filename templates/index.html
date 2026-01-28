@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, interactive-widget=resizes-content">
@@ -7,6 +7,7 @@
     <title>Celi: AI Journal</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800;900&display=swap" rel="stylesheet">
     
     <link rel="stylesheet" href="/static/css/base.css">
     <link rel="stylesheet" href="/static/css/layout.css">
@@ -28,7 +29,6 @@
     <div id="main-view">
         {% include 'components/dashboard_card.html' %}
         {% include 'components/calendar.html' %}
-        
         {% include 'components/echo.html' %}
     </div>
 
@@ -50,12 +50,5 @@
     <script src="/static/js/data.js"></script>
     <script src="/static/js/ranks.js"></script>
     <script src="/static/js/chat.js"></script>
-    
-    <script>
-        window.onload = async () => {
-            await loadData();
-            if (typeof triggerAiSignal === "function") triggerAiSignal();
-        };
-    </script>
 </body>
 </html>
