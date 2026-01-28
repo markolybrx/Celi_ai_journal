@@ -56,7 +56,9 @@ api_key = os.environ.get("GEMINI_API_KEY")
 if api_key:
     try: 
         genai.configure(api_key=api_key.strip().replace("'", "").replace('"', ""))
-    except: pass
+        print("✅ Gemini AI Core Connected")
+    except Exception as e:
+        print(f"❌ Gemini AI Connection Failed: {e}")
 
 # ==================================================
 #           THE ECHO PROTOCOL (MEMORY)
@@ -65,6 +67,7 @@ if api_key:
 def get_embedding(text):
     try:
         if not text or len(text) < 5: return None
+        # Use a stable embedding model
         result = genai.embed_content(
             model="models/text-embedding-004",
             content=text,
@@ -116,28 +119,29 @@ def find_similar_memories(user_id, query_text):
 def generate_analysis(entry_text):
     """Generates psychological analysis for the Archive Modal."""
     try:
-        model = genai.GenerativeModel("gemini-2.0-flash")
-        # V12.16: Updated prompt for human-like analysis
+        # Use stable 1.5-flash model
+        model = genai.GenerativeModel("gemini-1.5-flash")
         prompt = f"Provide a warm, human-like psychological insight about this journal entry. Speak directly to 'You'. Keep it to 1 or 2 sentences max. Entry: {entry_text}"
         response = model.generate_content(prompt)
         return response.text.strip()
-    except:
+    except Exception as e:
+        print(f"Analysis Error: {e}")
         return "Analysis unavailable due to signal interference."
 
 def generate_summary(entry_text):
     """Generates a natural 1-2 sentence recap for the Calendar Echo."""
     try:
-        model = genai.GenerativeModel("gemini-2.0-flash")
-        # V12.16: Updated prompt for natural recap
+        model = genai.GenerativeModel("gemini-1.5-flash")
         prompt = f"Write a 1 or 2 sentence recap of this entry addressed to 'You', as if you are a supportive friend remembering it. Do not start with 'You mentioned'. Entry: {entry_text}"
         response = model.generate_content(prompt)
         return response.text.strip().replace('"', '').replace("'", "")
-    except:
+    except Exception as e:
+        print(f"Summary Error: {e}")
         return entry_text[:50] + "..."
 
 def generate_constellation_name(entries_text):
     try:
-        model = genai.GenerativeModel("gemini-2.0-flash")
+        model = genai.GenerativeModel("gemini-1.5-flash")
         prompt = f"Here are 7 days of journal entries. Give them a mystical 'Constellation Name' (e.g., 'The Week of Rain'). Just the name. Entries: {entries_text}"
         response = model.generate_content(prompt)
         return response.text.strip().replace('"', '').replace("'", "")
@@ -145,8 +149,9 @@ def generate_constellation_name(entries_text):
         return "Unknown Constellation"
 
 def generate_with_media(msg, media_bytes=None, media_mime=None, is_void=False, context_memories=[]):
-    """Main generation logic for Celi/Void responses."""
-    candidates = ["gemini-2.0-flash", "gemini-2.0-flash-lite"]
+    """Main generation logic for Celi/Void responses with Fallback."""
+    # Use Stable Models
+    candidates = ["gemini-1.5-flash", "gemini-1.5-pro"]
     
     memory_block = ""
     if context_memories:
@@ -157,10 +162,14 @@ def generate_with_media(msg, media_bytes=None, media_mime=None, is_void=False, c
     base_instruction = "You are 'The Void'. Infinite, safe emptiness. Absorb pain." if is_void else "You are Celi. Analyze the user's day based on their text and/or image. Be warm and observant. Keep responses concise (under 3 sentences)."
     system_instruction = base_instruction + memory_block
     
+    # Construct Content Payload
     content = [msg]
+    has_media = False
     if media_bytes and media_mime and 'image' in media_mime:
+        has_media = True
         content.append({'mime_type': media_mime, 'data': media_bytes})
 
+    # Try generating with media first
     for m in candidates:
         try:
             model = genai.GenerativeModel(m, system_instruction=system_instruction)
@@ -170,8 +179,18 @@ def generate_with_media(msg, media_bytes=None, media_mime=None, is_void=False, c
         except Exception as e:
             print(f"Model Error ({m}): {e}")
             continue
-            
-    return "Signal Lost. Visual/Text processing failed."
+
+    # FALLBACK: If media generation failed, try text-only
+    if has_media:
+        print("⚠️ Media processing failed. Retrying with text-only fallback...")
+        try:
+            model = genai.GenerativeModel("gemini-1.5-flash", system_instruction=system_instruction)
+            response = model.generate_content(msg + " [Image attached but signal weak]")
+            return response.text.strip()
+        except Exception as e:
+            print(f"Fallback Error: {e}")
+
+    return "Signal Lost. Visual/Text processing failed. Please check your API Key or connection."
 
 # ==================================================
 #                 ROUTES
@@ -334,6 +353,7 @@ def star_detail():
     entry = history_col.find_one({"user_id": session['user_id'], "timestamp": timestamp}, {'_id': 0, 'embedding': 0})
     if not entry: return jsonify({"error": "Not found"})
     
+    # Lazy Load Analysis
     analysis = entry.get('ai_analysis')
     if not analysis:
         analysis = generate_analysis(entry.get('full_message', ''))
@@ -361,11 +381,13 @@ def process():
         audio_file = request.files.get('audio')
         timestamp = str(datetime.now().timestamp())
         
+        # GridFS Storage
         media_id = fs.put(image_file.read(), filename=f"img_{timestamp}", content_type=image_file.mimetype) if image_file else None
         audio_id = fs.put(audio_file, filename=f"aud_{timestamp}", content_type=audio_file.mimetype) if audio_file else None
         image_bytes = fs.get(media_id).read() if media_id else None
         image_mime = image_file.mimetype if image_file else None
 
+        # Vector Context
         past_memories = []
         embedding = None
         if msg and len(msg) > 10:
@@ -375,6 +397,7 @@ def process():
         reply = "..."
         reward_result = process_daily_rewards(users_col, session['user_id'], msg)
         
+        # AI Generation
         if mode == 'rant':
             reply = generate_with_media(msg, image_bytes, image_mime, is_void=True, context_memories=past_memories)
         else:
@@ -388,7 +411,7 @@ def process():
                 reply = generate_with_media(msg, image_bytes, image_mime, False, context_memories=past_memories)
                 if "open The Void" in reply: session['awaiting_void_confirm'] = True
 
-        # V12.16: Generate NATURAL Summary for Echo
+        # Generate Natural Summary for Echo
         summary_text = generate_summary(msg) if msg else "Visual Entry"
 
         constellation_name = None
