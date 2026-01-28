@@ -11,24 +11,30 @@
                 </div>
             </div>
             <div class="chat-controls">
-                <button onclick="closeChat('journal')" class="chat-close-btn">✕</button>
+                <button onclick="closeChat('journal')" class="chat-close-btn">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                </button>
             </div>
         </div>
 
-        <div id="celi-history" class="chat-history">
-            </div>
-
-        <div id="celi-typing" class="typing-indicator hidden">
-            <span></span><span></span><span></span>
-        </div>
+        <div id="celi-history" class="chat-history"></div>
+        <div id="celi-typing" class="typing-indicator hidden"><span></span><span></span><span></span></div>
 
         <div class="chat-input-area">
             <div class="media-preview hidden" id="celi-media-preview"></div>
-            <div class="flex items-center gap-2 w-full">
-                <button onclick="document.getElementById('celi-img-upload').click()" class="chat-attach-btn">📷</button>
-                <button onclick="toggleMic('journal')" class="chat-attach-btn">🎙️</button>
+            <div class="flex items-center gap-3 w-full">
+                <button onclick="document.getElementById('celi-img-upload').click()" class="chat-attach-btn">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
+                </button>
+                <button onclick="toggleMic('journal')" class="chat-attach-btn">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg>
+                </button>
+                
                 <input type="text" id="celi-input" class="chat-input-field" placeholder="Write your thoughts..." autocomplete="off">
-                <button onclick="sendMessage('journal')" class="chat-send-btn">➤</button>
+                
+                <button onclick="sendMessage('journal')" class="chat-send-btn">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                </button>
             </div>
             <input type="file" id="celi-img-upload" accept="image/*" hidden onchange="handleFileSelect('journal')">
             <input type="file" id="celi-audio-upload" accept="audio/*" hidden onchange="handleAudioSelect('journal')">
@@ -49,24 +55,30 @@
                 </div>
             </div>
             <div class="chat-controls">
-                <button onclick="closeChat('rant')" class="chat-close-btn void-close">✕</button>
+                <button onclick="closeChat('rant')" class="chat-close-btn void-close">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                </button>
             </div>
         </div>
 
-        <div id="void-history" class="chat-history void-history-bg">
-            </div>
-
-        <div id="void-typing" class="typing-indicator void-typing hidden">
-            <span></span><span></span><span></span>
-        </div>
+        <div id="void-history" class="chat-history void-history-bg"></div>
+        <div id="void-typing" class="typing-indicator void-typing hidden"><span></span><span></span><span></span></div>
 
         <div class="chat-input-area void-input-area">
             <div class="media-preview hidden" id="void-media-preview"></div>
-            <div class="flex items-center gap-2 w-full">
-                <button onclick="document.getElementById('void-img-upload').click()" class="chat-attach-btn void-btn">📷</button>
-                <button onclick="toggleMic('rant')" class="chat-attach-btn void-btn">🎙️</button>
+            <div class="flex items-center gap-3 w-full">
+                <button onclick="document.getElementById('void-img-upload').click()" class="chat-attach-btn void-btn">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
+                </button>
+                <button onclick="toggleMic('rant')" class="chat-attach-btn void-btn">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg>
+                </button>
+                
                 <input type="text" id="void-input" class="chat-input-field void-field" placeholder="Release your anger..." autocomplete="off">
-                <button onclick="sendMessage('rant')" class="chat-send-btn void-send">➤</button>
+                
+                <button onclick="sendMessage('rant')" class="chat-send-btn void-send">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                </button>
             </div>
             <input type="file" id="void-img-upload" accept="image/*" hidden onchange="handleFileSelect('rant')">
             <input type="file" id="void-audio-upload" accept="audio/*" hidden onchange="handleAudioSelect('rant')">
