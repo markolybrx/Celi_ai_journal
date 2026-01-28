@@ -41,7 +41,7 @@ async function loadData() {
         if(data.history) fullChatHistory = data.history; 
         userHistoryDates = Object.values(data.history).map(e=>e.date);
         
-        // --- 4. HUMANIZED ECHO LOGIC (SAFE MODE) ---
+        // --- 4. HUMANIZED ECHO LOGIC (V12.16) ---
         const echoEl = document.getElementById('echo-text');
         if (echoEl) {
             const historyKeys = Object.keys(fullChatHistory).sort();
@@ -49,15 +49,16 @@ async function loadData() {
                 const lastKey = historyKeys[historyKeys.length - 1];
                 const lastEntry = fullChatHistory[lastKey];
                 
-                let conversationText = "";
-                if (lastEntry.summary) {
-                    conversationText = `You mentioned ${lastEntry.summary.toLowerCase()}... How is that going?`;
-                } else {
+                // Use backend generated natural summary directly
+                let conversationText = lastEntry.summary;
+                
+                if (!conversationText) {
                     const raw = lastEntry.user_msg || "something on your mind";
                     const snippet = raw.length > 50 ? raw.substring(0, 50) + "..." : raw;
                     conversationText = `We talked about "${snippet}". Want to continue?`;
                 }
                 
+                // Clean markdown if any
                 conversationText = conversationText.replace(/\*\*/g, '').replace(/\*/g, '');
                 
                 document.getElementById('echo-text').innerText = conversationText;
