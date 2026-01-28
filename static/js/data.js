@@ -77,7 +77,7 @@ async function confirmUpdateInfo() { const btn = document.getElementById('btn-co
 async function updateSecurity(type) { let body = {}; const btn = type === 'pass' ? document.getElementById('btn-update-pass') : document.getElementById('btn-update-secret'); const originalText = "Update"; btn.innerHTML = '<span class="spinner"></span> Loading...'; btn.disabled = true; if(type === 'pass') { const p1 = document.getElementById('new-pass-input').value; const p2 = document.getElementById('confirm-pass-input').value; if(p1 !== p2) { document.getElementById('new-pass-input').classList.add('input-error'); document.getElementById('confirm-pass-input').classList.add('input-error'); setTimeout(()=>{ document.getElementById('new-pass-input').classList.remove('input-error'); document.getElementById('confirm-pass-input').classList.remove('input-error'); }, 500); btn.innerHTML=originalText; btn.disabled=false; return; } body = { new_password: p1 }; } else { const q = document.getElementById('new-secret-q').value; if(!q) { showStatus(false, "Select a Question"); btn.innerHTML=originalText; btn.disabled=false; return; } body = { new_secret_q: q, new_secret_a: document.getElementById('new-secret-a').value }; } try { const res = await fetch('/api/update_security', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) }); const data = await res.json(); if(data.status === 'success') { closeModal('change-pass-modal'); closeModal('change-secret-modal'); showStatus(true, "Security details updated."); loadData(); } else { showStatus(false, data.message); } } catch(e) { showStatus(false, "Connection Failed"); } btn.innerHTML = originalText; btn.disabled = false; }
 async function performWipe() { const btn = document.querySelector('#delete-confirm-modal button.bg-red-500'); const originalText = btn.innerText; btn.innerText = "Deleting..."; btn.disabled = true; try { const res = await fetch('/api/clear_history', { method: 'POST' }); const data = await res.json(); if (data.status === 'success') { window.location.href = '/login'; } else { alert("Error: " + data.message); btn.innerText = originalText; btn.disabled = false; } } catch (e) { alert("Connection failed."); btn.innerText = originalText; btn.disabled = false; } }
 
-// --- CALENDAR RENDERER ---
+// --- CALENDAR RENDERER (V12.12: VOID & CLICK FIX) ---
 function renderCalendar() { 
     const g = document.getElementById('cal-grid'); 
     if (!g) return; 
@@ -95,6 +95,18 @@ function renderCalendar() {
         else todayBtn.classList.add('hidden');
     }
 
+    // 1. Build a Map of Date -> Entry Data
+    const dateMap = {};
+    Object.keys(fullChatHistory).forEach(id => {
+        const entry = fullChatHistory[id];
+        const dKey = entry.date;
+        
+        // Logic: If multiple entries on same day, prioritize 'rant' (Void) for indicator
+        if (!dateMap[dKey] || entry.mode === 'rant') {
+            dateMap[dKey] = { id: id, mode: entry.mode || 'journal' };
+        }
+    });
+
     // Grid Headers
     ["S","M","T","W","T","F","S"].forEach(d => g.innerHTML += `<div>${d}</div>`); 
     
@@ -110,9 +122,26 @@ function renderCalendar() {
         
         if (isCurrent && i === now.getDate()) d.classList.add('today');
         
-        if (userHistoryDates.includes(`${y}-${String(m+1).padStart(2,'0')}-${String(i).padStart(2,'0')}`)) {
-            d.classList.add('has-entry');
+        const dateKey = `${y}-${String(m+1).padStart(2,'0')}-${String(i).padStart(2,'0')}`;
+        
+        // CHECK ENTRY & APPLY STYLE
+        if (dateMap[dateKey]) {
+            const entryData = dateMap[dateKey];
+            
+            // Differentiate Void vs Journal
+            if (entryData.mode === 'rant') {
+                d.classList.add('has-void');
+            } else {
+                d.classList.add('has-entry');
+            }
+
+            // Click Handler
+            d.onclick = (e) => {
+                e.stopPropagation(); // Prevent bubbling issues
+                openArchive(entryData.id);
+            };
         }
+        
         g.appendChild(d); 
     } 
 }
