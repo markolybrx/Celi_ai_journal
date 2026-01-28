@@ -55,7 +55,9 @@ if mongo_uri:
 api_key = os.environ.get("GEMINI_API_KEY")
 if api_key:
     try: 
-        genai.configure(api_key=api_key.strip().replace("'", "").replace('"', ""))
+        # Clean key just in case
+        clean_key = api_key.strip().replace("'", "").replace('"', "")
+        genai.configure(api_key=clean_key)
         print("✅ Gemini AI Core Connected")
     except Exception as e:
         print(f"❌ Gemini AI Connection Failed: {e}")
@@ -67,7 +69,7 @@ if api_key:
 def get_embedding(text):
     try:
         if not text or len(text) < 5: return None
-        # Use a stable embedding model
+        # Use stable embedding model
         result = genai.embed_content(
             model="models/text-embedding-004",
             content=text,
@@ -118,30 +120,40 @@ def find_similar_memories(user_id, query_text):
 
 def generate_analysis(entry_text):
     """Generates psychological analysis for the Archive Modal."""
-    try:
-        # Use stable 1.5-flash model
-        model = genai.GenerativeModel("gemini-1.5-flash")
-        prompt = f"Provide a warm, human-like psychological insight about this journal entry. Speak directly to 'You'. Keep it to 1 or 2 sentences max. Entry: {entry_text}"
-        response = model.generate_content(prompt)
-        return response.text.strip()
-    except Exception as e:
-        print(f"Analysis Error: {e}")
-        return "Analysis unavailable due to signal interference."
+    # V12.18: Updated to Gemini 2.5 Flash
+    candidates = ["gemini-2.5-flash", "gemini-2.0-flash"]
+    
+    for m in candidates:
+        try:
+            model = genai.GenerativeModel(m)
+            prompt = f"Provide a warm, human-like psychological insight about this journal entry. Speak directly to 'You'. Keep it to 1 or 2 sentences max. Entry: {entry_text}"
+            response = model.generate_content(prompt)
+            return response.text.strip()
+        except Exception as e:
+            print(f"Analysis Error ({m}): {e}")
+            continue
+            
+    return "Analysis unavailable due to signal interference."
 
 def generate_summary(entry_text):
     """Generates a natural 1-2 sentence recap for the Calendar Echo."""
-    try:
-        model = genai.GenerativeModel("gemini-1.5-flash")
-        prompt = f"Write a 1 or 2 sentence recap of this entry addressed to 'You', as if you are a supportive friend remembering it. Do not start with 'You mentioned'. Entry: {entry_text}"
-        response = model.generate_content(prompt)
-        return response.text.strip().replace('"', '').replace("'", "")
-    except Exception as e:
-        print(f"Summary Error: {e}")
-        return entry_text[:50] + "..."
+    # V12.18: Updated to Gemini 2.5 Flash
+    candidates = ["gemini-2.5-flash", "gemini-2.0-flash"]
+    
+    for m in candidates:
+        try:
+            model = genai.GenerativeModel(m)
+            prompt = f"Write a 1 or 2 sentence recap of this entry addressed to 'You', as if you are a supportive friend remembering it. Do not start with 'You mentioned'. Entry: {entry_text}"
+            response = model.generate_content(prompt)
+            return response.text.strip().replace('"', '').replace("'", "")
+        except:
+            continue
+            
+    return entry_text[:50] + "..."
 
 def generate_constellation_name(entries_text):
     try:
-        model = genai.GenerativeModel("gemini-1.5-flash")
+        model = genai.GenerativeModel("gemini-2.5-flash")
         prompt = f"Here are 7 days of journal entries. Give them a mystical 'Constellation Name' (e.g., 'The Week of Rain'). Just the name. Entries: {entries_text}"
         response = model.generate_content(prompt)
         return response.text.strip().replace('"', '').replace("'", "")
@@ -150,8 +162,8 @@ def generate_constellation_name(entries_text):
 
 def generate_with_media(msg, media_bytes=None, media_mime=None, is_void=False, context_memories=[]):
     """Main generation logic for Celi/Void responses with Fallback."""
-    # Use Stable Models
-    candidates = ["gemini-1.5-flash", "gemini-1.5-pro"]
+    # V12.18: Updated Candidate List for 2026 Timeline
+    candidates = ["gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-2.0-flash"]
     
     memory_block = ""
     if context_memories:
@@ -177,14 +189,15 @@ def generate_with_media(msg, media_bytes=None, media_mime=None, is_void=False, c
             if not response.text: raise Exception("Empty response")
             return response.text.strip()
         except Exception as e:
-            print(f"Model Error ({m}): {e}")
+            print(f"DEBUG: Model Error ({m}): {e}")
             continue
 
     # FALLBACK: If media generation failed, try text-only
     if has_media:
         print("⚠️ Media processing failed. Retrying with text-only fallback...")
         try:
-            model = genai.GenerativeModel("gemini-1.5-flash", system_instruction=system_instruction)
+            # Fallback to lite model for speed/stability
+            model = genai.GenerativeModel("gemini-2.5-flash-lite", system_instruction=system_instruction)
             response = model.generate_content(msg + " [Image attached but signal weak]")
             return response.text.strip()
         except Exception as e:
