@@ -1,38 +1,25 @@
 /* --- LAYOUT.CSS (MASTER STRUCTURE) --- */
-
-/* 1. Z-INDEX HIERARCHY (The Holy Grail) */
 :root {
     --z-bg: -1;
     --z-content: 10;
     --z-header: 50;
     --z-dock: 60;
     --z-fab: 70;
-    --z-modal: 9999; /* The highest layer */
+    --z-modal: 9999; 
 }
 
-/* 2. MAIN CONTAINER */
 body, html {
     width: 100%; height: 100%; margin: 0; padding: 0;
-    overflow: hidden; /* Prevent body scroll, let specific divs scroll */
-    background-color: var(--bg);
-    color: var(--text);
+    overflow: hidden; 
+    background-color: var(--bg); color: var(--text);
     font-family: 'Inter', -apple-system, sans-serif;
 }
 
-/* 3. SCROLLABLE DASHBOARD AREA */
 #main-view {
-    position: absolute;
-    top: 0; left: 0; right: 0; bottom: 0;
-    padding-top: 90px; /* Space for Header */
-    padding-bottom: 120px; /* Space for Dock/FABs */
-    padding-left: 20px; padding-right: 20px;
-    overflow-y: auto; /* Allow scrolling inside here */
-    overflow-x: hidden;
+    position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+    padding-top: 90px; padding-bottom: 120px; padding-left: 20px; padding-right: 20px;
+    overflow-y: auto; overflow-x: hidden;
     z-index: var(--z-content);
-    max-width: 600px;
-    margin: 0 auto; /* Center on desktop */
+    max-width: 600px; margin: 0 auto; 
 }
-
-/* 4. UTILITIES */
 .hidden { display: none !important; }
-.flex-center { display: flex; align-items: center; justify-content: center; }
