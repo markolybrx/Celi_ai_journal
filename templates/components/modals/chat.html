@@ -1,55 +1,27 @@
-<div id="chat-overlay" class="fixed inset-0 bg-black/80 z-50 hidden items-center justify-center p-4 backdrop-blur-sm transition-opacity duration-300 opacity-0">
-    
-    <div id="chat-modal-window" class="relative w-full max-w-md bg-[var(--card-bg)] border border-[var(--border)] rounded-3xl flex flex-col shadow-2xl overflow-hidden transition-all duration-500" style="height: 85vh; max-height: 800px;">
-        
-        <div class="flex items-center justify-between p-4 border-b border-[var(--border)] bg-[var(--glass)] z-10 backdrop-blur-md">
+<div id="chat-overlay" class="modal-overlay" onclick="if(event.target === this) closeChat()">
+    <div id="chat-modal-window" class="chat-window">
+        <div class="chat-header">
             <div class="flex items-center gap-3">
-                <div id="chat-header-icon" class="w-8 h-8 flex items-center justify-center text-[var(--mood)]">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle></svg>
-                </div>
-                <div>
-                    <h2 id="chat-header-title" class="text-lg font-bold tracking-wider">CELI AI</h2>
-                    <p id="chat-header-subtitle" class="text-[9px] uppercase tracking-[2px] opacity-60">Journal Companion</p>
+                <div id="chat-header-icon"></div> <div>
+                    <h2 id="chat-header-title" class="text-sm font-bold tracking-widest">CELI AI</h2>
+                    <p id="chat-header-subtitle" class="text-[9px] uppercase tracking-[2px] opacity-50">Companion</p>
                 </div>
             </div>
-            <button onclick="closeChat()" class="p-2 opacity-60 hover:opacity-100 transition-opacity">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-            </button>
+            <div class="cursor-pointer opacity-50 hover:opacity-100" onclick="closeChat()">✕</div>
         </div>
 
-        <div id="chat-history" class="flex-1 overflow-y-auto p-5 space-y-4 scroll-smooth">
-            </div>
-
-        <div id="typing-indicator" class="hidden px-6 py-2 flex gap-1">
-            <div class="w-1.5 h-1.5 rounded-full bg-[var(--text-muted)] animate-bounce"></div>
-            <div class="w-1.5 h-1.5 rounded-full bg-[var(--text-muted)] animate-bounce delay-75"></div>
-            <div class="w-1.5 h-1.5 rounded-full bg-[var(--text-muted)] animate-bounce delay-150"></div>
+        <div id="chat-history" class="chat-history">
+            <div id="typing-indicator" class="hidden text-xs opacity-50 p-2">Computing...</div>
         </div>
 
-        <div class="p-4 bg-[var(--card-bg)] border-t border-[var(--border)] z-10">
-            <div id="media-preview" class="hidden mb-2 p-2 bg-[var(--bg)] rounded-lg border border-[var(--border)] flex items-center justify-between">
-                <span class="text-xs opacity-70 truncate">Media attached...</span>
-                <button onclick="clearMedia()" class="text-red-500 font-bold px-2">✕</button>
-            </div>
-
-            <div class="flex items-center gap-2">
-                <button onclick="document.getElementById('img-upload').click()" class="p-2 text-[var(--text-muted)] hover:text-[var(--mood)] transition-colors">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
-                </button>
-                
-                <button onclick="toggleMic()" class="p-2 text-[var(--text-muted)] hover:text-[var(--mood)] transition-colors">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg>
-                </button>
-
-                <input type="text" id="chat-input" class="flex-1 bg-[var(--input-bg)] border border-[var(--border)] rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-[var(--mood)] transition-colors placeholder:opacity-40" placeholder="Type a message..." autocomplete="off">
-                
-                <button onclick="sendMessage()" class="p-2 text-[var(--mood)] hover:scale-110 transition-transform">
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
-                </button>
-            </div>
-
-            <input type="file" id="img-upload" accept="image/*" hidden onchange="handleFileSelect()">
-            <input type="file" id="audio-upload" accept="audio/*" hidden onchange="handleAudioSelect()">
+        <div class="input-area">
+            <button class="opacity-50 hover:opacity-100" onclick="document.getElementById('img-upload').click()">📷</button>
+            <button class="opacity-50 hover:opacity-100" onclick="toggleMic()">🎙️</button>
+            <input type="text" id="chat-input" class="chat-input" placeholder="Type..." autocomplete="off">
+            <button class="text-[var(--mood)] font-bold px-2" onclick="sendMessage()">➤</button>
         </div>
+
+        <input type="file" id="img-upload" accept="image/*" hidden onchange="handleFileSelect()">
+        <input type="file" id="audio-upload" accept="audio/*" hidden onchange="handleAudioSelect()">
     </div>
 </div>
