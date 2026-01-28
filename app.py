@@ -23,7 +23,7 @@ logging.basicConfig(level=logging.DEBUG)
 app = Flask(__name__)
 
 # --- CONFIG: SECRET & REDIS ---
-app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'celi_anchor_v1')
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'celi_super_secret_key_999')
 app.config['SESSION_TYPE'] = 'redis'
 app.config['SESSION_PERMANENT'] = False
 app.config['SESSION_USE_SIGNER'] = True
@@ -48,17 +48,19 @@ if mongo_uri:
         users_col = db['users']
         history_col = db['history']
         fs = gridfs.GridFS(db)
-        print("✅ v1.0.0 Anchor: Memory Core Connected")
+        print("✅ Memory Core (MongoDB + GridFS + Vectors) Connected")
     except Exception as e: print(f"❌ Memory Core Error: {e}")
 
 # --- CONFIG: AI CORE ---
 api_key = os.environ.get("GEMINI_API_KEY")
 if api_key:
     try: 
-        genai.configure(api_key=api_key.strip().replace("'", "").replace('"', ""))
-        print("✅ v1.0.0 Anchor: Gemini Core Connected")
+        # Clean key just in case
+        clean_key = api_key.strip().replace("'", "").replace('"', "")
+        genai.configure(api_key=clean_key)
+        print("✅ Gemini AI Core Connected")
     except Exception as e:
-        print(f"❌ Gemini Connection Failed: {e}")
+        print(f"❌ Gemini AI Connection Failed: {e}")
 
 # ==================================================
 #           THE ECHO PROTOCOL (MEMORY)
@@ -67,6 +69,7 @@ if api_key:
 def get_embedding(text):
     try:
         if not text or len(text) < 5: return None
+        # Use stable embedding model
         result = genai.embed_content(
             model="models/text-embedding-004",
             content=text,
@@ -116,32 +119,41 @@ def find_similar_memories(user_id, query_text):
 # ==================================================
 
 def generate_analysis(entry_text):
-    """Archive Modal Analysis."""
-    candidates = ["gemini-2.0-flash", "gemini-1.5-flash"]
+    """Generates psychological analysis for the Archive Modal."""
+    # V12.18: Updated to Gemini 2.5 Flash
+    candidates = ["gemini-2.5-flash", "gemini-2.0-flash"]
+    
     for m in candidates:
         try:
             model = genai.GenerativeModel(m)
             prompt = f"Provide a warm, human-like psychological insight about this journal entry. Speak directly to 'You'. Keep it to 1 or 2 sentences max. Entry: {entry_text}"
             response = model.generate_content(prompt)
             return response.text.strip()
-        except: continue
-    return "Analysis unavailable."
+        except Exception as e:
+            print(f"Analysis Error ({m}): {e}")
+            continue
+            
+    return "Analysis unavailable due to signal interference."
 
 def generate_summary(entry_text):
-    """Calendar Echo Summary."""
-    candidates = ["gemini-2.0-flash", "gemini-1.5-flash"]
+    """Generates a natural 1-2 sentence recap for the Calendar Echo."""
+    # V12.18: Updated to Gemini 2.5 Flash
+    candidates = ["gemini-2.5-flash", "gemini-2.0-flash"]
+    
     for m in candidates:
         try:
             model = genai.GenerativeModel(m)
-            prompt = f"Write a 1 or 2 sentence recap of this entry addressed to 'You', as if you are a supportive friend. Do not start with 'You mentioned'. Entry: {entry_text}"
+            prompt = f"Write a 1 or 2 sentence recap of this entry addressed to 'You', as if you are a supportive friend remembering it. Do not start with 'You mentioned'. Entry: {entry_text}"
             response = model.generate_content(prompt)
             return response.text.strip().replace('"', '').replace("'", "")
-        except: continue
+        except:
+            continue
+            
     return entry_text[:50] + "..."
 
 def generate_constellation_name(entries_text):
     try:
-        model = genai.GenerativeModel("gemini-1.5-flash")
+        model = genai.GenerativeModel("gemini-2.5-flash")
         prompt = f"Here are 7 days of journal entries. Give them a mystical 'Constellation Name' (e.g., 'The Week of Rain'). Just the name. Entries: {entries_text}"
         response = model.generate_content(prompt)
         return response.text.strip().replace('"', '').replace("'", "")
@@ -149,44 +161,49 @@ def generate_constellation_name(entries_text):
         return "Unknown Constellation"
 
 def generate_with_media(msg, media_bytes=None, media_mime=None, is_void=False, context_memories=[]):
-    """Unified Generation Logic with Fallback."""
-    candidates = ["gemini-2.0-flash", "gemini-1.5-flash", "gemini-1.5-pro"]
+    """Main generation logic for Celi/Void responses with Fallback."""
+    # V12.18: Updated Candidate List for 2026 Timeline
+    candidates = ["gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-2.0-flash"]
     
     memory_block = ""
     if context_memories:
-        memory_block = "\n\nRELEVANT PAST MEMORIES:\n"
+        memory_block = "\n\nRELEVANT PAST MEMORIES (Use these to connect patterns, but don't repeat them explicitly):\n"
         for mem in context_memories:
             memory_block += f"- [{mem['date']}]: {mem['full_message']}\n"
     
     base_instruction = "You are 'The Void'. Infinite, safe emptiness. Absorb pain." if is_void else "You are Celi. Analyze the user's day based on their text and/or image. Be warm and observant. Keep responses concise (under 3 sentences)."
     system_instruction = base_instruction + memory_block
     
+    # Construct Content Payload
     content = [msg]
     has_media = False
     if media_bytes and media_mime and 'image' in media_mime:
         has_media = True
         content.append({'mime_type': media_mime, 'data': media_bytes})
 
-    # Try Primary Models
+    # Try generating with media first
     for m in candidates:
         try:
             model = genai.GenerativeModel(m, system_instruction=system_instruction)
             response = model.generate_content(content)
-            if not response.text: raise Exception("Empty")
+            if not response.text: raise Exception("Empty response")
             return response.text.strip()
         except Exception as e:
-            print(f"Model Error ({m}): {e}")
+            print(f"DEBUG: Model Error ({m}): {e}")
             continue
 
-    # Fallback Text Only
+    # FALLBACK: If media generation failed, try text-only
     if has_media:
+        print("⚠️ Media processing failed. Retrying with text-only fallback...")
         try:
-            model = genai.GenerativeModel("gemini-1.5-flash", system_instruction=system_instruction)
+            # Fallback to lite model for speed/stability
+            model = genai.GenerativeModel("gemini-2.5-flash-lite", system_instruction=system_instruction)
             response = model.generate_content(msg + " [Image attached but signal weak]")
             return response.text.strip()
-        except: pass
+        except Exception as e:
+            print(f"Fallback Error: {e}")
 
-    return "Signal Lost. Visual/Text processing failed. Check connection."
+    return "Signal Lost. Visual/Text processing failed. Please check your API Key or connection."
 
 # ==================================================
 #                 ROUTES
