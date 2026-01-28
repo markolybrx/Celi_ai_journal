@@ -14,7 +14,6 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
 import google.generativeai as genai
 from pymongo import MongoClient
-from celery import Celery
 
 # --- IMPORT RANK LOGIC ---
 from rank_system import process_daily_rewards, update_rank_check, get_rank_meta, get_all_ranks_data
@@ -55,7 +54,8 @@ if mongo_uri:
 # --- CONFIG: AI CORE ---
 api_key = os.environ.get("GEMINI_API_KEY")
 if api_key:
-    try: genai.configure(api_key=api_key.strip().replace("'", "").replace('"', ""))
+    try: 
+        genai.configure(api_key=api_key.strip().replace("'", "").replace('"', ""))
     except: pass
 
 # ==================================================
@@ -114,13 +114,26 @@ def find_similar_memories(user_id, query_text):
 # ==================================================
 
 def generate_analysis(entry_text):
+    """Generates psychological analysis for the Archive Modal."""
     try:
         model = genai.GenerativeModel("gemini-2.0-flash")
-        prompt = f"Analyze this journal entry psychologically. Be warm, insightful, and brief (max 2 sentences). Entry: {entry_text}"
+        # V12.16: Updated prompt for human-like analysis
+        prompt = f"Provide a warm, human-like psychological insight about this journal entry. Speak directly to 'You'. Keep it to 1 or 2 sentences max. Entry: {entry_text}"
         response = model.generate_content(prompt)
         return response.text.strip()
     except:
         return "Analysis unavailable due to signal interference."
+
+def generate_summary(entry_text):
+    """Generates a natural 1-2 sentence recap for the Calendar Echo."""
+    try:
+        model = genai.GenerativeModel("gemini-2.0-flash")
+        # V12.16: Updated prompt for natural recap
+        prompt = f"Write a 1 or 2 sentence recap of this entry addressed to 'You', as if you are a supportive friend remembering it. Do not start with 'You mentioned'. Entry: {entry_text}"
+        response = model.generate_content(prompt)
+        return response.text.strip().replace('"', '').replace("'", "")
+    except:
+        return entry_text[:50] + "..."
 
 def generate_constellation_name(entries_text):
     try:
@@ -132,6 +145,7 @@ def generate_constellation_name(entries_text):
         return "Unknown Constellation"
 
 def generate_with_media(msg, media_bytes=None, media_mime=None, is_void=False, context_memories=[]):
+    """Main generation logic for Celi/Void responses."""
     candidates = ["gemini-2.0-flash", "gemini-2.0-flash-lite"]
     
     memory_block = ""
@@ -140,7 +154,7 @@ def generate_with_media(msg, media_bytes=None, media_mime=None, is_void=False, c
         for mem in context_memories:
             memory_block += f"- [{mem['date']}]: {mem['full_message']}\n"
     
-    base_instruction = "You are 'The Void'. Infinite, safe emptiness. Absorb pain." if is_void else "You are Celi. Analyze the user's day based on their text and/or image. Be warm and observant."
+    base_instruction = "You are 'The Void'. Infinite, safe emptiness. Absorb pain." if is_void else "You are Celi. Analyze the user's day based on their text and/or image. Be warm and observant. Keep responses concise (under 3 sentences)."
     system_instruction = base_instruction + memory_block
     
     content = [msg]
@@ -151,11 +165,13 @@ def generate_with_media(msg, media_bytes=None, media_mime=None, is_void=False, c
         try:
             model = genai.GenerativeModel(m, system_instruction=system_instruction)
             response = model.generate_content(content)
+            if not response.text: raise Exception("Empty response")
             return response.text.strip()
         except Exception as e:
             print(f"Model Error ({m}): {e}")
             continue
-    return "⚠️ Signal Lost. Visual/Text processing failed."
+            
+    return "Signal Lost. Visual/Text processing failed."
 
 # ==================================================
 #                 ROUTES
@@ -201,13 +217,27 @@ def update_pfp():
     try:
         file = request.files['pfp']
         if file:
-            # Upload to GridFS
             file_id = fs.put(file.read(), filename=f"pfp_{session['user_id']}", content_type=file.mimetype)
-            # Update User DB with Link
             pfp_url = f"/api/media/{file_id}"
             users_col.update_one({"user_id": session['user_id']}, {"$set": {"profile_pic": pfp_url}})
             return jsonify({"status": "success", "url": pfp_url})
         return jsonify({"status": "error", "message": "No file"})
+    except Exception as e: return jsonify({"status": "error", "message": str(e)})
+
+@app.route('/api/update_profile', methods=['POST'])
+def update_profile():
+    if 'user_id' not in session: return jsonify({"status": "error", "message": "Auth required"}), 401
+    try:
+        data = request.json
+        updates = {}
+        if 'first_name' in data: updates['first_name'] = data['first_name']
+        if 'last_name' in data: updates['last_name'] = data['last_name']
+        if 'aura_color' in data: updates['aura_color'] = data['aura_color']
+        
+        if updates:
+            users_col.update_one({"user_id": session['user_id']}, {"$set": updates})
+            return jsonify({"status": "success"})
+        return jsonify({"status": "error", "message": "No changes detected"})
     except Exception as e: return jsonify({"status": "error", "message": str(e)})
 
 @app.route('/api/update_security', methods=['POST'])
@@ -312,7 +342,14 @@ def star_detail():
     image_url = f"/api/media/{entry['media_file_id']}" if entry.get('media_file_id') else None
     audio_url = f"/api/media/{entry['audio_file_id']}" if entry.get('audio_file_id') else None
 
-    return jsonify({"date": entry['date'], "analysis": analysis, "image_url": image_url, "audio_url": audio_url, "mode": entry.get('mode', 'journal')})
+    return jsonify({
+        "date": entry['date'], 
+        "analysis": analysis, 
+        "summary": entry.get('summary', ''),
+        "image_url": image_url, 
+        "audio_url": audio_url, 
+        "mode": entry.get('mode', 'journal')
+    })
 
 @app.route('/api/process', methods=['POST'])
 def process():
@@ -351,6 +388,9 @@ def process():
                 reply = generate_with_media(msg, image_bytes, image_mime, False, context_memories=past_memories)
                 if "open The Void" in reply: session['awaiting_void_confirm'] = True
 
+        # V12.16: Generate NATURAL Summary for Echo
+        summary_text = generate_summary(msg) if msg else "Visual Entry"
+
         constellation_name = None
         if reward_result.get('event') == 'constellation_complete':
             last_entries = history_col.find({"user_id": session['user_id']}, {'full_message': 1}).sort("timestamp", -1).limit(6)
@@ -361,7 +401,7 @@ def process():
             "user_id": session['user_id'],
             "timestamp": timestamp,
             "date": datetime.now().strftime("%Y-%m-%d"),
-            "summary": msg[:50] + "..." if msg else "Visual Entry",
+            "summary": summary_text,
             "full_message": msg,
             "reply": reply,
             "ai_analysis": None,
@@ -383,31 +423,20 @@ def process():
 
     except Exception as e:
         traceback.print_exc()
-        return jsonify({"reply": f"SYSTEM ERROR: {str(e)}"}), 500
+        return jsonify({"reply": f"Signal Lost. Visual/Text processing failed."}), 500
 
 @app.route('/api/clear_history', methods=['POST'])
 def clear_history():
     if 'user_id' not in session: 
         return jsonify({"status": "error", "message": "No active session"}), 401
-    
     try:
         user_id = session['user_id']
-        
-        # 1. Delete all journal entries (History)
         history_col.delete_many({"user_id": user_id})
-        
-        # 2. Delete the User Account (Profile)
         users_col.delete_one({"user_id": user_id})
-        
-        # 3. Kill the Session (Log out)
         session.clear()
-        
         return jsonify({"status": "success"})
-        
     except Exception as e:
-        print(f"Wipe Error: {e}")
         return jsonify({"status": "error", "message": str(e)}), 500
-
 
 @app.route('/sw.js')
 def service_worker(): return send_from_directory('static', 'sw.js', mimetype='application/javascript')
@@ -416,21 +445,3 @@ def service_worker(): return send_from_directory('static', 'sw.js', mimetype='ap
 def manifest(): return send_from_directory('static', 'manifest.json', mimetype='application/json')
 
 if __name__ == '__main__': app.run(debug=True, port=5000)
-
-# --- ADD THIS NEW ROUTE ---
-@app.route('/api/update_profile', methods=['POST'])
-def update_profile():
-    if 'user_id' not in session: return jsonify({"status": "error", "message": "Auth required"}), 401
-    try:
-        data = request.json
-        updates = {}
-        
-        if 'first_name' in data: updates['first_name'] = data['first_name']
-        if 'last_name' in data: updates['last_name'] = data['last_name']
-        if 'aura_color' in data: updates['aura_color'] = data['aura_color']
-        
-        if updates:
-            users_col.update_one({"user_id": session['user_id']}, {"$set": updates})
-            return jsonify({"status": "success"})
-        return jsonify({"status": "error", "message": "No changes detected"})
-    except Exception as e: return jsonify({"status": "error", "message": str(e)})
