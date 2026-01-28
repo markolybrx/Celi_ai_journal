@@ -109,7 +109,7 @@ html[data-theme="light"] #profile-pfp-large { background-color: #e5e7eb; }
     display: flex; align-items: center; justify-content: center;
     font-size: 20px; 
     font-weight: bold;
-    padding-bottom: 2px; /* V12.13: Push icon up slightly */
+    padding-bottom: 2px;
     cursor: pointer; box-shadow: 0 0 10px rgba(0,0,0,0.3);
     margin-right: 15px; 
     animation: pop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
@@ -210,6 +210,10 @@ html[data-theme="light"] .cal-picker {
 }
 
 /* 6. ARCHIVE MODAL MEDIA STYLES */
+/* V12.19: GHOST MODAL FIX - Default display: none */
+#archive-modal { display: none; }
+#archive-modal.active { display: flex; }
+
 .archive-media-container { width: 100%; border-radius: 12px; overflow: hidden; margin-top: 10px; border: 1px solid var(--border); }
 .archive-img { width: 100%; height: auto; display: block; }
 .archive-audio-box { width: 100%; padding: 10px; background: var(--input-bg); border-radius: 12px; margin-top: 10px; display: flex; align-items: center; }
