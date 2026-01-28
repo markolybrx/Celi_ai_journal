@@ -1,10 +1,7 @@
 <div class="echo-card" onclick="openChat('journal')">
-    <div class="echo-header">
-        <span class="echo-label">LAST CONVERSATION</span>
-        <span id="echo-date" class="echo-date">...</span>
+    <div class="flex justify-between items-center mb-2">
+        <span class="text-[9px] font-bold tracking-[2px] text-[var(--mood)] opacity-80">RECENT ECHO</span>
+        <span id="echo-date" class="text-[9px] font-mono opacity-50">...</span>
     </div>
-    <div class="echo-content">
-        <p id="echo-text" class="echo-text">It's been a while. How have you been?</p>
-        <div class="echo-fade-mask"></div>
-    </div>
+    <p id="echo-text" class="text-sm italic opacity-70 line-clamp-2">No recent memories found.</p>
 </div>
