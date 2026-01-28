@@ -1,16 +1,6 @@
-<header class="fixed top-0 left-0 right-0 h-[90px] flex justify-between items-center px-5 pt-4 z-[50] bg-gradient-to-b from-[var(--bg)] to-transparent pointer-events-none">
-    
-    <div class="pointer-events-auto flex flex-col">
-        <span id="greeting-text" class="text-xl font-bold tracking-tight text-[var(--text)]">Loading...</span>
-        <div class="flex items-center gap-2 text-[var(--text-muted)] text-xs mt-1">
-            <span id="rank-display" class="uppercase tracking-widest font-bold text-[var(--mood)]">...</span>
-        </div>
+<div class="app-header">
+    <div class="logo-group"><div class="logo">Celi</div><div class="version-tag">v1.0.0</div></div>
+    <div class="header-pfp" id="nav-pfp" onclick="openModal('profile-modal')">
+        <img id="pfp-img" src="" onerror="this.src='https://ui-avatars.com/api/?name=User&background=333&color=fff'">
     </div>
-
-    <div class="pointer-events-auto" onclick="openModal('profile-modal')">
-        <div id="nav-pfp" class="header-pfp shadow-lg">
-            <img id="pfp-img" src="" alt="Profile" onerror="this.src='https://ui-avatars.com/api/?name=User&background=333&color=fff'">
-        </div>
-    </div>
-
-</header>
+</div>
